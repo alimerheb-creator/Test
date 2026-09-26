@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Sixth Front</title>
+<meta name="description" content="A browser combined-arms shooter: 5-flag Conquest, destructible buildings, tanks, four classes and AI squads.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@700;900&family=Saira+Semi+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js" } }
+</script>
+</head>
+<body class="in-menu">
+<canvas id="game"></canvas>
+<canvas id="overlay" hidden></canvas>
+<div id="vignette"></div>
+<div id="suppress"></div>
+<div id="scope" hidden><div class="scope-ring"></div><div class="scope-h"></div><div class="scope-v"></div></div>
+
+<!-- ============================== HUD -->
+<div id="hud" hidden>
+  <div id="hud-top">
+    <div class="tickets tf">
+      <div class="tk-line"><span class="tk-name">VANGUARD</span><b id="tk0">250</b></div>
+      <div class="tk-bar"><i id="tkb0"></i></div>
+    </div>
+    <div id="flag-row"></div>
+    <div class="tickets te">
+      <div class="tk-line"><b id="tk1">250</b><span class="tk-name">ONYX</span></div>
+      <div class="tk-bar"><i id="tkb1"></i></div>
+    </div>
+  </div>
+  <div id="banner"></div>
+  <div id="toast"></div>
+  <div id="killfeed"></div>
+  <div id="popups"></div>
+  <div id="capture" hidden><div id="cap-label"></div><div class="cap-bar"><i id="cap-fill"></i></div></div>
+  <div id="prompt" hidden><span id="prompt-text"></span><div class="prompt-bar"><i id="prompt-fill"></i></div></div>
+  <div id="oob" hidden><b>RETURN TO THE BATTLEFIELD</b><span id="oob-t">10</span></div>
+  <div id="downed" hidden>
+    <p class="dn-eyebrow">YOU ARE DOWN</p>
+    <p id="downed-by"></p>
+    <p class="dn-wait">Waiting for a revive · bleeding out in <b id="downed-t">14</b>s</p>
+    <p class="dn-hint"><kbd>SPACE</kbd> give up and redeploy</p>
+  </div>
+
+  <div id="bl">
+    <div id="squad-box"><h4 id="squad-name">SQUAD ALPHA</h4><ul id="squad-list"></ul></div>
+    <canvas id="minimap"></canvas>
+  </div>
+
+  <div id="br">
+    <div id="weapon-block">
+      <div id="w-name">M4K CARBINE</div>
+      <div class="ammo"><b id="w-mag">30</b><span id="w-res">150</span></div>
+      <div id="w-mode">AUTO</div>
+      <div class="kit"><span id="w-gadget"></span><span id="w-nades"></span></div>
+    </div>
+    <div id="vehicle-hud" hidden>
+      <div class="vh-title">MBT-6 ARBITER</div>
+      <div class="vh-row"><span>ARMOR</span><b id="v-hp-num">100</b></div>
+      <div class="bar"><i id="v-hp"></i></div>
+      <div class="vh-row"><span id="v-weap">120MM CANNON</span></div>
+      <div class="bar thin"><i id="v-reload"></i></div>
+      <div class="vh-keys"><kbd>1</kbd> cannon <kbd>2</kbd> coax MG <kbd>E</kbd> exit</div>
+    </div>
+    <div class="health"><span>HP</span><div class="bar"><i id="hp-fill"></i></div><b id="hp-num">100</b></div>
+  </div>
+
+  <div id="scoreboard" hidden></div>
+  <div id="bigmap" hidden><canvas id="bigmap-canvas"></canvas></div>
+</div>
+
+<!-- ============================== Touch controls -->
+<div id="touch" hidden>
+  <div id="look-zone"></div>
+  <div id="stick"><div id="stick-knob"></div></div>
+  <div class="t-buttons">
+    <button data-act="fire" class="t-fire">FIRE</button>
+    <button data-act="ads" class="t-ads">AIM</button>
+    <button data-act="jump">JUMP</button>
+    <button data-act="crouch">CROUCH</button>
+    <button data-act="reload">RELOAD</button>
+    <button data-act="grenade">NADE</button>
+    <button data-act="weapon1">1</button>
+    <button data-act="weapon2">2</button>
+    <button data-act="gadget">3</button>
+    <button data-act="use">USE</button>
+    <button data-act="spot">SPOT</button>
+    <button data-act="melee">KNIFE</button>
+  </div>
+  <button id="touch-pause" aria-label="Pause">II</button>
+</div>
+
+<!-- ============================== Main menu -->
+<section id="menu-main" class="screen" hidden>
+  <div class="mm-col">
+    <p class="eyebrow">CONQUEST <span>·</span> KARSA VALLEY <span>·</span> 5 OBJECTIVES</p>
+    <h1 class="title">SIXTH<br>FRONT</h1>
+    <p class="tag">Two armies, one valley, and a town that won't be standing by the end of it. Take the flags, bleed their tickets, bring the walls down.</p>
+    <button id="btn-play" class="btn primary">DEPLOY</button>
+    <div class="settings">
+      <label for="set-name">CALLSIGN<input id="set-name" maxlength="16" autocomplete="off"></label>
+      <label for="set-bots">SOLDIERS PER SIDE
+        <select id="set-bots"><option value="8">8 v 8</option><option value="12">12 v 12</option><option value="16">16 v 16</option><option value="20">20 v 20</option></select>
+      </label>
+      <label for="set-diff">AI SKILL
+        <select id="set-diff"><option value="easy">RECRUIT</option><option value="normal">REGULAR</option><option value="hard">VETERAN</option></select>
+      </label>
+      <label for="set-tickets">TICKETS
+        <select id="set-tickets"><option value="150">150 · SHORT</option><option value="250">250 · STANDARD</option><option value="400">400 · LONG</option></select>
+      </label>
+      <label for="set-quality">GRAPHICS
+        <select id="set-quality"><option value="low">LOW</option><option value="medium">MEDIUM</option><option value="high">HIGH</option></select>
+      </label>
+      <label for="set-sens">MOUSE SENSITIVITY <output id="sens-val"></output><input id="set-sens" type="range" min="0.2" max="3" step="0.05"></label>
+      <label for="set-fov">FIELD OF VIEW <output id="fov-val"></output><input id="set-fov" type="range" min="50" max="80" step="1"></label>
+      <label for="set-vol">VOLUME <output id="vol-val"></output><input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
+    </div>
+  </div>
+  <aside class="mm-controls">
+    <h2>FIELD MANUAL</h2>
+    <dl>
+      <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move</dd>
+      <dt><kbd>SHIFT</kbd></dt><dd>Sprint</dd>
+      <dt><kbd>C</kbd></dt><dd>Crouch · slide while sprinting</dd>
+      <dt><kbd>Z</kbd></dt><dd>Prone</dd>
+      <dt><kbd>SPACE</kbd></dt><dd>Jump</dd>
+      <dt><kbd>LMB</kbd> <kbd>RMB</kbd></dt><dd>Fire · aim down sights</dd>
+      <dt><kbd>R</kbd></dt><dd>Reload</dd>
+      <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></dt><dd>Primary · sidearm · gadget</dd>
+      <dt><kbd>G</kbd></dt><dd>Frag grenade</dd>
+      <dt><kbd>V</kbd></dt><dd>Knife (from behind: takedown)</dd>
+      <dt><kbd>Q</kbd></dt><dd>Spot enemy</dd>
+      <dt><kbd>E</kbd></dt><dd>Enter tank · hold to revive</dd>
+      <dt><kbd>TAB</kbd> <kbd>M</kbd></dt><dd>Scoreboard · map</dd>
+      <dt><kbd>ESC</kbd></dt><dd>Pause</dd>
+    </dl>
+    <p class="note">Rockets, 40mm, C-4 and tank shells tear through walls. Knock out enough of a ground floor and the building collapses on whoever is inside.</p>
+  </aside>
+</section>
+
+<!-- ============================== Deploy -->
+<section id="menu-deploy" class="screen" hidden>
+  <header class="dp-head">
+    <h2>DEPLOY</h2>
+    <div class="dp-score"><span class="f">VANGUARD <b id="dp-tk0">250</b></span><span id="dp-flags"></span><span class="e"><b id="dp-tk1">250</b> ONYX</span></div>
+  </header>
+  <div class="dp-body">
+    <div id="dp-classes"></div>
+    <div class="dp-map-wrap"><canvas id="dp-map"></canvas></div>
+    <div class="dp-side">
+      <h3>SPAWN POINT</h3>
+      <div id="dp-spawns"></div>
+      <button id="btn-deploy" class="btn primary">DEPLOY</button>
+      <button id="btn-deploy-menu" class="btn ghost">MAIN MENU</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== Pause -->
+<section id="menu-pause" class="screen" hidden>
+  <div class="panel">
+    <h2>PAUSED</h2>
+    <button id="btn-resume" class="btn primary">RESUME</button>
+    <button id="btn-redeploy" class="btn">REDEPLOY</button>
+    <label for="pause-sens">MOUSE SENSITIVITY<input id="pause-sens" type="range" min="0.2" max="3" step="0.05"></label>
+    <button id="btn-quit" class="btn ghost">QUIT TO MENU</button>
+  </div>
+</section>
+
+<!-- ============================== After action -->
+<section id="menu-end" class="screen" hidden>
+  <div class="panel wide">
+    <p class="eyebrow">AFTER ACTION REPORT</p>
+    <h2 id="end-title">VICTORY</h2>
+    <p id="end-sub"></p>
+    <div id="end-stats"></div>
+    <h3>TOP OF THE TABLE</h3>
+    <ol id="end-mvp"></ol>
+    <div class="row">
+      <button id="btn-again" class="btn primary">PLAY AGAIN</button>
+      <button id="btn-end-menu" class="btn ghost">MAIN MENU</button>
+    </div>
+  </div>
+</section>
+
+<div id="loading">
+  <div class="ld-title">SIXTH FRONT</div>
+  <div class="ld-bar"><i id="load-fill"></i></div>
+  <div id="load-label">Loading</div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
