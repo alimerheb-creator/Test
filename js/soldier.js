@@ -20,47 +20,65 @@ const GEO = new Map();
 function limb(x0, y0, z0, x1, y1, z1, t, c) {
   const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
   const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  return { s: [t, t, len], p: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], c, r: [-Math.asin(dy / len), Math.atan2(dx, dz), 0] };
+  const geo = new THREE.CapsuleGeometry(t / 2, Math.max(0.01, len - t), 2, 7);
+  geo.rotateX(Math.PI / 2);
+  return { geo, p: [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2], c, r: [-Math.asin(dy / len), Math.atan2(dx, dz), 0] };
+}
+
+function sphere(r, sx, sy, sz, p, c, partial = false) {
+  const geo = partial
+    ? new THREE.SphereGeometry(r, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.55)
+    : new THREE.SphereGeometry(r, 10, 8);
+  geo.scale(sx, sy, sz);
+  return { geo, p, c };
 }
 
 function modelGeos(team, skin) {
   const key = `${team}:${skin}`;
   if (GEO.has(key)) return GEO.get(key);
   const T = TEAMS[team];
-  const gunDark = 0x1f2022, gunMid = 0x2c2d30;
+  const gunDark = 0x1f2022, gunMid = 0x2c2d30, glove = 0x2a2724;
   const torso = mergeParts([
-    { s: [0.42, 0.52, 0.25], p: [0, 0.28, 0], c: T.top },
-    { s: [0.47, 0.36, 0.31], p: [0, 0.3, 0], c: T.vest },
-    { s: [0.12, 0.1, 0.05], p: [-0.12, 0.22, -0.17], c: T.vest },
-    { s: [0.12, 0.1, 0.05], p: [0.12, 0.22, -0.17], c: T.vest },
-    { s: [0.34, 0.4, 0.16], p: [0, 0.32, 0.22], c: T.vest },
-    { s: [0.12, 0.1, 0.12], p: [0, 0.56, 0], c: skin },
-    { s: [0.2, 0.24, 0.22], p: [0, 0.72, -0.01], c: skin },
-    { s: [0.27, 0.15, 0.29], p: [0, 0.86, 0], c: T.helmet },
-    { s: [0.29, 0.04, 0.32], p: [0, 0.8, 0.01], c: T.helmet },
-    { s: [0.16, 0.05, 0.03], p: [0, 0.74, -0.125], c: 0x1a1a1a },
+    // torso, vest, pouches, pack
+    { s: [0.4, 0.5, 0.24], p: [0, 0.28, 0], c: T.top },
+    { s: [0.45, 0.34, 0.3], p: [0, 0.3, 0], c: T.vest },
+    { s: [0.11, 0.11, 0.06], p: [-0.12, 0.2, -0.17], c: T.vest },
+    { s: [0.11, 0.11, 0.06], p: [0.0, 0.2, -0.17], c: T.vest },
+    { s: [0.11, 0.11, 0.06], p: [0.12, 0.2, -0.17], c: T.vest },
+    { s: [0.33, 0.38, 0.15], p: [0, 0.32, 0.21], c: T.vest },
+    { s: [0.28, 0.08, 0.12], p: [0, 0.54, 0.22], c: T.helmet },
+    sphere(0.085, 1, 1, 1, [-0.215, 0.47, 0.0], T.top),
+    sphere(0.085, 1, 1, 1, [0.215, 0.47, 0.0], T.top),
+    // neck, head, helmet with rim and goggles
+    { geo: new THREE.CylinderGeometry(0.055, 0.06, 0.1, 8), p: [0, 0.57, 0], c: skin },
+    sphere(0.11, 1, 1.15, 1.05, [0, 0.71, -0.01], skin),
+    sphere(0.145, 1, 0.95, 1.08, [0, 0.74, 0.0], T.helmet, true),
+    { geo: new THREE.CylinderGeometry(0.152, 0.152, 0.025, 14), p: [0, 0.745, 0.005], c: T.helmet },
+    { s: [0.17, 0.045, 0.03], p: [0, 0.735, -0.115], c: 0x1a1a1a },
     // right arm to pistol grip, left arm to handguard
-    limb(0.24, 0.48, 0.02, 0.22, 0.28, -0.16, 0.12, T.top),
+    limb(0.22, 0.47, 0.02, 0.22, 0.28, -0.16, 0.115, T.top),
     limb(0.22, 0.28, -0.16, 0.08, 0.3, -0.36, 0.1, T.top),
-    limb(-0.24, 0.48, 0.02, -0.2, 0.3, -0.22, 0.12, T.top),
+    limb(-0.22, 0.47, 0.02, -0.2, 0.3, -0.22, 0.115, T.top),
     limb(-0.2, 0.3, -0.22, 0.03, 0.36, -0.56, 0.1, T.top),
-    { s: [0.09, 0.09, 0.09], p: [0.08, 0.3, -0.38], c: 0x2a2724 },
-    { s: [0.09, 0.09, 0.09], p: [0.04, 0.35, -0.58], c: 0x2a2724 },
+    sphere(0.05, 1, 1, 1.2, [0.08, 0.3, -0.38], glove),
+    sphere(0.05, 1, 1, 1.2, [0.04, 0.35, -0.58], glove),
     // rifle
-    { s: [0.07, 0.11, 0.6], p: [0.06, 0.38, -0.5], c: gunMid },
-    { s: [0.05, 0.16, 0.08], p: [0.06, 0.27, -0.46], c: gunDark },
-    { s: [0.03, 0.03, 0.26], p: [0.06, 0.4, -0.93], c: gunDark },
-    { s: [0.06, 0.1, 0.22], p: [0.06, 0.35, -0.1], c: gunDark },
-    { s: [0.04, 0.05, 0.12], p: [0.06, 0.46, -0.45], c: gunDark },
+    { s: [0.06, 0.1, 0.42], p: [0.06, 0.38, -0.45], c: gunMid },
+    { s: [0.06, 0.07, 0.22], p: [0.06, 0.38, -0.76], c: gunDark },
+    { s: [0.045, 0.15, 0.07], p: [0.06, 0.27, -0.46], c: gunDark },
+    { geo: new THREE.CylinderGeometry(0.014, 0.014, 0.3, 8), r: [Math.PI / 2, 0, 0], p: [0.06, 0.39, -0.99], c: gunDark },
+    { s: [0.05, 0.09, 0.22], p: [0.06, 0.35, -0.12], c: gunDark },
+    { s: [0.04, 0.05, 0.08], p: [0.06, 0.455, -0.48], c: gunDark },
   ]);
   const leg = mergeParts([
-    { s: [0.16, 0.88, 0.19], p: [0, -0.44, 0], c: T.pants },
-    { s: [0.17, 0.12, 0.05], p: [0, -0.48, -0.105], c: T.vest },
-    { s: [0.17, 0.13, 0.28], p: [0, -0.9, -0.04], c: 0x2b2622 },
+    { geo: new THREE.CapsuleGeometry(0.085, 0.7, 2, 7), p: [0, -0.44, 0], c: T.pants },
+    { s: [0.16, 0.12, 0.05], p: [0, -0.46, -0.09], c: T.vest },
+    { s: [0.15, 0.12, 0.28], p: [0, -0.9, -0.045], c: 0x2b2622 },
   ]);
   const pelvis = mergeParts([
-    { s: [0.38, 0.2, 0.24], p: [0, 0, 0], c: T.pants },
-    { s: [0.4, 0.06, 0.26], p: [0, 0.08, 0], c: 0x2f2b24 },
+    { s: [0.37, 0.2, 0.23], p: [0, 0, 0], c: T.pants },
+    { s: [0.39, 0.06, 0.25], p: [0, 0.08, 0], c: 0x2f2b24 },
+    { s: [0.08, 0.1, 0.06], p: [0.2, -0.04, -0.02], c: T.vest },
   ]);
   const g = { torso, leg, pelvis };
   GEO.set(key, g);
@@ -129,7 +147,7 @@ export class Soldier {
 
   // ------------------------------------------------------------ model
   _buildModel() {
-    if (!MAT) MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0.05 });
+    if (!MAT) MAT = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82, metalness: 0.04, envMapIntensity: 0.6 });
     const g = modelGeos(this.team, this.skin);
     const root = new THREE.Group();
     const body = new THREE.Group();

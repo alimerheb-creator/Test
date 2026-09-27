@@ -7,7 +7,30 @@ no asset files to download.
 It is an original game inspired by large-scale Conquest shooters. It is not affiliated with EA or DICE
 and uses none of their assets.
 
-## Play it
+## Android app
+
+A ready-to-install APK is in [`apk/SixthFront.apk`](apk/SixthFront.apk) (about 0.5 MB, works offline).
+
+1. Download the APK on your phone.
+2. Open it and allow "Install unknown apps" for your browser or file manager when Android asks.
+3. Launch **Sixth Front**. It runs full-screen in landscape. The back button pauses, and from the main menu it exits.
+
+Needs Android 7.0 or newer with OpenGL ES 3.0 (almost every phone from the last several years). It is
+signed with the debug key in `android/debug.keystore` (password `android`), so future builds from this repo
+install as updates. For a Play Store release, sign with your own key instead.
+
+To rebuild it yourself (Ubuntu/Debian; no Android Studio or Gradle needed):
+
+```bash
+sudo apt-get install aapt dalvik-exchange zipalign apksigner android-sdk-platform-23 default-jdk nodejs npm
+npm install
+npm run build:apk        # writes android/build/SixthFront.apk
+```
+
+`npm run build:web` alone produces the same offline web build (single bundled script, local fonts) in
+`android/build/assets/www`, which you can host anywhere.
+
+## Play it in a browser
 
 ES modules need to be served over HTTP (opening `index.html` straight from disk won't work):
 
@@ -37,7 +60,15 @@ Any static file server works (`npx serve`, GitHub Pages, etc.). three.js is load
 - **Battlefield staples**: downed state and revives, squads with squad spawning, spotting, suppression,
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
   sliding, prone, out-of-bounds timer.
-- **Touch controls** on phones and tablets (virtual stick, fire/aim buttons, drag to look).
+- **Graphics**: HDR rendering with bloom, sun glare and lens ghosts, ACES tone mapping with colour grading,
+  film grain and vignette, image-based reflections, normal-mapped walls and ground, wind-blown grass,
+  textured smoke, MSAA and soft shadows. Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on
+  phones and High on desktop).
+- **Mobile controls**: virtual stick, drag-to-look, and a context button that appears when you can act
+  (hold to **revive** a downed teammate with a progress ring, enter or exit a tank, detonate C-4). There are
+  also buttons for prone, sprint (latches on), map and scoreboard, plus aim assist, optional auto-fire,
+  vibration, and adjustable look sensitivity and button size. When you're down, a button lets you give up
+  and redeploy.
 
 ## Controls
 
@@ -85,3 +116,12 @@ The game is split into small ES modules under `js/`:
 | `effects.js` | Particles, tracers, debris, flashes, camera shake |
 | `textures.js` | Procedural textures and the world-space UV material |
 | `util.js` | Math, noise and geometry helpers |
+| `post.js` | HDR post-processing: bloom, lens flare, tone mapping, grading, damage effects |
+| `grass.js` | GPU-instanced grass that follows the camera |
+
+The Android wrapper lives in `android/`: `MainActivity.java` hosts the game in a full-screen WebView and
+serves the bundled files from inside the APK, `prepare-web.mjs` builds the offline bundle, and
+`build-apk.sh` compiles, packages and signs the APK.
+
+Fonts (Big Shoulders Stencil, Saira Semi Condensed, IBM Plex Mono) are under the SIL Open Font License;
+the license texts are in `android/fonts/`.

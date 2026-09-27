@@ -35,7 +35,16 @@ export class HUD {
       downed: $('downed'), downedBy: $('downed-by'), downedT: $('downed-t'),
       scoreboard: $('scoreboard'), bigmap: $('bigmap'), bigmapCanvas: $('bigmap-canvas'),
       scope: $('scope'), vignette: $('vignette'), suppress: $('suppress'), squadName: $('squad-name'),
+      ctxBtn: $('t-context'), ctxLabel: $('t-context-label'), giveUp: $('btn-giveup'),
     };
+    this.vibeT = 0;
+    const giveUp = (e) => {
+      e.preventDefault();
+      const P = this.game.player;
+      if (P && P.state === 'downed' && this.game.playerCtl.deathT > 0.6) P.bleedOut();
+    };
+    this.el.giveUp.addEventListener('click', giveUp);
+    this.el.giveUp.addEventListener('touchstart', giveUp, { passive: false });
     this.hit = { t: 0, head: false, kill: false, veh: false };
     this.dmgMarks = [];
     this.suppression = 0;
@@ -76,6 +85,8 @@ export class HUD {
     this.root.hidden = !v;
     this.overlay.hidden = !v;
     if (!v) {
+      document.body.classList.remove('downed');
+      this.last.downed = false;
       this.el.scope.hidden = true;
       this.el.vignette.style.opacity = '0';
       this.el.suppress.style.opacity = '0';
@@ -179,6 +190,7 @@ export class HUD {
     if (victim !== g.player) return;
     this.hurtFlash = Math.min(1, this.hurtFlash + amount / 40);
     g.audio.hurt();
+    if (g.time - this.vibeT > 0.15) { this.vibeT = g.time; g.vibrate(amount > 40 ? 70 : 28); }
     if (attacker && attacker !== victim) this._addDamageMark(attacker.pos);
   }
 
@@ -235,6 +247,7 @@ export class HUD {
     this.hit.kill = kill;
     this.hit.veh = veh;
     if (!veh) this.game.audio.hit(head || kill);
+    if (kill) this.game.vibrate([18, 30, 18]);
   }
 
   suppress(a) { this.suppression = Math.min(1, this.suppression + a * 0.35); }
@@ -314,6 +327,20 @@ export class HUD {
     this.el.hp.style.width = hp + '%';
     this.el.hp.classList.toggle('low', hp < 35);
     this._set('hpn', this.el.hpNum, String(Math.ceil(hp)));
+
+    // touch context button (revive / tank / detonate) and downed state
+    if (g.input.touchMode) {
+      const ctx = P.state === 'alive' ? g.playerCtl.context : null;
+      const btn = this.el.ctxBtn;
+      if (!ctx) { if (!btn.hidden) btn.hidden = true; }
+      else {
+        btn.hidden = false;
+        if (this.last.ctx !== ctx.label) { this.last.ctx = ctx.label; this.el.ctxLabel.textContent = ctx.label; btn.dataset.kind = ctx.kind; }
+        btn.style.setProperty('--p', String(ctx.progress || 0));
+      }
+    }
+    const downedNow = P.state === 'downed';
+    if (this.last.downed !== downedNow) { this.last.downed = downedNow; document.body.classList.toggle('downed', downedNow); }
 
     // capture status
     let inFlag = null;

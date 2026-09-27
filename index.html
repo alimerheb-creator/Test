@@ -45,6 +45,7 @@
     <p id="downed-by"></p>
     <p class="dn-wait">Waiting for a revive · bleeding out in <b id="downed-t">14</b>s</p>
     <p class="dn-hint"><kbd>SPACE</kbd> give up and redeploy</p>
+    <button id="btn-giveup" class="btn">GIVE UP · REDEPLOY</button>
   </div>
 
   <div id="bl">
@@ -79,19 +80,23 @@
   <div id="look-zone"></div>
   <div id="stick"><div id="stick-knob"></div></div>
   <div class="t-buttons">
-    <button data-act="fire" class="t-fire">FIRE</button>
-    <button data-act="ads" class="t-ads">AIM</button>
-    <button data-act="jump">JUMP</button>
-    <button data-act="crouch">CROUCH</button>
-    <button data-act="reload">RELOAD</button>
-    <button data-act="grenade">NADE</button>
+    <button data-act="scoreboard">SCORE</button>
+    <button data-act="map">MAP</button>
+    <button data-act="prone">PRONE</button>
+    <button data-act="spot">SPOT</button>
+    <button data-act="melee">KNIFE</button>
     <button data-act="weapon1">1</button>
     <button data-act="weapon2">2</button>
     <button data-act="gadget">3</button>
-    <button data-act="use">USE</button>
-    <button data-act="spot">SPOT</button>
-    <button data-act="melee">KNIFE</button>
+    <button data-act="reload">RELOAD</button>
+    <button data-act="grenade">NADE</button>
+    <button data-act="sprint">SPRINT</button>
+    <button data-act="jump">JUMP</button>
+    <button data-act="crouch">CROUCH</button>
+    <button data-act="fire" class="t-fire">FIRE</button>
+    <button data-act="ads" class="t-ads">AIM</button>
   </div>
+  <button id="t-context" data-act="use" hidden><span id="t-context-label">USE</span></button>
   <button id="touch-pause" aria-label="Pause">II</button>
 </div>
 
@@ -114,16 +119,33 @@
         <select id="set-tickets"><option value="150">150 · SHORT</option><option value="250">250 · STANDARD</option><option value="400">400 · LONG</option></select>
       </label>
       <label for="set-quality">GRAPHICS
-        <select id="set-quality"><option value="low">LOW</option><option value="medium">MEDIUM</option><option value="high">HIGH</option></select>
+        <select id="set-quality"><option value="auto">AUTO</option><option value="low">LOW</option><option value="medium">MEDIUM</option><option value="high">HIGH</option><option value="ultra">ULTRA</option></select>
       </label>
       <label for="set-sens">MOUSE SENSITIVITY <output id="sens-val"></output><input id="set-sens" type="range" min="0.2" max="3" step="0.05"></label>
       <label for="set-fov">FIELD OF VIEW <output id="fov-val"></output><input id="set-fov" type="range" min="50" max="80" step="1"></label>
       <label for="set-vol">VOLUME <output id="vol-val"></output><input id="set-vol" type="range" min="0" max="1" step="0.05"></label>
     </div>
+    <div class="settings touch-settings">
+      <p class="group-title">TOUCH CONTROLS</p>
+      <label for="set-tsens">LOOK SENSITIVITY <output id="tsens-val"></output><input id="set-tsens" type="range" min="0.3" max="3" step="0.05"></label>
+      <label for="set-bscale">BUTTON SIZE <output id="bscale-val"></output><input id="set-bscale" type="range" min="0.8" max="1.4" step="0.05"></label>
+      <label class="check" for="set-assist"><input id="set-assist" type="checkbox"> AIM ASSIST</label>
+      <label class="check" for="set-autofire"><input id="set-autofire" type="checkbox"> AUTO-FIRE ON TARGET</label>
+      <label class="check" for="set-vibe"><input id="set-vibe" type="checkbox"> VIBRATION</label>
+    </div>
   </div>
   <aside class="mm-controls">
     <h2>FIELD MANUAL</h2>
-    <dl>
+    <dl class="touch-only">
+      <dt>STICK</dt><dd>Move · push to the edge to sprint</dd>
+      <dt>DRAG</dt><dd>Drag the right side of the screen to look (FIRE drags too)</dd>
+      <dt>AIM</dt><dd>Tap to toggle aiming down sights</dd>
+      <dt>RING</dt><dd>The round button appears when you can act: hold to revive, tap to enter or exit a tank, tap to detonate C-4</dd>
+      <dt>SPRINT</dt><dd>Latches on until you let go of the stick</dd>
+      <dt>MAP · SCORE</dt><dd>Tap to open, tap again to close</dd>
+      <dt>II</dt><dd>Pause, graphics and control settings</dd>
+    </dl>
+    <dl class="desk-only">
       <dt><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></dt><dd>Move</dd>
       <dt><kbd>SHIFT</kbd></dt><dd>Sprint</dd>
       <dt><kbd>C</kbd></dt><dd>Crouch · slide while sprinting</dd>
@@ -135,7 +157,7 @@
       <dt><kbd>G</kbd></dt><dd>Frag grenade</dd>
       <dt><kbd>V</kbd></dt><dd>Knife (from behind: takedown)</dd>
       <dt><kbd>Q</kbd></dt><dd>Spot enemy</dd>
-      <dt><kbd>E</kbd></dt><dd>Enter tank · hold to revive</dd>
+      <dt><kbd>E</kbd></dt><dd>Enter tank · hold to revive · detonate C-4</dd>
       <dt><kbd>TAB</kbd> <kbd>M</kbd></dt><dd>Scoreboard · map</dd>
       <dt><kbd>ESC</kbd></dt><dd>Pause</dd>
     </dl>
@@ -167,7 +189,13 @@
     <h2>PAUSED</h2>
     <button id="btn-resume" class="btn primary">RESUME</button>
     <button id="btn-redeploy" class="btn">REDEPLOY</button>
-    <label for="pause-sens">MOUSE SENSITIVITY<input id="pause-sens" type="range" min="0.2" max="3" step="0.05"></label>
+    <label for="pause-sens" class="desk-only">MOUSE SENSITIVITY<input id="pause-sens" type="range" min="0.2" max="3" step="0.05"></label>
+    <label for="pause-tsens" class="touch-only">LOOK SENSITIVITY<input id="pause-tsens" type="range" min="0.3" max="3" step="0.05"></label>
+    <label for="pause-quality">GRAPHICS
+      <select id="pause-quality"><option value="auto">AUTO</option><option value="low">LOW</option><option value="medium">MEDIUM</option><option value="high">HIGH</option><option value="ultra">ULTRA</option></select>
+    </label>
+    <label class="check touch-only" for="pause-assist"><input id="pause-assist" type="checkbox"> AIM ASSIST</label>
+    <label class="check touch-only" for="pause-autofire"><input id="pause-autofire" type="checkbox"> AUTO-FIRE ON TARGET</label>
     <button id="btn-quit" class="btn ghost">QUIT TO MENU</button>
   </div>
 </section>

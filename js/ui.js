@@ -21,6 +21,13 @@ export class UI {
   show(name) {
     for (const k of Object.keys(this.screens)) this.screens[k].hidden = k !== name;
     document.body.classList.toggle('in-menu', !!name);
+    if (name === 'pause') {
+      const s = this.game.settings;
+      $('pause-sens').value = String(s.sensitivity);
+      $('pause-tsens').value = String(s.touchSens);
+      $('pause-quality').value = String(s.quality);
+      this._syncChecks();
+    }
   }
 
   // ------------------------------------------------------------ main menu
@@ -43,14 +50,43 @@ export class UI {
     bind('set-fov', 'fov', Number, () => { $('fov-val').textContent = `${s.fov}°`; });
     bind('set-quality', 'quality', (v) => v, () => g.applyQuality());
     bind('set-vol', 'volume', Number, () => { g.audio.setVolume(s.volume); $('vol-val').textContent = `${Math.round(s.volume * 100)}%`; });
-    $('sens-val').textContent = s.sensitivity.toFixed(2);
-    $('fov-val').textContent = `${s.fov}°`;
-    $('vol-val').textContent = `${Math.round(s.volume * 100)}%`;
+    bind('set-tsens', 'touchSens', Number, () => { g.input.touchSens = s.touchSens; this._syncLabels(); });
+    bind('set-bscale', 'buttonScale', Number, () => { this.applyTouchLayout(); this._syncLabels(); });
+    const check = (id, key) => {
+      const el = $(id);
+      el.checked = !!s[key];
+      el.addEventListener('change', () => { s[key] = el.checked; saveSettings(s); this._syncChecks(); });
+    };
+    check('set-assist', 'aimAssist');
+    check('set-autofire', 'autoFire');
+    check('set-vibe', 'vibration');
+    this._syncLabels();
     $('btn-play').addEventListener('click', () => {
       g.audio.unlock();
       g.audio.click();
       g.startMatch();
     });
+  }
+
+  _syncLabels() {
+    const s = this.game.settings;
+    $('sens-val').textContent = s.sensitivity.toFixed(2);
+    $('fov-val').textContent = `${s.fov}°`;
+    $('vol-val').textContent = `${Math.round(s.volume * 100)}%`;
+    $('tsens-val').textContent = s.touchSens.toFixed(2);
+    $('bscale-val').textContent = `${Math.round(s.buttonScale * 100)}%`;
+  }
+
+  _syncChecks() {
+    const s = this.game.settings;
+    for (const [id, key] of [['set-assist', 'aimAssist'], ['set-autofire', 'autoFire'], ['set-vibe', 'vibration'], ['pause-assist', 'aimAssist'], ['pause-autofire', 'autoFire']]) {
+      const el = $(id);
+      if (el) el.checked = !!s[key];
+    }
+  }
+
+  applyTouchLayout() {
+    document.documentElement.style.setProperty('--ts', String(this.game.settings.buttonScale || 1));
   }
 
   // ------------------------------------------------------------ deploy
@@ -153,14 +189,26 @@ export class UI {
     $('btn-resume').addEventListener('click', () => { g.audio.click(); g.resume(); });
     $('btn-redeploy').addEventListener('click', () => { g.audio.click(); g.suicideRedeploy(); });
     $('btn-quit').addEventListener('click', () => { g.audio.click(); g.quitToMenu(); });
-    const sens = $('pause-sens');
-    sens.value = String(g.settings.sensitivity);
-    sens.addEventListener('input', () => {
-      g.settings.sensitivity = Number(sens.value);
-      $('set-sens').value = sens.value;
-      $('sens-val').textContent = g.settings.sensitivity.toFixed(2);
-      saveSettings(g.settings);
-    });
+    const s = g.settings;
+    const mirror = (id, key, mainId, after) => {
+      const el = $(id);
+      el.value = String(s[key]);
+      el.addEventListener('input', () => {
+        s[key] = el.type === 'range' ? Number(el.value) : el.value;
+        $(mainId).value = el.value;
+        saveSettings(s);
+        this._syncLabels();
+        if (after) after();
+      });
+    };
+    mirror('pause-sens', 'sensitivity', 'set-sens');
+    mirror('pause-tsens', 'touchSens', 'set-tsens', () => { g.input.touchSens = s.touchSens; });
+    mirror('pause-quality', 'quality', 'set-quality', () => g.applyQuality());
+    for (const [id, key] of [['pause-assist', 'aimAssist'], ['pause-autofire', 'autoFire']]) {
+      const el = $(id);
+      el.checked = !!s[key];
+      el.addEventListener('change', () => { s[key] = el.checked; saveSettings(s); this._syncChecks(); });
+    }
   }
 
   // ------------------------------------------------------------ after-action

@@ -174,7 +174,8 @@ export class World {
       col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: this.tex.ground, roughness: 0.97, metalness: 0 });
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: this.tex.ground, normalMap: this.tex.groundN, roughness: 0.96, metalness: 0 });
+    mat.normalScale.set(0.9, 0.9);
     this.terrain = new THREE.Mesh(geo, mat);
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
@@ -226,12 +227,49 @@ export class World {
     this.sky.renderOrder = -10;
     this.sky.frustumCulled = false;
     this.scene.add(this.sky);
+
+    // Image-based lighting: bake the sky into a prefiltered environment map for reflections
+    const renderer = this.game.renderer;
+    if (renderer) {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      const envScene = new THREE.Scene();
+      envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), mat));
+      this.envMap = pmrem.fromScene(envScene, 0.02, 0.1, 200).texture;
+      pmrem.dispose();
+      this.scene.environment = this.envMap;
+      this.scene.environmentIntensity = 0.55;
+    }
+  }
+
+  setShadowQuality(size, extent) {
+    const sun = this.sun;
+    const sc = sun.shadow.camera;
+    sc.left = -extent; sc.right = extent; sc.top = extent; sc.bottom = -extent;
+    sc.updateProjectionMatrix();
+    if (sun.shadow.mapSize.x !== size) {
+      sun.shadow.mapSize.set(size, size);
+      if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+    }
+  }
+
+  // 0..1 how much grass grows here (none on roads, in town squares, inside buildings or on rock)
+  grassDensity(x, z) {
+    let d = 1 - smoothstep(0.08, 0.4, fbm2(x * 0.011 + 40, z * 0.011 - 20, 3)) * 0.6;
+    for (const f of this.flatZones) {
+      const dist = Math.hypot(x - f.x, z - f.z);
+      if (dist < f.r0 + 8) d -= (1 - smoothstep(f.r0 * 0.55, f.r0 + 8, dist)) * f.town * 1.25;
+    }
+    if (Math.abs(x) < PLAY_HALF + 40 && Math.abs(z) < PLAY_HALF + 40) d -= 1 - smoothstep(3, 6.5, this._roadDist(x, z));
+    if (this._nearBuilding(x, z, 1.5)) return 0;
+    d -= smoothstep(0.14, 0.32, 1 - this.normalAt(x, z, _n).y);
+    d *= 0.55 + (fbm2(x * 0.09 + 7, z * 0.09, 2) * 0.5 + 0.5) * 0.9;
+    return clamp(d, 0, 1);
   }
 
   _buildLights() {
-    const hemi = new THREE.HemisphereLight(0xc8d4e0, 0x6b5a45, 1.15);
+    const hemi = new THREE.HemisphereLight(0xc8d4e0, 0x6b5a45, 0.8);
     this.scene.add(hemi);
-    const sun = new THREE.DirectionalLight(0xffdcb0, 2.7);
+    const sun = new THREE.DirectionalLight(0xffdcb0, 3.0);
     const q = this.game.settings.quality;
     sun.castShadow = q !== 'low';
     sun.shadow.mapSize.set(q === 'high' ? 2048 : 1024, q === 'high' ? 2048 : 1024);
@@ -579,8 +617,8 @@ export class World {
   _flushProps() {
     const unit = new THREE.BoxGeometry(1, 1, 1);
     const mats = {
-      concrete: worldUVMaterial({ map: this.tex.concrete, scale: 0.35 }),
-      metal: worldUVMaterial({ map: this.tex.metal, scale: 0.4, roughness: 0.7, metalness: 0.25 }),
+      concrete: worldUVMaterial({ map: this.tex.concrete, normalMap: this.tex.concreteN, normalScale: 0.8, scale: 0.35 }),
+      metal: worldUVMaterial({ map: this.tex.metal, normalMap: this.tex.metalN, normalScale: 0.9, scale: 0.4, roughness: 0.62, metalness: 0.35 }),
       sand: worldUVMaterial({ map: this.tex.sandbag, scale: 0.9, roughness: 1 }),
       wood: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }),
     };

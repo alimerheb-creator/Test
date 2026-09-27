@@ -21,6 +21,9 @@ const BINDINGS = {
   pause: ['Escape', 'KeyP'],
 };
 
+// Touch buttons that latch on/off instead of acting while held
+const TOGGLES = { ads: 'adsToggle', sprint: 'sprintToggle', map: 'mapToggle', scoreboard: 'scoreToggle' };
+
 export class Input {
   constructor(canvas) {
     this.canvas = canvas;
@@ -31,7 +34,9 @@ export class Input {
     this.lockFailed = false;
     this.enabled = false;
     this.touchMode = false;
-    this.touch = { mx: 0, my: 0, lookX: 0, lookY: 0, held: new Set(), pressed: new Set(), adsToggle: false };
+    this.touch = { mx: 0, my: 0, lookX: 0, lookY: 0, held: new Set(), pressed: new Set(), adsToggle: false, sprintToggle: false, mapToggle: false, scoreToggle: false };
+    this.touchSens = 1;
+    this.toggleButtons = {};
     this._bind();
   }
 
@@ -113,13 +118,17 @@ export class Input {
       knob.style.transform = `translate(${dx}px, ${dy}px)`;
       T.mx = dx / max; T.my = -dy / max;
     };
-    const endStick = () => { stickId = null; T.mx = 0; T.my = 0; knob.style.transform = ''; };
+    const endStick = () => {
+      stickId = null; T.mx = 0; T.my = 0; knob.style.transform = '';
+      this.setToggle('sprint', false);
+    };
 
     root.querySelectorAll('[data-act]').forEach((btn) => {
       const act = btn.dataset.act;
+      if (TOGGLES[act]) this.toggleButtons[act] = btn;
       btn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        if (act === 'ads') { T.adsToggle = !T.adsToggle; btn.classList.toggle('on', T.adsToggle); }
+        if (TOGGLES[act]) this.setToggle(act, !T[TOGGLES[act]]);
         T.held.add(act); T.pressed.add(act);
         for (const t of e.changedTouches) lookIds.set(t.identifier, { x: t.clientX, y: t.clientY, btn: act });
       }, { passive: false });
@@ -136,8 +145,8 @@ export class Input {
         if (t.identifier === stickId) { moveStick(t); continue; }
         const l = lookIds.get(t.identifier);
         if (l) {
-          T.lookX += (t.clientX - l.x) * 2.2;
-          T.lookY += (t.clientY - l.y) * 2.2;
+          T.lookX += (t.clientX - l.x) * 2.2 * this.touchSens;
+          T.lookY += (t.clientY - l.y) * 2.2 * this.touchSens;
           l.x = t.clientX; l.y = t.clientY;
         }
       }
@@ -147,7 +156,7 @@ export class Input {
         if (t.identifier === stickId) endStick();
         const l = lookIds.get(t.identifier);
         if (l) {
-          if (l.btn && l.btn !== 'ads') T.held.delete(l.btn);
+          if (l.btn && !TOGGLES[l.btn]) T.held.delete(l.btn);
           lookIds.delete(t.identifier);
         }
       }
@@ -156,13 +165,29 @@ export class Input {
     window.addEventListener('touchcancel', end);
   }
 
+  setToggle(act, on) {
+    const key = TOGGLES[act];
+    if (!key) return;
+    this.touch[key] = on;
+    const btn = this.toggleButtons[act];
+    if (btn) btn.classList.toggle('on', on);
+  }
+
+  resetToggles() {
+    for (const act of Object.keys(TOGGLES)) this.setToggle(act, false);
+    this.touch.held.clear();
+  }
+
   // ------------------------------------------------------------ queries
   down(action) {
     if (!this.enabled) return false;
-    if (action === 'fire') return this.mouse.left || this.touch.held.has('fire');
-    if (action === 'ads') return this.mouse.right || this.touch.adsToggle;
-    if (this.touch.held.has(action)) return true;
-    if (action === 'sprint' && this.touchMode && this.touch.my > 0.92) return true;
+    const T = this.touch;
+    if (action === 'fire') return this.mouse.left || T.held.has('fire');
+    if (action === 'ads') return this.mouse.right || T.adsToggle;
+    if (action === 'sprint' && this.touchMode && (T.my > 0.92 || (T.sprintToggle && T.my > 0.3))) return true;
+    if (action === 'map' && T.mapToggle) return true;
+    if (action === 'scoreboard' && T.scoreToggle) return true;
+    if (!TOGGLES[action] && T.held.has(action)) return true;
     const b = BINDINGS[action];
     if (!b) return false;
     for (const k of b) if (this.keys.has(k)) return true;
@@ -172,7 +197,7 @@ export class Input {
   pressed(action) {
     if (!this.enabled) return false;
     if (action === 'fire') return this.mouse.leftPressed || this.touch.pressed.has('fire');
-    if (action === 'ads') return this.mouse.rightPressed;
+    if (action === 'ads') return this.mouse.rightPressed || this.touch.pressed.has('ads');
     if (this.touch.pressed.has(action)) return true;
     const b = BINDINGS[action];
     if (!b) return false;

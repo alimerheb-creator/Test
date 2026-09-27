@@ -5,7 +5,7 @@ import { rand, clamp } from './util.js';
 const _c = new THREE.Color();
 
 class ParticleSystem {
-  constructor(scene, max, additive) {
+  constructor(scene, max, additive, map) {
     this.max = max;
     this.count = 0;
     this.px = new Float32Array(max * 3);
@@ -18,35 +18,42 @@ class ParticleSystem {
     this.a0 = new Float32Array(max);
     this.grav = new Float32Array(max);
     this.drag = new Float32Array(max);
+    this.ang0 = new Float32Array(max);
+    this.spin = new Float32Array(max);
 
     const geo = new THREE.BufferGeometry();
     this.posAttr = new THREE.BufferAttribute(new Float32Array(max * 3), 3).setUsage(THREE.DynamicDrawUsage);
     this.colAttr = new THREE.BufferAttribute(new Float32Array(max * 4), 4).setUsage(THREE.DynamicDrawUsage);
     this.sizeAttr = new THREE.BufferAttribute(new Float32Array(max), 1).setUsage(THREE.DynamicDrawUsage);
+    this.angAttr = new THREE.BufferAttribute(new Float32Array(max), 1).setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute('angle', this.angAttr);
     geo.setAttribute('position', this.posAttr);
     geo.setAttribute('pcolor', this.colAttr);
     geo.setAttribute('size', this.sizeAttr);
     geo.setDrawRange(0, 0);
     this.uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { scale: { value: 600 } }]);
+    this.uniforms.map = { value: map };
     const mat = new THREE.ShaderMaterial({
       uniforms: this.uniforms,
-      vertexShader: `attribute float size; attribute vec4 pcolor; varying vec4 vColor; uniform float scale;
+      vertexShader: `attribute float size; attribute float angle; attribute vec4 pcolor; varying vec4 vColor; varying float vAngle; uniform float scale;
         #include <fog_pars_vertex>
         void main(){
           vColor = pcolor;
+          vAngle = angle;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           gl_PointSize = size * scale / max(0.1, -mvPosition.z);
           gl_Position = projectionMatrix * mvPosition;
           #include <fog_vertex>
         }`,
-      fragmentShader: `varying vec4 vColor;
+      fragmentShader: `varying vec4 vColor; varying float vAngle; uniform sampler2D map;
         #include <fog_pars_fragment>
         void main(){
           vec2 c = gl_PointCoord - 0.5;
-          float d = length(c);
-          if (d > 0.5) discard;
-          float a = smoothstep(0.5, 0.1, d);
-          gl_FragColor = vec4(vColor.rgb, vColor.a * a);
+          float cs = cos(vAngle), sn = sin(vAngle);
+          vec2 r = vec2(c.x * cs - c.y * sn, c.x * sn + c.y * cs) + 0.5;
+          vec4 t = texture2D(map, clamp(r, 0.0, 1.0));
+          gl_FragColor = vec4(vColor.rgb * t.rgb, vColor.a * t.a);
+          if (gl_FragColor.a < 0.003) discard;
           #include <fog_fragment>
           #include <colorspace_fragment>
         }`,
@@ -72,10 +79,12 @@ class ParticleSystem {
     _c.set(color);
     this.rgb[i * 3] = _c.r; this.rgb[i * 3 + 1] = _c.g; this.rgb[i * 3 + 2] = _c.b;
     this.a0[i] = alpha; this.grav[i] = gravity; this.drag[i] = drag;
+    this.ang0[i] = Math.random() * 6.283;
+    this.spin[i] = (Math.random() - 0.5) * 1.6;
   }
 
   update(dt) {
-    const pos = this.posAttr.array, col = this.colAttr.array, size = this.sizeAttr.array;
+    const pos = this.posAttr.array, col = this.colAttr.array, size = this.sizeAttr.array, ang = this.angAttr.array;
     let i = 0;
     while (i < this.count) {
       this.life[i] += dt;
@@ -95,12 +104,14 @@ class ParticleSystem {
       const fadeIn = Math.min(1, this.life[i] / 0.05 + 0.3);
       col[i * 4 + 3] = this.a0[i] * (1 - t) * (1 - t * 0.3) * fadeIn;
       size[i] = this.s0[i] + (this.s1[i] - this.s0[i]) * t;
+      ang[i] = this.ang0[i] + this.spin[i] * this.life[i];
       i++;
     }
     this.points.geometry.setDrawRange(0, this.count);
     this.posAttr.needsUpdate = true;
     this.colAttr.needsUpdate = true;
     this.sizeAttr.needsUpdate = true;
+    this.angAttr.needsUpdate = true;
   }
 
   _move(from, to) {
@@ -112,6 +123,7 @@ class ParticleSystem {
     this.life[to] = this.life[from]; this.maxLife[to] = this.maxLife[from];
     this.s0[to] = this.s0[from]; this.s1[to] = this.s1[from];
     this.a0[to] = this.a0[from]; this.grav[to] = this.grav[from]; this.drag[to] = this.drag[from];
+    this.ang0[to] = this.ang0[from]; this.spin[to] = this.spin[from];
   }
 
   clear() { this.count = 0; this.points.geometry.setDrawRange(0, 0); }
@@ -121,8 +133,9 @@ export class Effects {
   constructor(game) {
     this.game = game;
     const scene = game.scene;
-    this.smoke = new ParticleSystem(scene, 2600, false);
-    this.fire = new ParticleSystem(scene, 1400, true);
+    const tex = game.world.tex;
+    this.smoke = new ParticleSystem(scene, 2600, false, tex.smoke);
+    this.fire = new ParticleSystem(scene, 1400, true, tex.glow);
 
     // Debris chunks
     this.debrisMax = 260;

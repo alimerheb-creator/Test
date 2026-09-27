@@ -258,6 +258,7 @@ export class Combat {
     const cam = g.camera.position;
     const pd = Math.sqrt((cam.x - x) ** 2 + (cam.y - y) ** 2 + (cam.z - z) ** 2);
     g.effects.addShake(clamp(1.3 - pd / (r * 6), 0, 1.2));
+    if (pd < r * 4) g.vibrate(pd < r * 1.5 ? 120 : 50);
   }
 
   update(dt) {

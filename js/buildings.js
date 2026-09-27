@@ -174,7 +174,7 @@ export class Buildings {
 
   _buildMesh() {
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    this.mat = worldUVMaterial({ map: this.world.tex.plaster, scale: 0.32 });
+    this.mat = worldUVMaterial({ map: this.world.tex.plaster, normalMap: this.world.tex.plasterN, normalScale: 0.75, scale: 0.32 });
     this.mesh = new THREE.InstancedMesh(geo, this.mat, this.pieces.length);
     const col = new THREE.Color();
     for (const piece of this.pieces) {

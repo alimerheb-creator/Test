@@ -131,7 +131,7 @@ function buildViewmodel(kind) {
       box(g, M.poly, 0.03, 0.09, 0.04, 0, -0.08, 0.06, -0.3);
       box(g, M.poly, 0.03, 0.08, 0.04, 0, -0.07, -0.22, -0.2);
       box(g, M.metal, 0.018, 0.05, 0.04, -0.055, 0.05, -0.16);
-      sightY = 0.07; muzzleZ = -0.9; foreZ = -0.22; offset.set(0.04, 0.03, -0.34);
+      sightY = 0.07; muzzleZ = -0.9; foreZ = -0.22; offset.set(0.1, -0.03, -0.3);
       break;
     }
     case 'ugl':
@@ -231,6 +231,11 @@ export class PlayerController {
     this.lean = 0;
     this.vmKind = null;
     this.gadgetBackT = 0;
+    this.context = null;
+    this.assistScan = 0;
+    this.assistTarget = null;
+    this.autoScan = 0;
+    this.autoHit = false;
   }
 
   attach(s) {
@@ -300,6 +305,7 @@ export class PlayerController {
     const sens = 0.0022 * g.settings.sensitivity * fovRatio;
     s.yaw = wrapAngle(s.yaw - look.x * sens);
     s.pitch = clamp(s.pitch - look.y * sens, -1.45, 1.45);
+    if (inp.touchMode && g.settings.aimAssist) this._aimAssist(dt);
     this.swayX = clamp(this.swayX - look.x * 0.00025, -0.04, 0.04);
     this.swayY = clamp(this.swayY + look.y * 0.00025, -0.04, 0.04);
 
@@ -428,7 +434,8 @@ export class PlayerController {
       return;
     }
     const gun = s.gun, def = gun.def;
-    const trigger = def.kind === 'auto' ? inp.down('fire') : inp.pressed('fire');
+    let trigger = def.kind === 'auto' ? inp.down('fire') : inp.pressed('fire');
+    if (!trigger && inp.touchMode && g.settings.autoFire && !s.sprinting && this._enemyUnderCrosshair()) trigger = true;
     if (trigger && !s.sprinting) {
       if (gun.mag === 0) {
         if (!gun.reloading) {
@@ -458,27 +465,12 @@ export class PlayerController {
     }
   }
 
+  // Works out the context action (revive / enter tank / detonate) shared by the E key
+  // and the touch context button, and runs it.
   _interact(dt) {
-    const s = this.s, g = this.game, inp = g.input;
-    let prompt = null, progress = -1;
-    // tanks
-    for (const v of g.vehicles) {
-      if (!v.alive || v.driver || v.team !== s.team) continue;
-      if (v.pos.distanceTo(s.pos) < 5.5) {
-        prompt = '[E] ENTER TANK';
-        if (inp.pressed('use')) {
-          v.enter(s);
-          this.camYaw = v.turretYaw;
-          this.camPitch = -0.08;
-          this.tankWeapon = 0;
-          g.hud.setPrompt(null);
-          return;
-        }
-        break;
-      }
-    }
-    // revive
-    let target = null, bd = 2.4;
+    const s = this.s, g = this.game, inp = g.input, touch = inp.touchMode;
+    let ctx = null;
+    let target = null, bd = 3.2;
     for (const o of g.soldiers) {
       if (o.team !== s.team || o.state !== 'downed') continue;
       const d = o.pos.distanceTo(s.pos);
@@ -486,22 +478,106 @@ export class PlayerController {
     }
     if (target) {
       const need = s.cls.fastRevive ? 1.2 : 2.4;
+      const name = target.name.toUpperCase();
       if (inp.down('use')) {
         if (this.reviveTarget !== target) { this.reviveTarget = target; this.reviveT = 0; }
         this.reviveT += dt;
-        progress = this.reviveT / need;
-        prompt = `REVIVING ${target.name.toUpperCase()}`;
+        ctx = { kind: 'revive', label: 'REVIVING', prompt: `REVIVING ${name}`, progress: this.reviveT / need };
         if (this.reviveT >= need) {
           g.mode.revive(s, target);
+          g.vibrate([15, 40, 15]);
           this.reviveT = 0;
           this.reviveTarget = null;
+          ctx = null;
         }
       } else {
         this.reviveT = 0;
-        prompt = `HOLD [E] REVIVE ${target.name.toUpperCase()}`;
+        ctx = { kind: 'revive', label: 'HOLD TO REVIVE', prompt: touch ? `HOLD REVIVE · ${name}` : `HOLD [E] REVIVE ${name}`, progress: 0 };
       }
-    } else this.reviveT = 0;
-    g.hud.setPrompt(prompt, progress);
+    } else {
+      this.reviveT = 0;
+      for (const v of g.vehicles) {
+        if (!v.alive || v.driver || v.team !== s.team) continue;
+        if (v.pos.distanceTo(s.pos) < 5.5) {
+          ctx = { kind: 'enter', label: 'ENTER TANK', prompt: touch ? 'ENTER TANK' : '[E] ENTER TANK' };
+          if (inp.pressed('use')) {
+            v.enter(s);
+            this.camYaw = v.turretYaw;
+            this.camPitch = -0.08;
+            this.tankWeapon = 0;
+            this.context = null;
+            g.hud.setPrompt(null);
+            return;
+          }
+          break;
+        }
+      }
+      if (!ctx && g.combat.hasC4(s)) {
+        ctx = { kind: 'detonate', label: 'DETONATE', prompt: touch ? null : '[E] DETONATE C-4' };
+        if (inp.pressed('use') && g.combat.detonateC4(s)) g.audio.click();
+      }
+    }
+    this.context = ctx;
+    g.hud.setPrompt(ctx && ctx.prompt, ctx && ctx.progress !== undefined ? ctx.progress : -1);
+  }
+
+  // Touch aim assist: slows and gently pulls the aim toward an enemy near the crosshair
+  _aimAssist(dt) {
+    const s = this.s, g = this.game, inp = g.input;
+    this.assistScan -= dt;
+    if (this.assistScan <= 0) {
+      this.assistScan = 0.12;
+      this.assistTarget = null;
+      const eye = s.eye(_e), f = s.forward(_d);
+      let best = 0.13;
+      for (const e of g.soldiers) {
+        if (e.team === s.team || e.state !== 'alive' || e.vehicle) continue;
+        const c = e.chest(_v);
+        const dx = c.x - eye.x, dy = c.y - eye.y, dz = c.z - eye.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist > 120 || dist < 0.5) continue;
+        const ang = Math.acos(clamp((dx * f.x + dy * f.y + dz * f.z) / dist, -1, 1));
+        if (ang >= best) continue;
+        if (!g.world.lineClear(eye.x, eye.y, eye.z, c.x, c.y, c.z)) continue;
+        best = ang;
+        this.assistTarget = e;
+      }
+    }
+    const t = this.assistTarget;
+    if (!t || t.state !== 'alive') return;
+    const eye = s.eye(_e), c = t.chest(_v);
+    const dyaw = wrapAngle(yawTo(c.x - eye.x, c.z - eye.z) - s.yaw);
+    const dpitch = Math.atan2(c.y - eye.y, Math.hypot(c.x - eye.x, c.z - eye.z)) - s.pitch;
+    const engaged = inp.down('fire') || s.adsT > 0.5;
+    const k = Math.min(1, dt * (engaged ? 4.5 : 1.2));
+    s.yaw = wrapAngle(s.yaw + dyaw * k);
+    s.pitch = clamp(s.pitch + dpitch * k, -1.45, 1.45);
+  }
+
+  // True when a visible enemy sits inside a small cone around the crosshair (touch auto-fire)
+  _enemyUnderCrosshair() {
+    const s = this.s, g = this.game;
+    this.autoScan -= 1;
+    if (this.autoScan > 0) return this.autoHit;
+    this.autoScan = 3;
+    const gun = s.gun;
+    const range = gun ? gun.def.botRange * 1.3 : 80;
+    const eye = s.eye(_e), f = s.forward(_d);
+    let hit = false;
+    for (const e of g.soldiers) {
+      if (e.team === s.team || e.state !== 'alive' || e.vehicle) continue;
+      const c = e.chest(_v);
+      const dx = c.x - eye.x, dy = c.y - eye.y, dz = c.z - eye.z;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      if (dist > range || dist < 0.3) continue;
+      const ang = Math.acos(clamp((dx * f.x + dy * f.y + dz * f.z) / dist, -1, 1));
+      if (ang > Math.max(0.015, 0.42 / dist)) continue;
+      if (!g.world.lineClear(eye.x, eye.y, eye.z, c.x, c.y, c.z)) continue;
+      hit = true;
+      break;
+    }
+    this.autoHit = hit;
+    return hit;
   }
 
   // ------------------------------------------------------------ tank
@@ -524,10 +600,12 @@ export class PlayerController {
       const t = g.combat.spot(s, 0.1, 350);
       if (t) g.hud.toast('ENEMY SPOTTED');
     }
+    this.context = { kind: 'exit', label: 'EXIT TANK' };
     if (inp.pressed('use')) {
       v.removeDriver(s, true);
       s.yaw = this.camYaw;
       s.pitch = 0;
+      this.context = null;
       g.hud.setPrompt(null);
       return;
     }
@@ -537,6 +615,7 @@ export class PlayerController {
 
   whileDown(dt) {
     const s = this.s, g = this.game, inp = g.input;
+    this.context = null;
     this.deathT += dt;
     g.hud.setPrompt(null);
     if (s.state === 'downed' && this.deathT > 0.8 && (inp.pressed('jump') || inp.pressed('use'))) s.bleedOut();

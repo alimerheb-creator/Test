@@ -1,6 +1,6 @@
 // Game orchestrator: renderer, match lifecycle, main loop and camera modes.
 import * as THREE from 'three';
-import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, HQS } from './config.js';
+import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, HQS, QUALITY } from './config.js';
 import { Emitter, loadSettings, rand } from './util.js';
 import { World } from './world.js';
 import { Buildings } from './buildings.js';
@@ -15,6 +15,9 @@ import { PlayerController } from './player.js';
 import { Conquest } from './conquest.js';
 import { HUD } from './hud.js';
 import { UI } from './ui.js';
+import { PostFX } from './post.js';
+import { Grass } from './grass.js';
+import { SUN_DIR } from './world.js';
 
 export class Game extends Emitter {
   constructor() {
@@ -35,10 +38,12 @@ export class Game extends Emitter {
   async init(progress = () => {}) {
     const canvas = document.getElementById('game');
     this.canvas = canvas;
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    this.isTouch = !!(coarse && 'ontouchstart' in window);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = this.settings.quality !== 'low';
+    renderer.shadowMap.enabled = this.qualityPreset().shadows > 0;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.autoClear = false;
     this.renderer = renderer;
@@ -57,6 +62,8 @@ export class Game extends Emitter {
     this.effects = new Effects(this);
     this.buildings = new Buildings(this);
     this.buildings.generate();
+    this.grass = new Grass(this);
+    this.post = new PostFX(renderer);
     progress(0.65, 'Arming both sides');
     await step();
     this.audio = new GameAudio();
@@ -86,8 +93,10 @@ export class Game extends Emitter {
     });
     const touchBtn = document.getElementById('touch-pause');
     if (touchBtn) touchBtn.addEventListener('click', () => { if (this.state === 'playing') this.pause(); });
-    const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    if (coarse && 'ontouchstart' in window) this.input.setupTouch(document.getElementById('touch'));
+    if (this.isTouch) this.input.setupTouch(document.getElementById('touch'));
+    this.input.touchSens = this.settings.touchSens;
+    this.ui.applyTouchLayout();
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.onAppPause(); else this.onAppResume(); });
 
     this.on('bleedout', (s) => { if (s === this.player) this.deathDelay = 1.2; });
     this.on('kill', (e) => { if (e.victim === this.player && e.victim.state === 'dead') this.deathDelay = 2.2; });
@@ -110,20 +119,27 @@ export class Game extends Emitter {
     requestAnimationFrame((t) => this._loop(t));
   }
 
-  applyQuality() {
+  qualityName() {
     const q = this.settings.quality;
+    return QUALITY[q] ? q : this.isTouch ? 'medium' : 'high';
+  }
+
+  qualityPreset() { return QUALITY[this.qualityName()]; }
+
+  applyQuality() {
+    const Q = this.qualityPreset();
     const dpr = window.devicePixelRatio || 1;
-    this.renderer.setPixelRatio(q === 'high' ? Math.min(dpr, 1.75) : q === 'medium' ? Math.min(dpr, 1) : Math.min(dpr, 0.75));
-    const shadows = q !== 'low';
+    this.renderer.setPixelRatio(Math.min(dpr, Q.pixelRatio));
+    const shadows = Q.shadows > 0;
     const sun = this.world.sun;
-    const size = q === 'high' ? 2048 : 1024;
-    if (this.renderer.shadowMap.enabled !== shadows || sun.shadow.mapSize.x !== size) {
-      this.renderer.shadowMap.enabled = shadows;
-      sun.castShadow = shadows;
-      sun.shadow.mapSize.set(size, size);
-      if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
-      this.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
-    }
+    const needsRecompile = this.renderer.shadowMap.enabled !== shadows;
+    this.renderer.shadowMap.enabled = shadows;
+    sun.castShadow = shadows;
+    this.world.setShadowQuality(Math.max(512, Q.shadows), Q.shadowExtent);
+    if (needsRecompile) this.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
+    this.grass.setCount(Q.grass);
+    this.post.configure({ samples: Q.msaa, bloom: Q.bloom });
+    this.usePost = Q.post;
     this._resize();
   }
 
@@ -139,7 +155,33 @@ export class Game extends Emitter {
       this.playerCtl.vmCam.aspect = w / h;
       this.playerCtl.vmCam.updateProjectionMatrix();
     }
+    if (this.post) {
+      const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+      this.post.setSize(size.x, size.y);
+    }
     if (this.effects) this.effects.setScale(this.renderer.domElement.height, this.camera.fov);
+  }
+
+  vibrate(pattern) {
+    if (!this.isTouch || !this.settings.vibration || this.state !== 'playing') return;
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* unsupported */ }
+  }
+
+  // Android back button / app lifecycle hooks (also used by the web page's visibility events)
+  onBack() {
+    if (this.state === 'playing') { this.pause(); return 'paused'; }
+    if (this.state === 'paused') { this.resume(); return 'resumed'; }
+    if (this.state === 'deploy' || this.state === 'ended') { this.quitToMenu(); return 'menu'; }
+    return 'exit';
+  }
+
+  onAppPause() {
+    if (this.state === 'playing') this.pause();
+    try { if (this.audio.ctx) this.audio.ctx.suspend(); } catch (e) { /* ignore */ }
+  }
+
+  onAppResume() {
+    try { if (this.audio.ctx) this.audio.ctx.resume(); } catch (e) { /* ignore */ }
   }
 
   // ------------------------------------------------------------ match lifecycle
@@ -206,6 +248,7 @@ export class Game extends Emitter {
     const sp = this.mode.spawnPos(point, P.team);
     P.spawn(sp.x, sp.y, sp.z, sp.yaw);
     this.playerCtl.attach(P);
+    this.input.resetToggles();
     this.state = 'playing';
     this.ui.show(null);
     this.hud.show(true);
@@ -302,17 +345,45 @@ export class Game extends Emitter {
     if (this.state === 'playing' || this.state === 'paused') this.hud.update(dt);
     else if (this.state === 'deploy') this.ui.updateDeploy(dt);
 
+    this.grass.update(cam.position, this.time);
     if (render) {
       const r = this.renderer;
-      r.clear();
-      r.render(this.scene, cam);
       const pc = this.playerCtl;
-      if ((this.state === 'playing' || this.state === 'paused') && P.state === 'alive' && !P.vehicle && pc.vmRoot.visible) {
-        r.clearDepth();
-        r.render(pc.vmScene, pc.vmCam);
+      const showVM = (this.state === 'playing' || this.state === 'paused') && P.state === 'alive' && !P.vehicle && pc.vmRoot.visible;
+      if (this.usePost) {
+        this._postParams(dt);
+        this.post.render(this.scene, cam, showVM ? { scene: pc.vmScene, cam: pc.vmCam } : null, this.fx);
+      } else {
+        r.setRenderTarget(null);
+        r.clear();
+        r.render(this.scene, cam);
+        if (showVM) { r.clearDepth(); r.render(pc.vmScene, pc.vmCam); }
       }
     }
     this.input.endFrame();
+  }
+
+  // Values the post-processing pass needs: sun glare position/visibility and damage feedback
+  _postParams(dt) {
+    const fx = this.fx || (this.fx = { time: 0, hurt: 0, lowHp: 0, sunPos: new THREE.Vector2(), sunVis: 0, sunCheck: 0, sunTarget: 0 });
+    fx.time = this.time;
+    const cam = this.camera, P = this.player;
+    const playing = (this.state === 'playing' || this.state === 'paused') && P && P.state === 'alive';
+    fx.hurt = playing ? this.hud.hurtFlash : 0;
+    fx.lowHp = playing ? Math.max(0, Math.min(1, (45 - P.health) / 45)) : 0;
+    _v.copy(cam.position).addScaledVector(SUN_DIR, 900).project(cam);
+    const onScreen = _v.z < 1 && Math.abs(_v.x) < 1.2 && Math.abs(_v.y) < 1.2;
+    fx.sunPos.set(_v.x * 0.5 + 0.5, _v.y * 0.5 + 0.5);
+    fx.sunCheck -= dt;
+    if (fx.sunCheck <= 0) {
+      fx.sunCheck = 0.1;
+      const p = cam.position;
+      fx.sunTarget = onScreen && !this.world.raycast(p.x, p.y, p.z, SUN_DIR.x, SUN_DIR.y, SUN_DIR.z, 400, true).hit ? 1 : 0;
+      const edge = Math.max(Math.abs(_v.x), Math.abs(_v.y));
+      fx.sunTarget *= Math.max(0, 1 - Math.max(0, edge - 0.8) / 0.4);
+    }
+    if (!onScreen) fx.sunTarget = 0;
+    fx.sunVis += (fx.sunTarget - fx.sunVis) * Math.min(1, dt * 8);
   }
 
   _engineSound() {
