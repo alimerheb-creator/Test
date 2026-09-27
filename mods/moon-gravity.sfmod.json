@@ -1,0 +1,21 @@
+{
+  "format": "sixthfront-mod",
+  "id": "moon-gravity",
+  "name": "Moon Gravity",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "A quarter of normal gravity: huge jumps, floaty grenades, no fall damage and bigger explosions.",
+  "rules": {
+    "gravity": 5,
+    "fallDamage": false,
+    "explosionScale": 1.5
+  },
+  "movement": {
+    "jump": 8.5,
+    "airAccel": 20
+  },
+  "projectiles": {
+    "grenade": { "gravity": 6 },
+    "ugl": { "gravity": 4 }
+  }
+}

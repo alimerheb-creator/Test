@@ -24,12 +24,12 @@
 <div id="hud" hidden>
   <div id="hud-top">
     <div class="tickets tf">
-      <div class="tk-line"><span class="tk-name">VANGUARD</span><b id="tk0">250</b></div>
+      <div class="tk-line"><span class="tk-name" id="team-name-0">VANGUARD</span><b id="tk0">250</b></div>
       <div class="tk-bar"><i id="tkb0"></i></div>
     </div>
     <div id="flag-row"></div>
     <div class="tickets te">
-      <div class="tk-line"><b id="tk1">250</b><span class="tk-name">ONYX</span></div>
+      <div class="tk-line"><b id="tk1">250</b><span class="tk-name" id="team-name-1">ONYX</span></div>
       <div class="tk-bar"><i id="tkb1"></i></div>
     </div>
   </div>
@@ -61,7 +61,7 @@
       <div class="kit"><span id="w-gadget"></span><span id="w-nades"></span></div>
     </div>
     <div id="vehicle-hud" hidden>
-      <div class="vh-title">MBT-6 ARBITER</div>
+      <div class="vh-title" id="vh-title">MBT-6 ARBITER</div>
       <div class="vh-row"><span>ARMOR</span><b id="v-hp-num">100</b></div>
       <div class="bar"><i id="v-hp"></i></div>
       <div class="vh-row"><span id="v-weap">120MM CANNON</span></div>
@@ -106,7 +106,10 @@
     <p class="eyebrow">CONQUEST <span>·</span> KARSA VALLEY <span>·</span> 5 OBJECTIVES</p>
     <h1 class="title">SIXTH<br>FRONT</h1>
     <p class="tag">Two armies, one valley, and a town that won't be standing by the end of it. Take the flags, bleed their tickets, bring the walls down.</p>
-    <button id="btn-play" class="btn primary">DEPLOY</button>
+    <div class="mm-buttons">
+      <button id="btn-play" class="btn primary">DEPLOY</button>
+      <button id="btn-mods" class="btn">MODS</button>
+    </div>
     <div class="settings">
       <label for="set-name">CALLSIGN<input id="set-name" maxlength="16" autocomplete="off"></label>
       <label for="set-bots">SOLDIERS PER SIDE
@@ -165,11 +168,43 @@
   </aside>
 </section>
 
+<!-- ============================== Mods -->
+<section id="menu-mods" class="screen" hidden>
+  <div class="mods-wrap">
+    <header class="mods-head">
+      <p class="eyebrow">WORKSHOP</p>
+      <h2>MODS</h2>
+      <p class="mods-intro">Mods change weapons, classes, rules, tanks, teams and lighting, and can add new weapons and classes. When two mods change the same thing, the one lower in the list wins.</p>
+    </header>
+    <div class="mods-actions">
+      <label class="btn primary file-btn" for="mod-file">IMPORT MOD FILE<input id="mod-file" type="file" accept=".json,.sfmod,.txt,application/json,text/plain" multiple></label>
+      <button id="btn-mod-paste" class="btn">PASTE MOD TEXT</button>
+    </div>
+    <div id="mod-paste" hidden>
+      <label for="mod-paste-text" class="sr-only">Mod JSON</label>
+      <textarea id="mod-paste-text" rows="8" spellcheck="false" placeholder='{ "format": "sixthfront-mod", "name": "My Mod", "rules": { "gravity": 8 } }'></textarea>
+      <div class="row">
+        <button id="btn-mod-paste-add" class="btn primary">ADD MOD</button>
+        <button id="btn-mod-paste-cancel" class="btn ghost">CANCEL</button>
+      </div>
+    </div>
+    <p id="mod-msg" class="mod-msg" role="status"></p>
+    <h3>INSTALLED</h3>
+    <ul id="mod-list" class="mod-list"></ul>
+    <h3 id="mod-examples-title">EXAMPLE MODS</h3>
+    <ul id="mod-examples" class="mod-list"></ul>
+    <p class="mod-note">Mods with a script run code inside the game, so only import script mods you trust. The format is documented in MODDING.md in the game's repository.</p>
+    <div class="row mods-footer">
+      <button id="btn-mods-done" class="btn primary">APPLY &amp; BACK</button>
+    </div>
+  </div>
+</section>
+
 <!-- ============================== Deploy -->
 <section id="menu-deploy" class="screen" hidden>
   <header class="dp-head">
     <h2>DEPLOY</h2>
-    <div class="dp-score"><span class="f">VANGUARD <b id="dp-tk0">250</b></span><span id="dp-flags"></span><span class="e"><b id="dp-tk1">250</b> ONYX</span></div>
+    <div class="dp-score"><span class="f"><span id="dp-name-0">VANGUARD</span> <b id="dp-tk0">250</b></span><span id="dp-flags"></span><span class="e"><b id="dp-tk1">250</b> <span id="dp-name-1">ONYX</span></span></div>
   </header>
   <div class="dp-body">
     <div id="dp-classes"></div>

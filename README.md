@@ -70,6 +70,14 @@ Any static file server works (`npx serve`, GitHub Pages, etc.). three.js is load
   vibration, and adjustable look sensitivity and button size. When you're down, a button lets you give up
   and redeploy.
 
+## Mods
+
+Open **MODS** on the main menu to import a mod file, paste mod text, or add one of the bundled examples
+(Heavy Arsenal, Night Ops, Moon Gravity, Hardcore, Vampire Rounds). Mods can change or add weapons, gadgets,
+projectiles and classes, and can change movement, rules, scoring, tanks, team names and uniforms, bot skill,
+time of day and weather. They can also run scripts. The format is documented in [MODDING.md](MODDING.md), and
+[`mods/TEMPLATE.sfmod.json`](mods/TEMPLATE.sfmod.json) is a starting point for your own.
+
 ## Controls
 
 | Key | Action |
@@ -118,6 +126,7 @@ The game is split into small ES modules under `js/`:
 | `util.js` | Math, noise and geometry helpers |
 | `post.js` | HDR post-processing: bloom, lens flare, tone mapping, grading, damage effects |
 | `grass.js` | GPU-instanced grass that follows the camera |
+| `mods.js` | Mod loader: validation, applying/undoing mods, script API |
 
 The Android wrapper lives in `android/`: `MainActivity.java` hosts the game in a full-screen WebView and
 serves the bundled files from inside the APK, `prepare-web.mjs` builds the offline bundle, and

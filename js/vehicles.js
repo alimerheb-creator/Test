@@ -1,6 +1,6 @@
 // Main battle tank: drivable by the player or a bot, crushes walls and trees, stabilised turret.
 import * as THREE from 'three';
-import { TEAMS, HQS, WEAPONS, PLAY_HALF, SCORE } from './config.js';
+import { TEAMS, HQS, WEAPONS, PLAY_HALF, VEHICLES } from './config.js';
 import { mergeParts, clamp, wrapAngle, rayAABB, rand, dirFromAngles, randomInCone } from './util.js';
 import { Gun } from './weapons.js';
 
@@ -64,7 +64,7 @@ export class Tank {
     this.gunPitch = 0;
     this.pitch = 0;
     this.roll = 0;
-    this.maxHealth = 1000;
+    this.maxHealth = VEHICLES.tank.health;
     this.health = this.maxHealth;
     this.alive = false;
     this.exists = false;
@@ -107,6 +107,16 @@ export class Tank {
 
   _setWreck(w) {
     for (const m of [this.hullMesh, this.turretMesh, this.barrelMesh]) m.material = w ? WRECK : MAT;
+  }
+
+  // Rebuild the mesh after a mod changes the team's tank colour
+  rebuildModel() {
+    this.game.scene.remove(this.hull);
+    delete GEOS[this.team];
+    this._build();
+    this.coax = new Gun(WEAPONS.coax);
+    this.maxHealth = VEHICLES.tank.health;
+    this.health = Math.min(this.health, this.maxHealth);
   }
 
   spawn() {
@@ -194,7 +204,7 @@ export class Tank {
     if (!this.alive) return;
     this.alive = false;
     this.health = 0;
-    this.respawnT = 35;
+    this.respawnT = VEHICLES.tank.respawn;
     const g = this.game;
     g.effects.explosion(this.pos.x, this.pos.y + 1.5, this.pos.z, 1.6);
     g.effects.explosion(this.pos.x, this.pos.y + 2.5, this.pos.z, 1.0);
@@ -249,7 +259,7 @@ export class Tank {
 
   fireCannon() {
     const g = this.game;
-    this.reload = this.driver && this.driver.isPlayer ? 3.2 : 4.8;
+    this.reload = this.driver && this.driver.isPlayer ? VEHICLES.tank.reload : VEHICLES.tank.botReload;
     const tip = this.barrelTip(new THREE.Vector3());
     const dir = this.aimDir(new THREE.Vector3());
     g.combat.launch('shell', this.driver, tip, dir);
@@ -365,10 +375,11 @@ export class Tank {
     const inp = this.input;
     if (!this.driver) { inp.throttle = 0; inp.steer = 0; inp.fire = false; inp.fireMG = false; }
 
-    const target = inp.throttle >= 0 ? inp.throttle * 11 : inp.throttle * 5;
+    const T = VEHICLES.tank;
+    const target = inp.throttle >= 0 ? inp.throttle * T.speed : inp.throttle * T.reverse;
     const acc = Math.abs(target) > Math.abs(this.speed) ? 4.5 : 9;
     this.speed += clamp(target - this.speed, -acc * dt, acc * dt);
-    const turn = -inp.steer * 0.8 * (this.speed < -0.5 ? -1 : 1);
+    const turn = -inp.steer * T.turnRate * (this.speed < -0.5 ? -1 : 1);
     const oldYaw = this.yaw;
     this.yaw += turn * dt;
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw);
@@ -387,7 +398,7 @@ export class Tank {
 
     // Stabilised turret
     const rel = wrapAngle(inp.aimYaw - this.turretYaw);
-    const tr = 1.15 * dt;
+    const tr = T.turretSpeed * dt;
     this.turretYaw = wrapAngle(this.turretYaw + clamp(rel, -tr, tr));
     this.gunPitch += clamp(clamp(inp.aimPitch, -0.14, 0.38) - this.gunPitch, -0.8 * dt, 0.8 * dt);
 

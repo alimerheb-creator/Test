@@ -1,6 +1,6 @@
 // Guns (magazine/reload state), hitscan bullets, projectiles, explosions, crates, melee, spotting.
 import * as THREE from 'three';
-import { PROJECTILES, SCORE } from './config.js';
+import { PROJECTILES, SCORE, RULES } from './config.js';
 import { randomInCone, clamp, rand, wrapAngle } from './util.js';
 
 export class Gun {
@@ -94,13 +94,16 @@ export class Combat {
     const gun = s.gun;
     if (!gun || !gun.canFire()) return false;
     const def = gun.def;
-    gun.mag--;
+    if (!RULES.infiniteAmmo) gun.mag--;
     gun.cool = 60 / def.rpm;
     gun.bloom = Math.min(def.bloomMax, gun.bloom + def.bloom);
     const eye = opts.origin || s.eye(_eye);
     const muzzle = opts.muzzle || s.muzzle(_muz);
-    randomInCone(dir, spread, _dir);
-    this.fireBullet(s, eye, _dir, def, opts.dmgMul ?? 1, muzzle);
+    const pellets = Math.max(1, def.pellets || 1);
+    for (let i = 0; i < pellets; i++) {
+      randomInCone(dir, spread, _dir);
+      this.fireBullet(s, eye, _dir, def, opts.dmgMul ?? 1, muzzle, i < 3);
+    }
     s.lastFireT = this.game.time;
     s.miniUntil = Math.max(s.miniUntil, this.game.time + 1.2);
     this.game.audio.shot(def.sound, eye.x, eye.y, eye.z, s.isPlayer);
@@ -108,7 +111,7 @@ export class Combat {
     return true;
   }
 
-  fireBullet(shooter, o, dir, def, dmgMul, muzzle) {
+  fireBullet(shooter, o, dir, def, dmgMul, muzzle, tracer = true) {
     const g = this.game;
     const maxT = 600;
     const wh = g.world.raycast(o.x, o.y, o.z, dir.x, dir.y, dir.z, maxT);
@@ -128,7 +131,7 @@ export class Combat {
     }
     const px = o.x + dir.x * best, py = o.y + dir.y * best, pz = o.z + dir.z * best;
     if (victim) {
-      const dmg = dmgAt(def, best) * (head ? def.head : 1) * dmgMul;
+      const dmg = dmgAt(def, best) * (head ? def.head * RULES.headshotScale : 1) * dmgMul;
       const killed = victim.takeDamage(dmg, shooter, { weapon: def.name, headshot: head, dir: dir.clone() });
       g.effects.blood(px, py, pz, dir.x, dir.y, dir.z);
       if (shooter.isPlayer) g.hud.hitmarker(head, killed);
@@ -140,7 +143,7 @@ export class Combat {
       g.effects.impact(px, py, pz, nx, ny, nz, mat);
       g.audio.impact(px, py, pz, mat === 'metal');
     }
-    g.effects.tracer(muzzle.x, muzzle.y, muzzle.z, px, py, pz, shooter.team === 0 ? 0xffc46b : 0xff8a5a);
+    if (tracer) g.effects.tracer(muzzle.x, muzzle.y, muzzle.z, px, py, pz, def.tracer || (shooter.team === 0 ? 0xffc46b : 0xff8a5a));
 
     // Near misses crack past the player's head and suppress them
     const P = g.player;
@@ -157,9 +160,11 @@ export class Combat {
   }
 
   // ------------------------------------------------------------ projectiles
-  launch(type, owner, pos, dir, extraVel = null) {
-    const def = PROJECTILES[type];
-    const mesh = this.templates[type].clone();
+  launch(key, owner, pos, dir, extraVel = null) {
+    const def = PROJECTILES[key];
+    // Modded projectiles behave like the projectile they were based on
+    const type = def.behavior || key;
+    const mesh = (this.templates[type] || this.templates.grenade).clone();
     mesh.castShadow = type === 'crate';
     this.game.scene.add(mesh);
     const p = {
@@ -174,7 +179,7 @@ export class Combat {
 
   throwGrenade(s) {
     if (s.grenades <= 0 || (s.throwCd || 0) > 0) return false;
-    s.grenades--;
+    if (!RULES.infiniteAmmo) s.grenades--;
     s.throwCd = 1.0;
     const eye = s.eye(_eye);
     const f = s.forward(_dir);
@@ -211,7 +216,7 @@ export class Combat {
       this.launch('c4', s, eye.clone().addScaledVector(d, 0.5), d, _step.set(s.vel.x * 0.5, 0, s.vel.z * 0.5));
       s.gadgetCd = gd.reload;
     }
-    s.gadgetAmmo--;
+    if (!RULES.infiniteAmmo || s.gadget.recharge) s.gadgetAmmo--;
     return true;
   }
 
@@ -229,7 +234,7 @@ export class Combat {
 
   explode(x, y, z, def, owner) {
     const g = this.game;
-    const r = def.radius;
+    const r = def.radius * RULES.explosionScale;
     g.effects.explosion(x, y, z, clamp(r / 5.5, 0.6, 1.5));
     g.audio.explosion(x, y, z, clamp(r / 5.5, 0.6, 1.4));
     for (const s of g.soldiers) {
@@ -386,7 +391,7 @@ export class Combat {
       if (s.team !== p.team || s.state !== 'alive' || s.vehicle) continue;
       if (s.pos.distanceToSquared(p.pos) > 30) continue;
       let did = false;
-      if (s.health < 100) { s.health = Math.min(100, s.health + 12); did = true; }
+      if (s.health < RULES.playerHealth) { s.health = Math.min(RULES.playerHealth, s.health + RULES.playerHealth * 0.12); did = true; }
       for (const gun of s.guns) {
         if (gun.reserve < gun.def.reserve) { gun.reserve = Math.min(gun.def.reserve, gun.reserve + Math.ceil(gun.def.mag * 0.25)); did = true; }
       }

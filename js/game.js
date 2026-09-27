@@ -1,6 +1,6 @@
 // Game orchestrator: renderer, match lifecycle, main loop and camera modes.
 import * as THREE from 'three';
-import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, HQS, QUALITY } from './config.js';
+import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, CLASSES, HQS, QUALITY, VEHICLES, ATMOSPHERE } from './config.js';
 import { Emitter, loadSettings, rand } from './util.js';
 import { World } from './world.js';
 import { Buildings } from './buildings.js';
@@ -8,7 +8,7 @@ import { Effects } from './effects.js';
 import { GameAudio } from './audio.js';
 import { Input } from './input.js';
 import { Combat } from './weapons.js';
-import { Soldier } from './soldier.js';
+import { Soldier, clearSoldierModelCache } from './soldier.js';
 import { BotBrain } from './ai.js';
 import { Tank } from './vehicles.js';
 import { PlayerController } from './player.js';
@@ -18,6 +18,7 @@ import { UI } from './ui.js';
 import { PostFX } from './post.js';
 import { Grass } from './grass.js';
 import { SUN_DIR } from './world.js';
+import { ModManager } from './mods.js';
 
 export class Game extends Emitter {
   constructor() {
@@ -52,6 +53,8 @@ export class Game extends Emitter {
     this.camera.rotation.order = 'YXZ';
     this.scene.add(this.camera);
 
+    // Snapshot the untouched config before anything reads it, so mods can always be undone
+    this.mods = new ModManager(this);
     const step = () => new Promise((r) => setTimeout(r, 0));
     progress(0.1, 'Surveying terrain');
     await step();
@@ -75,6 +78,9 @@ export class Game extends Emitter {
     this.playerCtl = new PlayerController(this);
     this.hud = new HUD(this);
     this.ui = new UI(this);
+    progress(0.8, 'Loading mods');
+    this.mods.applyAll();
+    this.onModsApplied();
     progress(0.85, 'Briefing squads');
     await step();
 
@@ -162,6 +168,28 @@ export class Game extends Emitter {
     if (this.effects) this.effects.setScale(this.renderer.domElement.height, this.camera.fov);
   }
 
+  // Refresh everything that caches config values after mods were (re)applied
+  onModsApplied() {
+    clearSoldierModelCache();
+    for (const v of this.vehicles) v.rebuildModel();
+    const atm = this.world.applyAtmosphere(ATMOSPHERE);
+    this.exposure = atm.exposure;
+    this.renderer.toneMappingExposure = atm.exposure;
+    this.playerCtl.setViewmodelLight(atm.viewmodelLight ?? 1);
+    if (this.post) this.post.setExposure(atm.exposure);
+    if (!CLASSES[this.ui.selectedClass] || !CLASS_ORDER.includes(this.ui.selectedClass)) this.ui.selectedClass = CLASS_ORDER[0];
+    this.ui.renderClassCards();
+    this.ui.updateModsButton();
+    this.hud.updateLabels();
+  }
+
+  // Re-apply the mod list (called when leaving the mods screen) and restart the background battle
+  reloadMods() {
+    this.mods.applyAll();
+    this.onModsApplied();
+    if (this.state === 'menu') this.newMatch();
+  }
+
   vibrate(pattern) {
     if (!this.isTouch || !this.settings.vibration || this.state !== 'playing') return;
     try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* unsupported */ }
@@ -169,6 +197,7 @@ export class Game extends Emitter {
 
   // Android back button / app lifecycle hooks (also used by the web page's visibility events)
   onBack() {
+    if (this.state === 'menu' && !this.ui.screens.mods.hidden) { this.ui.closeMods(); return 'menu'; }
     if (this.state === 'playing') { this.pause(); return 'paused'; }
     if (this.state === 'paused') { this.resume(); return 'resumed'; }
     if (this.state === 'deploy' || this.state === 'ended') { this.quitToMenu(); return 'menu'; }
@@ -209,7 +238,7 @@ export class Game extends Emitter {
       for (let i = 0; i < count; i++) {
         const idx = team === 0 ? i + 1 : i;
         const s = new Soldier(this, {
-          team, name: names[ni++ % names.length], squad: Math.floor(idx / 4), classId: CLASS_ORDER[(idx + team) % 4],
+          team, name: names[ni++ % names.length], squad: Math.floor(idx / 4), classId: CLASS_ORDER[(idx + team) % CLASS_ORDER.length],
         });
         new BotBrain(this, s);
         s.state = 'dead';
@@ -218,12 +247,13 @@ export class Game extends Emitter {
         this.soldiers.push(s);
       }
     }
-    const tanksPerSide = n >= 10 ? 2 : 1;
+    const tanksPerSide = Math.max(0, Math.min(2, n >= 10 ? VEHICLES.tank.perTeam : Math.min(1, VEHICLES.tank.perTeam)));
     for (const v of this.vehicles) if (v.slot < tanksPerSide) v.spawn();
     this.playerCtl.attach(P);
     this.redeployT = 0;
     this.deathDelay = 0;
     this.playerCtl.deathYaw = undefined;
+    this.emit('matchStart', this);
   }
 
   startMatch() {
@@ -323,6 +353,7 @@ export class Game extends Emitter {
       for (const s of this.soldiers) if (s.throwCd > 0) s.throwCd -= dt;
       this.audio.ambient(dt);
       this._engineSound();
+      this.emit('tick', dt);
 
       if (this.state === 'playing' && P.state === 'dead') {
         this.deathDelay -= dt;
@@ -370,7 +401,7 @@ export class Game extends Emitter {
     const cam = this.camera, P = this.player;
     const playing = (this.state === 'playing' || this.state === 'paused') && P && P.state === 'alive';
     fx.hurt = playing ? this.hud.hurtFlash : 0;
-    fx.lowHp = playing ? Math.max(0, Math.min(1, (45 - P.health) / 45)) : 0;
+    fx.lowHp = playing ? Math.max(0, Math.min(1, (0.45 - P.health / P.maxHealth) / 0.45)) : 0;
     _v.copy(cam.position).addScaledVector(SUN_DIR, 900).project(cam);
     const onScreen = _v.z < 1 && Math.abs(_v.x) < 1.2 && Math.abs(_v.y) < 1.2;
     fx.sunPos.set(_v.x * 0.5 + 0.5, _v.y * 0.5 + 0.5);

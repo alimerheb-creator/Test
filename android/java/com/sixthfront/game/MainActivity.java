@@ -1,6 +1,8 @@
 package com.sixthfront.game;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.graphics.Color;
 import android.net.Uri;
@@ -29,8 +31,10 @@ import java.util.HashMap;
 public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String START_URL = "https://" + HOST + "/index.html";
+    private static final int PICK_MOD_FILE = 7001;
 
     private WebView web;
+    private ValueCallback<Uri[]> fileCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +58,7 @@ public class MainActivity extends Activity {
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
         s.setAllowFileAccess(false);
-        s.setAllowContentAccess(false);
+        s.setAllowContentAccess(true); // mod files picked from the phone arrive as content:// URIs
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
         s.setSupportZoom(false);
@@ -66,7 +70,25 @@ public class MainActivity extends Activity {
             WebView.setWebContentsDebuggingEnabled(true);
         }
 
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            // "IMPORT MOD FILE" in the game opens the system file picker
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (fileCallback != null) fileCallback.onReceiveValue(null);
+                fileCallback = callback;
+                Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
+                pick.addCategory(Intent.CATEGORY_OPENABLE);
+                pick.setType("*/*");
+                pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params != null && params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
+                try {
+                    startActivityForResult(Intent.createChooser(pick, "Import Sixth Front mod"), PICK_MOD_FILE);
+                    return true;
+                } catch (ActivityNotFoundException e) {
+                    fileCallback = null;
+                    return false;
+                }
+            }
+        });
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
@@ -146,6 +168,27 @@ public class MainActivity extends Activity {
 
     private void js(String code) {
         if (web != null) web.evaluateJavascript(code, null);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode != PICK_MOD_FILE) {
+            super.onActivityResult(requestCode, resultCode, data);
+            return;
+        }
+        if (fileCallback == null) return;
+        Uri[] result = null;
+        if (resultCode == RESULT_OK && data != null) {
+            if (data.getClipData() != null && data.getClipData().getItemCount() > 0) {
+                int n = data.getClipData().getItemCount();
+                result = new Uri[n];
+                for (int i = 0; i < n; i++) result[i] = data.getClipData().getItemAt(i).getUri();
+            } else if (data.getData() != null) {
+                result = new Uri[] { data.getData() };
+            }
+        }
+        fileCallback.onReceiveValue(result);
+        fileCallback = null;
     }
 
     @Override

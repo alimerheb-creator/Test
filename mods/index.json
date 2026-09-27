@@ -1,0 +1,9 @@
+{
+  "mods": [
+    { "file": "heavy-arsenal.sfmod.json", "id": "heavy-arsenal", "name": "Heavy Arsenal", "description": "New shotgun, battle rifle and a Breacher class." },
+    { "file": "night-ops.sfmod.json", "id": "night-ops", "name": "Night Ops", "description": "Night battle under the stars, green tracers, renamed armies." },
+    { "file": "moon-gravity.sfmod.json", "id": "moon-gravity", "name": "Moon Gravity", "description": "Low gravity, huge jumps, bigger explosions." },
+    { "file": "hardcore.sfmod.json", "id": "hardcore", "name": "Hardcore", "description": "60 health, no regeneration, deadlier headshots, tougher tanks." },
+    { "file": "vampire-rounds.sfmod.json", "id": "vampire-rounds", "name": "Vampire Rounds", "description": "Script mod: kills heal you and streaks pay out." }
+  ]
+}

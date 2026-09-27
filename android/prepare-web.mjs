@@ -26,6 +26,7 @@ await build({
 
 cpSync(join(root, 'css/style.css'), join(out, 'css/style.css'));
 cpSync(join(root, 'android/fonts'), join(out, 'fonts'), { recursive: true });
+cpSync(join(root, 'mods'), join(out, 'mods'), { recursive: true });
 
 let html = readFileSync(join(root, 'index.html'), 'utf8');
 html = html

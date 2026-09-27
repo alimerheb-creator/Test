@@ -188,3 +188,9 @@ export function loadSettings(defaults) {
 export function saveSettings(s) {
   try { localStorage.setItem('sixthfront.settings', JSON.stringify(s)); } catch (e) { /* ignore */ }
 }
+
+// Escape text before it goes into innerHTML (names and labels can come from mods)
+const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ESC[c]);
+}

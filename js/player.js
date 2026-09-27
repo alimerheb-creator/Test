@@ -1,7 +1,7 @@
 // First-person player controller: look/move/stances/slide, shooting, gadgets, viewmodels,
 // interaction (revive, enter tank), tank driving camera, and the death camera.
 import * as THREE from 'three';
-import { MOVE, PLAY_HALF, SCORE } from './config.js';
+import { MOVE, PLAY_HALF, SCORE, RULES } from './config.js';
 import { clamp, lerp, rand, wrapAngle, yawTo, dirFromAngles } from './util.js';
 
 const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Vector3();
@@ -120,6 +120,17 @@ function buildViewmodel(kind) {
       box(g, M.metal, 0.006, 0.01, 0.006, 0, 0.044, -0.13);
       sightY = 0.046; muzzleZ = -0.16; gripZ = 0.02; foreZ = 0.0; foreY = -0.06; offset.set(-0.03, 0.02, 0.02);
       break;
+    case 'shotgun':
+      box(g, M.metal, 0.055, 0.07, 0.3, 0, 0, -0.03);
+      cyl(g, M.metal, 0.016, 0.016, 0.5, 0, 0.018, -0.42);
+      cyl(g, M.poly, 0.019, 0.019, 0.36, 0, -0.022, -0.36);
+      box(g, M.tan, 0.058, 0.05, 0.16, 0, -0.024, -0.34);
+      box(g, M.poly, 0.032, 0.085, 0.042, 0, -0.07, 0.07, -0.3);
+      box(g, M.tan, 0.05, 0.085, 0.24, 0, -0.02, 0.22);
+      box(g, M.metal, 0.012, 0.012, 0.012, 0, 0.042, -0.65);
+      box(g, M.metal, 0.02, 0.014, 0.02, 0, 0.042, -0.06);
+      sightY = 0.045; muzzleZ = -0.68; foreZ = -0.34; offset.set(0, 0, -0.06);
+      break;
     case 'rpg': {
       cyl(g, M.olive, 0.042, 0.042, 1.0, 0.0, 0.0, -0.1);
       cyl(g, M.olive, 0.05, 0.05, 0.12, 0, 0, 0.38);
@@ -179,13 +190,15 @@ export class PlayerController {
     this.vmScene = new THREE.Scene();
     this.vmCam = new THREE.PerspectiveCamera(58, 1, 0.01, 10);
     this.vmScene.add(this.vmCam);
-    this.vmScene.add(new THREE.HemisphereLight(0xe4ebf2, 0x5a4c3e, 2.0));
+    const vmHemi = new THREE.HemisphereLight(0xe4ebf2, 0x5a4c3e, 2.0);
+    this.vmScene.add(vmHemi);
     const dl = new THREE.DirectionalLight(0xffe2bc, 2.6);
     dl.position.set(-1, 2, 1.5);
     this.vmScene.add(dl);
     const rim = new THREE.DirectionalLight(0x9fb8d0, 0.9);
     rim.position.set(1.5, 0.5, -1);
     this.vmScene.add(rim);
+    this.vmLights = [[vmHemi, 2.0], [dl, 2.6], [rim, 0.9]];
     this.vmRoot = new THREE.Group();
     this.vmCam.add(this.vmRoot);
     this.vm = null;
@@ -208,6 +221,11 @@ export class PlayerController {
     this.vmCam.add(this.knife);
 
     this.reset();
+  }
+
+  // Keep the weapon in your hands lit like the world around it (mods can switch to night)
+  setViewmodelLight(scale) {
+    for (const [light, base] of this.vmLights) light.intensity = base * scale;
   }
 
   reset() {
@@ -477,7 +495,7 @@ export class PlayerController {
       if (d < bd) { bd = d; target = o; }
     }
     if (target) {
-      const need = s.cls.fastRevive ? 1.2 : 2.4;
+      const need = RULES.reviveTime * (s.cls.fastRevive ? 0.5 : 1);
       const name = target.name.toUpperCase();
       if (inp.down('use')) {
         if (this.reviveTarget !== target) { this.reviveTarget = target; this.reviveT = 0; }

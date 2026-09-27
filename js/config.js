@@ -5,7 +5,32 @@ export const MAP_NAME = 'KARSA VALLEY';
 
 export const PLAY_HALF = 240;   // half-size of the playable square (m)
 export const WORLD_HALF = 560;  // half-size of the rendered terrain (m)
-export const GRAVITY = 20;
+
+// Match rules. Everything in this file is moddable (see MODDING.md); mods edit these objects in place.
+export const RULES = {
+  gravity: 20,            // m/s² for soldiers
+  playerHealth: 100,      // max health for every soldier
+  regenDelay: 5,          // seconds without damage before health regenerates
+  regenRate: 14,          // health per second
+  damageScale: 1,         // multiplies all weapon/explosion damage
+  headshotScale: 1,       // multiplies every weapon's headshot multiplier
+  explosionScale: 1,      // multiplies explosion radius
+  captureSpeed: 1,        // flag capture speed multiplier
+  bleedSpeed: 1,          // ticket bleed multiplier
+  reviveTime: 2.4,        // seconds to revive (support: half)
+  downedTime: 10,         // seconds a downed soldier can be revived
+  respawnTime: 5,         // bot redeploy delay after bleeding out
+  spawnProtection: 1.5,   // seconds of invulnerability after spawning
+  fallDamage: true,
+  infiniteAmmo: false,
+};
+
+export const VEHICLES = {
+  tank: { name: 'MBT-6 ARBITER', health: 1000, speed: 11, reverse: 5, turnRate: 0.8, turretSpeed: 1.15, reload: 3.2, botReload: 4.8, respawn: 35, perTeam: 2 },
+};
+
+// Lighting / weather. preset: dusk | noon | overcast | night (fields below override the preset)
+export const ATMOSPHERE = { preset: 'dusk' };
 
 export const TEAMS = [
   {

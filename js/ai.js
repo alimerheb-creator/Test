@@ -1,7 +1,7 @@
 // Bot brains: objective play, target acquisition with reaction time and aim error,
 // burst fire, grenades, anti-tank rockets, reviving teammates, crates and tank driving.
 import * as THREE from 'three';
-import { DIFFICULTY, MOVE, PROJECTILES } from './config.js';
+import { DIFFICULTY, MOVE, PROJECTILES, RULES } from './config.js';
 import { rand, randInt, clamp, wrapAngle, yawTo, dirFromAngles, chance } from './util.js';
 
 const _eye = new THREE.Vector3(), _t = new THREE.Vector3(), _d = new THREE.Vector3(), _c = new THREE.Vector3();
@@ -330,7 +330,7 @@ export class BotBrain {
             this.reviveT += dt;
             wantYaw = yawTo(o.pos.x - s.pos.x, o.pos.z - s.pos.z);
             wantPitch = -0.6;
-            if (this.reviveT >= (s.cls.fastRevive ? 1.2 : 2.4)) {
+            if (this.reviveT >= RULES.reviveTime * (s.cls.fastRevive ? 0.5 : 1)) {
               g.mode.revive(s, o);
               this.reviveTarget = null;
               this.reviveT = 0;

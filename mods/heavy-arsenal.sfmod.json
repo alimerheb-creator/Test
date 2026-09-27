@@ -1,0 +1,62 @@
+{
+  "format": "sixthfront-mod",
+  "id": "heavy-arsenal",
+  "name": "Heavy Arsenal",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "Adds the M870 Breacher pump shotgun, the SCAR-H battle rifle and a new Breacher class. Assault now carries the battle rifle.",
+  "weapons": {
+    "shotgun": {
+      "base": "smg",
+      "name": "M870 BREACHER",
+      "kind": "bolt",
+      "rpm": 70,
+      "pellets": 9,
+      "dmg": [17, 3],
+      "range": [8, 32],
+      "mag": 6,
+      "reserve": 36,
+      "reload": 3.4,
+      "spreadHip": 0.07,
+      "spreadAds": 0.05,
+      "bloom": 0,
+      "bloomMax": 0,
+      "recoil": [0.06, 0.012],
+      "adsFov": 58,
+      "head": 1.4,
+      "sound": "shotgun",
+      "model": "shotgun",
+      "botRange": 32,
+      "tracer": "#ffd27a"
+    },
+    "battlerifle": {
+      "base": "ar",
+      "name": "SCAR-H BATTLE RIFLE",
+      "rpm": 600,
+      "dmg": [34, 26],
+      "range": [30, 90],
+      "mag": 20,
+      "reserve": 120,
+      "reload": 2.6,
+      "recoil": [0.017, 0.007],
+      "spreadAds": 0.003,
+      "sound": "heavy",
+      "botRange": 130,
+      "tracer": "#ff7a45"
+    }
+  },
+  "classes": {
+    "breacher": {
+      "base": "engineer",
+      "name": "BREACHER",
+      "primary": "shotgun",
+      "secondary": "pistol",
+      "gadget": "c4",
+      "grenades": 3,
+      "blurb": "Close-quarters specialist. Clears rooms with a pump shotgun and blows new doorways with C-4."
+    },
+    "assault": {
+      "primary": "battlerifle"
+    }
+  }
+}

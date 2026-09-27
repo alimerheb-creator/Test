@@ -28,6 +28,31 @@ const GN = Math.ceil((GRID_HALF * 2) / CELL);
 
 export const SUN_DIR = new THREE.Vector3(-0.78, 0.42, -0.36).normalize();
 
+export const ATMOSPHERE_PRESETS = {
+  dusk: {
+    skyTop: '#587a9e', horizon: '#d2bf9f', ground: '#a08f78', sunColor: '#ffd29a', sunLight: '#ffdcb0', sunIntensity: 3.0,
+    hemiSky: '#c8d4e0', hemiGround: '#6b5a45', hemiIntensity: 0.8, fogNear: 70, fogFar: 720, clouds: 0.55,
+    cloudColor: '#c8bdb3', cloudLit: '#ffebd1', stars: 0, sunElevation: 26, sunAzimuth: -115, exposure: 1.05, envIntensity: 0.55,
+  },
+  noon: {
+    skyTop: '#3f78bd', horizon: '#bcd0dc', ground: '#9a9180', sunColor: '#fff4e0', sunLight: '#fff3e2', sunIntensity: 3.4,
+    hemiSky: '#cfe0ee', hemiGround: '#6f6250', hemiIntensity: 1.0, fogNear: 110, fogFar: 950, clouds: 0.45,
+    cloudColor: '#dfe4ea', cloudLit: '#ffffff', stars: 0, sunElevation: 62, sunAzimuth: -140, exposure: 0.95, envIntensity: 0.6,
+  },
+  overcast: {
+    skyTop: '#858f98', horizon: '#a7acae', ground: '#7a786f', sunColor: '#d9dde0', sunLight: '#d9dde0', sunIntensity: 1.1,
+    hemiSky: '#bcc4cc', hemiGround: '#5f5b52', hemiIntensity: 1.5, fogNear: 35, fogFar: 520, clouds: 0.95,
+    cloudColor: '#8d9398', cloudLit: '#b9bec2', stars: 0, sunElevation: 45, sunAzimuth: -120, exposure: 1.1, envIntensity: 0.7,
+    viewmodelLight: 0.85,
+  },
+  night: {
+    skyTop: '#060a14', horizon: '#2a3550', ground: '#101318', sunColor: '#a9bde0', sunLight: '#9db4e6', sunIntensity: 1.4,
+    hemiSky: '#5f76a3', hemiGround: '#1c1e22', hemiIntensity: 1.2, fogNear: 45, fogFar: 560, clouds: 0.3,
+    cloudColor: '#1b2232', cloudLit: '#56648a', stars: 1, sunElevation: 38, sunAzimuth: 60, exposure: 1.6, envIntensity: 0.35,
+    viewmodelLight: 0.55,
+  },
+};
+
 export class World {
   constructor(game) {
     this.game = game;
@@ -193,10 +218,15 @@ export class World {
         bottom: { value: new THREE.Color(0xa08f78) },
         sunDir: { value: SUN_DIR },
         sunColor: { value: new THREE.Color(0xffd29a) },
+        cloudLo: { value: new THREE.Color(0xc8bdb3) },
+        cloudHi: { value: new THREE.Color(0xffebd1) },
+        cloudAmount: { value: 0.55 },
+        stars: { value: 0 },
       },
       vertexShader: `varying vec3 vDir;
         void main(){ vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
       fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 bottom; uniform vec3 sunDir; uniform vec3 sunColor;
+        uniform vec3 cloudLo; uniform vec3 cloudHi; uniform float cloudAmount; uniform float stars;
         varying vec3 vDir;
         float hsh(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
         float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
@@ -212,8 +242,13 @@ export class World {
             vec2 uv = d.xz / (h + 0.18) * 1.6;
             float c = vn(uv) * 0.55 + vn(uv * 2.3 + 4.0) * 0.3 + vn(uv * 5.1) * 0.15;
             c = smoothstep(0.52, 0.86, c) * smoothstep(0.0, 0.3, h);
-            vec3 cloud = mix(vec3(0.78, 0.74, 0.7), vec3(1.0, 0.92, 0.82), s);
-            col = mix(col, cloud, c * 0.55);
+            vec3 cloud = mix(cloudLo, cloudHi, s);
+            if (stars > 0.0) {
+              vec3 cell = floor(d * 320.0);
+              float r = hsh(cell.xy + vec2(cell.z * 17.13, cell.z * 3.71));
+              col += vec3(0.8, 0.86, 1.0) * step(0.9972, r) * smoothstep(0.02, 0.3, h) * stars * (1.0 - c) * (0.6 + hsh(cell.yz) * 0.8);
+            }
+            col = mix(col, cloud, c * cloudAmount);
           }
           gl_FragColor = vec4(col, 1.0);
           #include <tonemapping_fragment>
@@ -223,22 +258,56 @@ export class World {
       depthWrite: false,
       fog: false,
     });
+    this.skyMat = mat;
     this.sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 32, 16), mat);
     this.sky.renderOrder = -10;
     this.sky.frustumCulled = false;
     this.scene.add(this.sky);
+    this._bakeEnvironment();
+  }
 
-    // Image-based lighting: bake the sky into a prefiltered environment map for reflections
+  // Image-based lighting: bake the sky into a prefiltered environment map for reflections
+  _bakeEnvironment() {
     const renderer = this.game.renderer;
-    if (renderer) {
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      const envScene = new THREE.Scene();
-      envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), mat));
-      this.envMap = pmrem.fromScene(envScene, 0.02, 0.1, 200).texture;
-      pmrem.dispose();
-      this.scene.environment = this.envMap;
-      this.scene.environmentIntensity = 0.55;
-    }
+    if (!renderer) return;
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const envScene = new THREE.Scene();
+    envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), this.skyMat));
+    if (this.envTarget) this.envTarget.dispose();
+    this.envTarget = pmrem.fromScene(envScene, 0.02, 0.1, 200);
+    pmrem.dispose();
+    this.envMap = this.envTarget.texture;
+    this.scene.environment = this.envMap;
+    if (this.scene.environmentIntensity === undefined || this.scene.environmentIntensity === 1) this.scene.environmentIntensity = 0.55;
+  }
+
+  // Time of day / weather. opts: { preset, ...overrides } (see ATMOSPHERE_PRESETS)
+  applyAtmosphere(opts = {}) {
+    const p = { ...(ATMOSPHERE_PRESETS[opts.preset] || ATMOSPHERE_PRESETS.dusk), ...opts };
+    const e = THREE.MathUtils.degToRad(clamp(+p.sunElevation, 3, 89)), a = THREE.MathUtils.degToRad(+p.sunAzimuth);
+    SUN_DIR.set(Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)).normalize();
+    const u = this.skyMat.uniforms;
+    u.top.value.set(p.skyTop);
+    u.horizon.value.set(p.horizon);
+    u.bottom.value.set(p.ground);
+    u.sunColor.value.set(p.sunColor);
+    u.cloudLo.value.set(p.cloudColor);
+    u.cloudHi.value.set(p.cloudLit);
+    u.cloudAmount.value = clamp(+p.clouds, 0, 1);
+    u.stars.value = clamp(+p.stars, 0, 2);
+    this.scene.fog.color.set(p.horizon);
+    this.scene.fog.near = +p.fogNear;
+    this.scene.fog.far = Math.max(+p.fogNear + 10, +p.fogFar);
+    this.scene.background.set(p.horizon);
+    this.sun.color.set(p.sunLight);
+    this.sun.intensity = +p.sunIntensity;
+    this.hemi.color.set(p.hemiSky);
+    this.hemi.groundColor.set(p.hemiGround);
+    this.hemi.intensity = +p.hemiIntensity;
+    this.scene.environmentIntensity = +p.envIntensity;
+    this.atmosphere = p;
+    this._bakeEnvironment();
+    return p;
   }
 
   setShadowQuality(size, extent) {
@@ -269,6 +338,7 @@ export class World {
   _buildLights() {
     const hemi = new THREE.HemisphereLight(0xc8d4e0, 0x6b5a45, 0.8);
     this.scene.add(hemi);
+    this.hemi = hemi;
     const sun = new THREE.DirectionalLight(0xffdcb0, 3.0);
     const q = this.game.settings.quality;
     sun.castShadow = q !== 'low';

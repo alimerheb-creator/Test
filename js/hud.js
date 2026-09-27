@@ -1,8 +1,8 @@
 // In-game HUD: tickets & flags, minimap, ammo, killfeed, score popups, crosshair,
 // hitmarkers, damage direction, world markers, scoreboard and the full-screen map.
 import * as THREE from 'three';
-import { TEAMS, SQUAD_COLOR, PLAY_HALF, BUILDINGS, ROADS, HQS, SQUAD_NAMES } from './config.js';
-import { clamp, wrapAngle, yawTo, formatTime } from './util.js';
+import { TEAMS, SQUAD_COLOR, PLAY_HALF, BUILDINGS, ROADS, HQS, SQUAD_NAMES, VEHICLES, RULES } from './config.js';
+import { clamp, wrapAngle, yawTo, formatTime, esc } from './util.js';
 
 const $ = (id) => document.getElementById(id);
 const MAP_HALF = PLAY_HALF + 12;
@@ -79,6 +79,19 @@ export class HUD {
     const ms = this.mini.clientWidth || 190;
     this.mini.width = Math.floor(ms * dpr);
     this.mini.height = Math.floor(ms * dpr);
+  }
+
+  // Team and vehicle names can be renamed by mods
+  updateLabels() {
+    for (const t of [0, 1]) {
+      const n = TEAMS[t].name;
+      const a = document.getElementById('team-name-' + t), b = document.getElementById('dp-name-' + t);
+      if (a) a.textContent = n;
+      if (b) b.textContent = n;
+    }
+    const vt = document.getElementById('vh-title');
+    if (vt) vt.textContent = VEHICLES.tank.name;
+    this.last.sb = null;
   }
 
   show(v) {
@@ -233,7 +246,7 @@ export class HUD {
   _popup(pts, label) {
     const d = document.createElement('div');
     d.className = 'pop';
-    d.innerHTML = `<b>+${pts}</b> ${label}`;
+    d.innerHTML = `<b>+${esc(pts)}</b> ${esc(label)}`;
     this.el.popups.appendChild(d);
     while (this.el.popups.children.length > 5) this.el.popups.firstChild.remove();
     setTimeout(() => d.remove(), 2600);
@@ -303,7 +316,7 @@ export class HUD {
       this._set('vhpn', this.el.vhpNum, String(Math.ceil(pct * 100)));
       const w = g.playerCtl.tankWeapon === 0 ? '120MM CANNON' : `COAX MG  ${v.coax.mag}`;
       this._set('vw', this.el.vweap, w);
-      this.el.vreload.style.width = (g.playerCtl.tankWeapon === 0 ? clamp(1 - v.reload / 3.2, 0, 1) : 1) * 100 + '%';
+      this.el.vreload.style.width = (g.playerCtl.tankWeapon === 0 ? clamp(1 - v.reload / VEHICLES.tank.reload, 0, 1) : 1) * 100 + '%';
     } else if (P.state === 'alive') {
       if (P.slot < 2) {
         const gun = P.gun;
@@ -323,9 +336,11 @@ export class HUD {
       this._set('gd', this.el.gadget, `[3] ${gd}`);
       this._set('nd', this.el.nades, `[G] FRAG ×${P.grenades}`);
     }
+    const hpMax = RULES.playerHealth;
     const hp = P.state === 'alive' ? Math.max(0, P.health) : 0;
-    this.el.hp.style.width = hp + '%';
-    this.el.hp.classList.toggle('low', hp < 35);
+    const hpPct = Math.min(100, (hp / hpMax) * 100);
+    this.el.hp.style.width = hpPct + '%';
+    this.el.hp.classList.toggle('low', hpPct < 35);
     this._set('hpn', this.el.hpNum, String(Math.ceil(hp)));
 
     // touch context button (revive / tank / detonate) and downed state
@@ -396,7 +411,7 @@ export class HUD {
     this.popTotalT -= dt;
     this.hurtFlash = Math.max(0, this.hurtFlash - dt * 1.5);
     this.suppression = Math.max(0, this.suppression - dt * 0.5);
-    const lowHp = P.state === 'alive' ? clamp((50 - P.health) / 50, 0, 1) : 0;
+    const lowHp = P.state === 'alive' ? clamp((0.5 - P.health / RULES.playerHealth) / 0.5, 0, 1) : 0;
     this.el.vignette.style.opacity = String(clamp(lowHp * 0.7 + this.hurtFlash * 0.5, 0, 1));
     this.el.suppress.style.opacity = String(this.suppression * 0.85);
     if (lowHp > 0.6 && P.state === 'alive') {
@@ -418,7 +433,7 @@ export class HUD {
     const html = mates.map((s) => {
       const st = s.state === 'alive' ? (s.vehicle ? 'TANK' : s.classId.slice(0, 3).toUpperCase()) : s.state === 'downed' ? 'DOWN' : 'KIA';
       const cls = s === P ? 'me' : s.state !== 'alive' ? 'out' : '';
-      return `<li class="${cls}"><span>${s === P ? g.settings.playerName : s.name}</span><em>${st}</em></li>`;
+      return `<li class="${cls}"><span>${esc(s === P ? g.settings.playerName : s.name)}</span><em>${st}</em></li>`;
     }).join('');
     if (this.last.squad !== html) { this.el.squad.innerHTML = html; this.last.squad = html; }
   }
@@ -430,10 +445,10 @@ export class HUD {
       const rows = list.map((s, i) => {
         const me = s === P ? ' class="me"' : s.team === P.team && s.squad === P.squad ? ' class="sq"' : '';
         const st = s.state === 'alive' ? '' : s.state === 'downed' ? '✚' : '✕';
-        return `<tr${me}><td>${i + 1}</td><td>${s === P ? g.settings.playerName : s.name} <i>${st}</i></td><td>${s.cls.name.slice(0, 3)}</td><td>${s.stats.score}</td><td>${s.stats.kills}</td><td>${s.stats.deaths}</td><td>${s.stats.assists}</td></tr>`;
+        return `<tr${me}><td>${i + 1}</td><td>${esc(s === P ? g.settings.playerName : s.name)} <i>${st}</i></td><td>${esc(s.cls.name.slice(0, 3))}</td><td>${s.stats.score}</td><td>${s.stats.kills}</td><td>${s.stats.deaths}</td><td>${s.stats.assists}</td></tr>`;
       }).join('');
       const tk = Math.ceil(g.mode.tickets[t]);
-      return `<div class="sb-team t${t === P.team ? 'f' : 'e'}"><h3><span>${TEAMS[t].name}</span><b>${tk}</b></h3>
+      return `<div class="sb-team t${t === P.team ? 'f' : 'e'}"><h3><span>${esc(TEAMS[t].name)}</span><b>${tk}</b></h3>
         <table><thead><tr><th>#</th><th>NAME</th><th>CLS</th><th>SCORE</th><th>K</th><th>D</th><th>A</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     });
     const html = `<div class="sb-head"><span>CONQUEST · KARSA VALLEY</span><span>${formatTime(g.mode.time)}</span></div><div class="sb-cols">${cols[P.team]}${cols[1 - P.team]}</div>`;
@@ -811,7 +826,7 @@ export class HUD {
         ctx.strokeStyle = 'rgba(242,179,61,0.9)';
         ctx.lineWidth = 3 * dpr;
         ctx.beginPath();
-        ctx.arc(cx, cy, 22 * dpr, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - v.reload / 3.2));
+        ctx.arc(cx, cy, 22 * dpr, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - v.reload / VEHICLES.tank.reload));
         ctx.stroke();
       }
     } else {

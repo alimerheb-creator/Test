@@ -1,13 +1,14 @@
 // Menus: main menu with settings, the deploy screen (class + spawn), pause and after-action report.
 import { CLASSES, CLASS_ORDER, WEAPONS, GADGETS, DIFFICULTY, TEAMS } from './config.js';
-import { saveSettings, formatTime } from './util.js';
+import { saveSettings, formatTime, esc } from './util.js';
+import { parseMod, slugify } from './mods.js';
 
 const $ = (id) => document.getElementById(id);
 
 export class UI {
   constructor(game) {
     this.game = game;
-    this.screens = { main: $('menu-main'), deploy: $('menu-deploy'), pause: $('menu-pause'), end: $('menu-end') };
+    this.screens = { main: $('menu-main'), deploy: $('menu-deploy'), pause: $('menu-pause'), end: $('menu-end'), mods: $('menu-mods') };
     this.selectedClass = game.settings.lastClass || 'assault';
     this.selectedSpawn = 'HQ';
     this.points = [];
@@ -16,6 +17,7 @@ export class UI {
     this._buildDeploy();
     this._buildPause();
     this._buildEnd();
+    this._buildMods();
   }
 
   show(name) {
@@ -90,23 +92,33 @@ export class UI {
   }
 
   // ------------------------------------------------------------ deploy
-  _buildDeploy() {
+  // Class cards come from CLASS_ORDER, which mods can extend
+  renderClassCards() {
     const g = this.game;
     const wrap = $('dp-classes');
-    wrap.innerHTML = '';
+    wrap.textContent = '';
     for (const id of CLASS_ORDER) {
       const c = CLASSES[id];
+      if (!c) continue;
       const p = WEAPONS[c.primary], gd = GADGETS[c.gadget];
       const b = document.createElement('button');
       b.className = 'class-card';
       b.id = `cls-${id}`;
-      b.innerHTML = `<span class="cc-name">${c.name}</span>
-        <span class="cc-kit"><b>${p.name}</b><i>${gd.name} · ${c.grenades}× FRAG</i></span>
-        <span class="cc-blurb">${c.blurb}</span>`;
+      const span = (cls, text) => { const e = document.createElement('span'); e.className = cls; e.textContent = text; return e; };
+      const kit = span('cc-kit', '');
+      const kb = document.createElement('b'); kb.textContent = p ? p.name : '';
+      const ki = document.createElement('i'); ki.textContent = `${gd ? gd.name : ''} · ${c.grenades}× FRAG`;
+      kit.append(kb, ki);
+      b.append(span('cc-name', c.name), kit, span('cc-blurb', c.blurb || ''));
       b.addEventListener('click', () => { this.selectedClass = id; g.settings.lastClass = id; saveSettings(g.settings); g.audio.click(); this._refreshClasses(); });
       wrap.appendChild(b);
     }
     this._refreshClasses();
+  }
+
+  _buildDeploy() {
+    const g = this.game;
+    this.renderClassCards();
     $('btn-deploy').addEventListener('click', () => this._deploy());
     $('btn-deploy-menu').addEventListener('click', () => { g.audio.click(); g.quitToMenu(); });
     const canvas = $('dp-map');
@@ -120,7 +132,164 @@ export class UI {
   }
 
   _refreshClasses() {
-    for (const id of CLASS_ORDER) $(`cls-${id}`).classList.toggle('sel', id === this.selectedClass);
+    for (const id of CLASS_ORDER) { const el = $(`cls-${id}`); if (el) el.classList.toggle('sel', id === this.selectedClass); }
+  }
+
+  // ------------------------------------------------------------ mods
+  updateModsButton() {
+    const n = this.game.mods.activeCount;
+    $('btn-mods').textContent = n ? `MODS · ${n} ON` : 'MODS';
+  }
+
+  _buildMods() {
+    const g = this.game;
+    this.modsDirty = false;
+    $('btn-mods').addEventListener('click', () => { g.audio.unlock(); g.audio.click(); this.openMods(); });
+    $('btn-mods-done').addEventListener('click', () => { g.audio.click(); this.closeMods(); });
+    $('mod-file').addEventListener('change', async (e) => {
+      const files = [...(e.target.files || [])];
+      e.target.value = '';
+      for (const f of files) {
+        try {
+          if (f.size > 256 * 1024) throw new Error('file is larger than 256 KB');
+          this._addModText(await f.text(), f.name);
+        } catch (err) {
+          this._modMsg(`Could not import ${f.name}: ${err.message}`, true);
+        }
+      }
+    });
+    $('btn-mod-paste').addEventListener('click', () => { $('mod-paste').hidden = false; $('mod-paste-text').focus(); });
+    $('btn-mod-paste-cancel').addEventListener('click', () => { $('mod-paste').hidden = true; });
+    $('btn-mod-paste-add').addEventListener('click', () => {
+      try {
+        this._addModText($('mod-paste-text').value, 'pasted mod');
+        $('mod-paste-text').value = '';
+        $('mod-paste').hidden = true;
+      } catch (err) {
+        this._modMsg(`That text isn't a valid mod: ${err.message}`, true);
+      }
+    });
+    $('mod-list').addEventListener('click', (e) => this._modListClick(e));
+    $('mod-list').addEventListener('change', (e) => {
+      const t = e.target;
+      if (t.matches('input[data-toggle]')) { g.mods.setEnabled(t.dataset.toggle, t.checked); this.modsDirty = true; this._previewMods(); }
+    });
+    $('mod-examples').addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-file]');
+      if (!b) return;
+      b.disabled = true;
+      try {
+        const res = await fetch(`mods/${b.dataset.file}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        this._addModText(await res.text(), b.dataset.file);
+      } catch (err) {
+        this._modMsg(`Could not load example: ${err.message}`, true);
+        b.disabled = false;
+      }
+    });
+  }
+
+  _modMsg(text, error = false) {
+    const m = $('mod-msg');
+    m.textContent = text;
+    m.classList.toggle('error', error);
+  }
+
+  _addModText(text, source) {
+    const g = this.game;
+    parseMod(text);
+    const entry = g.mods.add(text);
+    this.modsDirty = true;
+    this._previewMods();
+    const saved = g.mods.storageOk ? '' : ' It will only last until you close the game (storage is unavailable here).';
+    const bad = entry.status === 'error' ? ' It has errors, see below.' : entry.status === 'warn' ? ' Some settings were adjusted, see below.' : '';
+    this._modMsg(`Added "${entry.name}" from ${source}.${bad}${saved}`, entry.status === 'error');
+    this.game.audio.capture();
+  }
+
+  _modListClick(e) {
+    const g = this.game;
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    const id = b.dataset.id;
+    if (b.dataset.act === 'remove') {
+      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'CONFIRM REMOVE'; return; }
+      g.mods.remove(id);
+      this._modMsg('Mod removed.');
+    } else if (b.dataset.act === 'up') g.mods.move(id, -1);
+    else if (b.dataset.act === 'down') g.mods.move(id, 1);
+    this.modsDirty = true;
+    this._previewMods();
+  }
+
+  // Re-validate so the list shows up-to-date warnings before the player leaves the screen
+  _previewMods() {
+    this.game.mods.applyAll();
+    this.renderModList();
+  }
+
+  closeMods() {
+    if (this.modsDirty) this.game.reloadMods();
+    this.modsDirty = false;
+    this.show('main');
+  }
+
+  openMods() {
+    this.show('mods');
+    this._modMsg('');
+    this.renderModList();
+    this._loadExamples();
+  }
+
+  renderModList() {
+    const g = this.game;
+    const list = g.mods.list;
+    const statusText = { ok: 'ACTIVE', off: 'OFF', warn: 'ACTIVE · CHECK NOTES', error: 'ERROR' };
+    $('mod-list').innerHTML = list.length ? list.map((m, i) => `
+      <li class="mod-item ${m.status}">
+        <div class="mod-top">
+          <label class="check" for="mod-t-${esc(m.id)}"><input id="mod-t-${esc(m.id)}" type="checkbox" data-toggle="${esc(m.id)}" ${m.enabled ? 'checked' : ''}>
+            <span class="mod-name">${esc(m.name)}</span></label>
+          <span class="mod-status">${statusText[m.status] || ''}</span>
+        </div>
+        <p class="mod-meta">${esc([m.version && 'v' + m.version, m.author && 'by ' + m.author, m.hasScript && 'has script'].filter(Boolean).join(' · '))}</p>
+        ${m.description ? `<p class="mod-desc">${esc(m.description)}</p>` : ''}
+        ${m.messages.length ? `<ul class="mod-notes">${m.messages.slice(0, 12).map((x) => `<li>${esc(x)}</li>`).join('')}${m.messages.length > 12 ? `<li>…and ${m.messages.length - 12} more</li>` : ''}</ul>` : ''}
+        <div class="mod-buttons">
+          <button class="btn ghost small" data-act="up" data-id="${esc(m.id)}" ${i === 0 ? 'disabled' : ''}>UP</button>
+          <button class="btn ghost small" data-act="down" data-id="${esc(m.id)}" ${i === list.length - 1 ? 'disabled' : ''}>DOWN</button>
+          <button class="btn ghost small danger" data-act="remove" data-id="${esc(m.id)}">REMOVE</button>
+        </div>
+      </li>`).join('') : '<li class="mod-empty">No mods installed yet. Import a mod file or add one of the examples below.</li>';
+    this._renderExamples();
+    this.updateModsButton();
+  }
+
+  async _loadExamples() {
+    if (this.examples) { this._renderExamples(); return; }
+    try {
+      const res = await fetch('mods/index.json');
+      if (!res.ok) throw new Error(String(res.status));
+      const idx = await res.json();
+      this.examples = Array.isArray(idx.mods) ? idx.mods.filter((m) => m && typeof m.file === 'string' && /^[\w.-]+$/.test(m.file)) : [];
+    } catch (e) {
+      this.examples = [];
+    }
+    this._renderExamples();
+  }
+
+  _renderExamples() {
+    const ex = this.examples || [];
+    $('mod-examples-title').hidden = !ex.length;
+    const installed = new Set(this.game.mods.list.map((m) => m.id));
+    $('mod-examples').innerHTML = ex.map((m) => {
+      const have = installed.has(slugify(m.id || m.name));
+      return `<li class="mod-item example">
+        <div class="mod-top"><span class="mod-name">${esc(m.name)}</span>
+          <button class="btn small ${have ? 'ghost' : 'primary'}" data-file="${esc(m.file)}">${have ? 'REINSTALL' : 'ADD'}</button></div>
+        <p class="mod-desc">${esc(m.description || '')}</p>
+      </li>`;
+    }).join('');
   }
 
   showDeploy() {
@@ -134,7 +303,7 @@ export class UI {
     const html = this.points.map((p) => {
       const tag = p.type === 'hq' ? 'HQ' : p.type === 'flag' ? p.id : 'SQUAD';
       const warn = p.type === 'squad' && !p.safe ? ' <em>IN COMBAT</em>' : '';
-      return `<button class="spawn-btn${p.id === this.selectedSpawn ? ' sel' : ''}${p.type === 'squad' && !p.safe ? ' hot' : ''}" data-id="${p.id}"><b>${tag}</b><span>${p.label}${warn}</span></button>`;
+      return `<button class="spawn-btn${p.id === this.selectedSpawn ? ' sel' : ''}${p.type === 'squad' && !p.safe ? ' hot' : ''}" data-id="${esc(p.id)}"><b>${esc(tag)}</b><span>${esc(p.label)}${warn}</span></button>`;
     }).join('');
     if (list.dataset.html !== html) {
       list.innerHTML = html;
@@ -234,7 +403,7 @@ export class UI {
     ].map(([k, v]) => `<div><span>${k}</span><b>${v}</b></div>`).join('');
     $('end-mvp').innerHTML = all.slice(0, 3).map((s, i) => {
       const c = s.team === P.team ? 'f' : 'e';
-      return `<li class="${c}"><em>${i + 1}</em><span>${s === P ? g.settings.playerName : s.name}</span><i>${s.cls.name}</i><b>${s.stats.score}</b></li>`;
+      return `<li class="${c}"><em>${i + 1}</em><span>${esc(s === P ? g.settings.playerName : s.name)}</span><i>${esc(s.cls.name)}</i><b>${s.stats.score}</b></li>`;
     }).join('');
     this.show('end');
   }

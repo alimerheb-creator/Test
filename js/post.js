@@ -114,6 +114,11 @@ export class PostFX {
     this.bloom = true;
   }
 
+  setExposure(e) {
+    this.exposureValue = e;
+    this.compMat.uniforms.exposure.value = this.hdr ? e : 1.0;
+  }
+
   configure({ samples, bloom }) {
     this.samples = Math.min(samples, this.maxSamples);
     this.bloom = bloom;
@@ -135,7 +140,8 @@ export class PostFX {
       mw = Math.max(1, mw >> 1); mh = Math.max(1, mh >> 1);
       if (mw < 4 || mh < 4) break;
     }
-    if (!this.hdr) this.compMat.uniforms.exposure.value = 1.0;
+    this.compMat.uniforms.exposure.value = this.hdr ? (this.exposureValue || 1.05) : 1.0;
+    this.downMat.uniforms.threshold.value = this.hdr ? 1.0 : 0.82;
   }
 
   dispose() {

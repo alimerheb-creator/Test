@@ -1,6 +1,6 @@
 // Soldier entity shared by the player and bots: movement physics, health/downed state, model.
 import * as THREE from 'three';
-import { TEAMS, MOVE, GRAVITY, CLASSES, WEAPONS, GADGETS } from './config.js';
+import { TEAMS, MOVE, RULES, CLASSES, WEAPONS, GADGETS } from './config.js';
 import { mergeParts, raySphere, rayAABB, dirFromAngles, pick, clamp } from './util.js';
 import { Gun } from './weapons.js';
 
@@ -85,6 +85,11 @@ function modelGeos(team, skin) {
   return g;
 }
 
+// Mods can recolour uniforms; drop cached geometry so the next soldiers pick it up
+export function clearSoldierModelCache() {
+  GEO.clear();
+}
+
 export class Soldier {
   constructor(game, { team, name, isPlayer = false, squad = 0, classId = 'assault' }) {
     this.game = game;
@@ -134,6 +139,7 @@ export class Soldier {
   }
 
   get cls() { return CLASSES[this.classId]; }
+  get maxHealth() { return RULES.playerHealth; }
   get gun() { return this.slot < 2 ? this.guns[this.slot] : null; }
   get alive() { return this.state === 'alive'; }
   get height() { return HEIGHTS[this.stance]; }
@@ -198,9 +204,9 @@ export class Soldier {
     this.pitch = 0;
     this.stance = 0;
     this.eyeH = EYES[0];
-    this.health = 100;
+    this.health = RULES.playerHealth;
     this.state = 'alive';
-    this.spawnProtect = 1.5;
+    this.spawnProtect = RULES.spawnProtection;
     this.downedT = 0;
     this.fallT = 0;
     this.bodyT = 0;
@@ -247,7 +253,7 @@ export class Soldier {
 
   physics(dt) {
     const wasGround = this.onGround;
-    this.vel.y -= GRAVITY * dt;
+    this.vel.y -= RULES.gravity * dt;
     if (this.vel.y < -45) this.vel.y = -45;
     const fallSpeed = -this.vel.y;
     const dx = this.vel.x * dt, dz = this.vel.z * dt, dy = this.vel.y * dt;
@@ -263,7 +269,7 @@ export class Soldier {
       const g = this._supportBelow(0.5);
       if (g !== null) { this.pos.y = g; this.vel.y = 0; this.onGround = true; }
     }
-    if (this.onGround && !wasGround && fallSpeed > 15) {
+    if (RULES.fallDamage && this.onGround && !wasGround && fallSpeed > 15) {
       this.takeDamage((fallSpeed - 15) * 9, null, { weapon: 'FALL', force: true });
     }
     this.jumped = false;
@@ -332,6 +338,7 @@ export class Soldier {
     if (this.spawnProtect > 0 && !info.force) return false;
     if (attacker && attacker !== this && attacker.team === this.team) return false;
     if (attacker === this) amount *= 0.5;
+    if (!info.force) amount *= RULES.damageScale;
     this.health -= amount;
     this.lastDamageT = this.game.time;
     if (attacker && attacker !== this) {
@@ -352,8 +359,8 @@ export class Soldier {
     if (this.vehicle) this.vehicle.removeDriver(this, false);
     const revivable = !info.noRevive;
     this.state = revivable ? 'downed' : 'dead';
-    this.downedT = revivable ? (this.isPlayer ? 14 : 10) : 0;
-    this.respawnT = 5;
+    this.downedT = revivable ? RULES.downedTime + (this.isPlayer ? 4 : 0) : 0;
+    this.respawnT = RULES.respawnTime;
     this.fallT = 0;
     this.bodyT = 0;
     this.slideT = 0;
@@ -368,7 +375,7 @@ export class Soldier {
   revive(by) {
     if (this.state !== 'downed') return;
     this.state = 'alive';
-    this.health = this.game.mode ? 45 : 45;
+    this.health = Math.max(1, RULES.playerHealth * 0.45);
     this.downedT = 0;
     this.fallT = 0;
     this.spawnProtect = 1;
@@ -382,7 +389,7 @@ export class Soldier {
   bleedOut() {
     if (this.state !== 'downed') return;
     this.state = 'dead';
-    this.respawnT = this.isPlayer ? 0 : 5;
+    this.respawnT = this.isPlayer ? 0 : RULES.respawnTime;
     this.game.mode.ticketLoss(this.team);
     this.game.emit('bleedout', this);
   }
@@ -393,7 +400,8 @@ export class Soldier {
       for (let i = 0; i < this.guns.length; i++) this.guns[i].update(dt, i === this.slot);
       if (this.gadgetCd > 0) this.gadgetCd -= dt;
       if (this.gadget.recharge && this.gadgetAmmo < this.gadget.ammo && this.gadgetCd <= 0) this.gadgetAmmo = this.gadget.ammo;
-      if (this.game.time - this.lastDamageT > 5 && this.health < 100) this.health = Math.min(100, this.health + 14 * dt);
+      const maxHp = RULES.playerHealth;
+      if (this.game.time - this.lastDamageT > RULES.regenDelay && this.health < maxHp) this.health = Math.min(maxHp, this.health + RULES.regenRate * dt);
       const targetEye = EYES[this.stance];
       this.eyeH += (targetEye - this.eyeH) * Math.min(1, dt * 12);
       // footsteps

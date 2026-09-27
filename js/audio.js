@@ -7,7 +7,10 @@ const SHOT = {
   lmg: { freq: 1300, dur: 0.17, body: 1.1, bodyFreq: 120, vol: 0.6, tail: 0.4 },
   sniper: { freq: 1100, dur: 0.32, body: 1.4, bodyFreq: 95, vol: 0.85, tail: 0.8 },
   pistol: { freq: 2600, dur: 0.09, body: 0.5, bodyFreq: 210, vol: 0.4, tail: 0.2 },
+  shotgun: { freq: 900, dur: 0.26, body: 1.6, bodyFreq: 85, vol: 0.8, tail: 0.6 },
+  heavy: { freq: 1000, dur: 0.22, body: 1.5, bodyFreq: 90, vol: 0.75, tail: 0.6 },
 };
+export const SHOT_SOUNDS = Object.keys(SHOT);
 
 export class GameAudio {
   constructor() {

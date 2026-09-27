@@ -1,0 +1,22 @@
+{
+  "format": "sixthfront-mod",
+  "id": "night-ops",
+  "name": "Night Ops",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "Moonlit battle under the stars with green tracers. The armies become Ghost Co. and Red Dawn with new uniforms.",
+  "atmosphere": {
+    "preset": "night"
+  },
+  "teams": [
+    { "name": "GHOST CO.", "helmet": "#2d3a33", "top": "#3a4a40", "pants": "#303b34", "vest": "#232b26", "tank": "#3c4a42" },
+    { "name": "RED DAWN", "helmet": "#3a2422", "top": "#4a3431", "pants": "#352827", "vest": "#291c1b", "tank": "#4d3835" }
+  ],
+  "weapons": {
+    "ar": { "tracer": "#6dff8a" },
+    "smg": { "tracer": "#6dff8a" },
+    "lmg": { "tracer": "#6dff8a" },
+    "pistol": { "tracer": "#6dff8a" },
+    "coax": { "tracer": "#6dff8a" }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "format": "sixthfront-mod",
+  "id": "vampire-rounds",
+  "name": "Vampire Rounds",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "Script example: every kill heals the killer by 35 health, and every 5-kill streak earns a banner and 250 bonus points.",
+  "rules": {
+    "regenDelay": 8
+  },
+  "script": [
+    "const streaks = new Map();",
+    "api.on('matchStart', () => streaks.clear());",
+    "api.on('kill', (e) => {",
+    "  streaks.set(e.victim, 0);",
+    "  const k = e.killer;",
+    "  if (!k || k.team === e.victim.team || k.state !== 'alive') return;",
+    "  k.health = Math.min(api.rules.playerHealth, k.health + 35);",
+    "  const n = (streaks.get(k) || 0) + 1;",
+    "  streaks.set(k, n);",
+    "  if (k === api.player()) {",
+    "    api.toast('+35 HP');",
+    "    if (n % 5 === 0) {",
+    "      api.banner(n + ' KILL STREAK', '#f2b33d');",
+    "      api.award(k, 250, 'KILL STREAK');",
+    "    }",
+    "  }",
+    "});"
+  ]
+}

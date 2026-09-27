@@ -1,6 +1,6 @@
 // Conquest game mode: capture points, ticket bleed, scoring, revives and spawn logic.
 import * as THREE from 'three';
-import { FLAGS, HQS, TEAMS, SCORE, CLASS_ORDER } from './config.js';
+import { FLAGS, HQS, TEAMS, SCORE, CLASS_ORDER, RULES } from './config.js';
 import { clamp, rand, yawTo, pick, chance } from './util.js';
 
 const NEUTRAL = new THREE.Color(0xc9ccc4);
@@ -157,7 +157,7 @@ export class Conquest {
       if (diff !== 0) {
         const team = diff > 0 ? 0 : 1;
         f.capturing = team;
-        f.progress = clamp(f.progress + (team === 0 ? 1 : -1) * 0.085 * Math.min(Math.abs(diff), 4) * dt, -1, 1);
+        f.progress = clamp(f.progress + (team === 0 ? 1 : -1) * 0.085 * RULES.captureSpeed * Math.min(Math.abs(diff), 4) * dt, -1, 1);
       } else {
         f.capturing = -1;
         if (f.counts[0] === 0 && f.counts[1] === 0 && f.owner !== -1) {
@@ -178,7 +178,7 @@ export class Conquest {
     for (let t = 0; t < 2; t++) {
       const o = 1 - t;
       if (own[o] > own[t] && own[o] >= 3) {
-        this.tickets[t] = Math.max(0, this.tickets[t] - (0.12 + 0.1 * (own[o] - own[t])) * dt);
+        this.tickets[t] = Math.max(0, this.tickets[t] - (0.12 + 0.1 * (own[o] - own[t])) * RULES.bleedSpeed * dt);
         if (this.tickets[t] <= 0) this._end(o);
       }
     }

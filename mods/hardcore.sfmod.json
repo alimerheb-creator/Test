@@ -1,0 +1,23 @@
+{
+  "format": "sixthfront-mod",
+  "id": "hardcore",
+  "name": "Hardcore",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "Low health, no health regeneration, deadlier headshots, slower revives and tougher, slower-firing tanks. Supply crates are the only way to heal.",
+  "rules": {
+    "playerHealth": 60,
+    "regenRate": 0,
+    "headshotScale": 1.5,
+    "reviveTime": 4,
+    "downedTime": 8,
+    "spawnProtection": 0.5
+  },
+  "vehicles": {
+    "tank": { "health": 1500, "reload": 4.5, "botReload": 6 }
+  },
+  "scoring": {
+    "revive": 200,
+    "headshot": 75
+  }
+}
