@@ -1,0 +1,18 @@
+{
+  "format": "sixthfront-mod",
+  "id": "team-deathmatch",
+  "name": "Team Deathmatch",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "No flags, just the fight. Each side starts with 120 tickets and loses one for every soldier who dies for good. Bots hunt the enemy across the whole valley. Changes the map, so the game restarts when you switch it.",
+  "map": { "flags": [] },
+  "rules": { "startTickets": 120, "respawnTime": 3, "downedTime": 8 },
+  "scoring": { "kill": 150, "headshot": 50 },
+  "script": [
+    "api.on('matchStart', () => api.after(1, () => api.banner('TEAM DEATHMATCH', '#f2b33d')));",
+    "api.on('kill', (e) => {",
+    "  const P = api.player();",
+    "  if (e.killer === P && P.stats.kills % 5 === 0) api.toast(`${P.stats.kills} KILLS`);",
+    "});"
+  ]
+}

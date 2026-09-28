@@ -57,6 +57,12 @@ Any static file server works (`npx serve`, GitHub Pages, etc.). three.js is load
   zoom views. Tanks crush walls, trees and soldiers. Bots drive them too.
 - **AI squads**: up to 20 v 20 bots with reaction time, aim error, burst fire, strafing, grenades,
   anti-tank rockets, reviving downed teammates and dropping supply crates. Three skill levels.
+- **Realistic reloading**: magazines physically come out and go in, and every stage has its own sound. A
+  tactical reload keeps the chambered round (30+1), while an empty reload drops the magazine on the ground and
+  racks the bolt. Partly used magazines go back in your pouch (shown as pips on the HUD), and a magazine that
+  came out stays out if you switch weapons. The LMG opens its feed cover to swap belt boxes, and shotguns load
+  one shell at a time (fire to interrupt). Bolt-action rifles work the bolt after every shot, pistol slides
+  lock back when empty, and you can hear enemies reloading nearby.
 - **Battlefield staples**: downed state and revives, squads with squad spawning, spotting, suppression,
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
   sliding, prone, out-of-bounds timer.
@@ -72,10 +78,20 @@ Any static file server works (`npx serve`, GitHub Pages, etc.). three.js is load
 
 ## Mods
 
-Open **MODS** on the main menu to import a mod file, paste mod text, or add one of the bundled examples
-(Heavy Arsenal, Night Ops, Moon Gravity, Hardcore, Vampire Rounds). Mods can change or add weapons, gadgets,
-projectiles and classes, and can change movement, rules, scoring, tanks, team names and uniforms, bot skill,
-time of day and weather. They can also run scripts. The format is documented in [MODDING.md](MODDING.md), and
+Open **MODS** on the main menu to import a mod file, paste mod text, or add one of the bundled examples. Mods have
+full control of the game:
+
+- Change or add weapons (with their own 3D models and reload styles), gadgets, projectiles and classes, and
+  change movement, rules, scoring, tanks, team names and uniforms, bot skill, time of day and weather.
+- Build whole new maps: flags, HQs, destructible buildings, roads, props, terrain and vegetation, or no flags at
+  all for Team Deathmatch.
+- Run scripts that hook into damage, firing, explosions, projectiles, movement, reloading and scoring, and that
+  can spawn explosions and bots, move soldiers, build 3D objects with collision, add HUD elements, bind keys
+  (with touch buttons on phones), run timers, save data and slow down time.
+
+Bundled examples: Heavy Arsenal, Commander Call-ins (airstrikes and reinforcements), Jetpack, Explosive Rounds,
+Bullet Time, Map: Karsa Outskirts, Team Deathmatch, Night Ops, Moon Gravity, Hardcore and Vampire Rounds. The
+format and the whole script API are documented in [MODDING.md](MODDING.md), and
 [`mods/TEMPLATE.sfmod.json`](mods/TEMPLATE.sfmod.json) is a starting point for your own.
 
 ## Controls
@@ -126,7 +142,7 @@ The game is split into small ES modules under `js/`:
 | `util.js` | Math, noise and geometry helpers |
 | `post.js` | HDR post-processing: bloom, lens flare, tone mapping, grading, damage effects |
 | `grass.js` | GPU-instanced grass that follows the camera |
-| `mods.js` | Mod loader: validation, applying/undoing mods, script API |
+| `mods.js` | Mod loader: validation, maps, custom weapon models, applying/undoing mods, script hooks and API |
 
 The Android wrapper lives in `android/`: `MainActivity.java` hosts the game in a full-screen WebView and
 serves the bundled files from inside the APK, `prepare-web.mjs` builds the offline bundle, and

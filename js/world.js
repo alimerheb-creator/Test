@@ -1,6 +1,6 @@
 // Terrain, sky, lighting, vegetation, static props and the collision/raycast grid.
 import * as THREE from 'three';
-import { PLAY_HALF, WORLD_HALF, FLAGS, HQS, BUILDINGS, ROADS } from './config.js';
+import { PLAY_HALF, WORLD_HALF, FLAGS, HQS, BUILDINGS, ROADS, MAP, TERRAIN, VEGETATION, MAP_PROPS } from './config.js';
 import { fbm2, smoothstep, lerp, clamp, mulberry32, segDist2, rayAABB } from './util.js';
 import { makeTextures, worldUVMaterial } from './textures.js';
 
@@ -81,18 +81,19 @@ export class World {
 
   // ---------------------------------------------------------------- terrain
   _raw(x, z) {
-    let h = fbm2(x * 0.0055 + 13.1, z * 0.0055 - 7.7, 4) * 16;
-    h += fbm2(x * 0.021, z * 0.021 + 31, 3) * 2.6;
-    h -= Math.exp(-(x * x) / (2 * 110 * 110)) * 3;
+    const T = TERRAIN, s = T.seed * 0.1371;
+    let h = fbm2(x * 0.0055 + 13.1 + s, z * 0.0055 - 7.7 - s * 0.7, 4) * 16 * T.hills;
+    h += fbm2(x * 0.021 + s * 1.3, z * 0.021 + 31 - s, 3) * 2.6 * T.bumps;
+    h -= Math.exp(-(x * x) / (2 * 110 * 110)) * 3 * T.valley;
     const e = Math.max(Math.abs(x), Math.abs(z));
     const m = smoothstep(PLAY_HALF - 5, PLAY_HALF + 160, e);
-    h += m * (30 + (fbm2(x * 0.008 - 3, z * 0.008 + 9, 5) * 0.5 + 0.5) * 80);
+    h += m * (30 + (fbm2(x * 0.008 - 3 + s, z * 0.008 + 9, 5) * 0.5 + 0.5) * 80) * T.mountains;
     return h;
   }
 
   _setupZones() {
     for (const f of FLAGS) {
-      this.flatZones.push({ x: f.x, z: f.z, r0: f.flat, r1: f.flat + 34, h: this._raw(f.x, f.z), town: f.id === 'C' ? 1 : 0.7 });
+      this.flatZones.push({ x: f.x, z: f.z, r0: f.flat, r1: f.flat + 34, h: this._raw(f.x, f.z), town: f.town ? 1 : 0.7 });
     }
     for (const q of HQS) this.flatZones.push({ x: q.x, z: q.z, r0: 36, r1: 70, h: this._raw(q.x, q.z), town: 0.8 });
     for (const b of BUILDINGS) {
@@ -417,9 +418,10 @@ export class World {
 
     const spots = [];
     let tries = 0;
-    while (spots.length < 640 && tries < 20000) {
+    const nIn = Math.round(360 * VEGETATION.trees), nAll = nIn + Math.round(280 * VEGETATION.trees);
+    while (spots.length < nAll && tries < 20000 + nAll * 20) {
       tries++;
-      const inside = spots.length < 360;
+      const inside = spots.length < nIn;
       const lim = inside ? PLAY_HALF - 4 : WORLD_HALF - 60;
       const x = (rng() * 2 - 1) * lim, z = (rng() * 2 - 1) * lim;
       if (!inside && Math.max(Math.abs(x), Math.abs(z)) < PLAY_HALF + 10) continue;
@@ -433,7 +435,7 @@ export class World {
       spots.push({ x, z, y, pine: rng() < 0.6, h: 5 + rng() * 6.5, inside });
     }
     const pines = spots.filter((s) => s.pine), leafs = spots.filter((s) => !s.pine);
-    this.trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, spots.length);
+    this.trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, Math.max(1, spots.length));
     this.pineMesh = new THREE.InstancedMesh(pineGeo, crownMat, Math.max(1, pines.length));
     this.leafMesh = new THREE.InstancedMesh(leafGeo, crownMat, Math.max(1, leafs.length));
     const col = new THREE.Color();
@@ -466,6 +468,7 @@ export class World {
       if (s.inside) t.box = this.addBox(s.x - 0.3, s.y - 1, s.z - 0.3, s.x + 0.3, s.y + s.h * 0.5, s.z + 0.3, { mat: 'wood', tree: this.trees.length });
       this.trees.push(t);
     });
+    this.trunkMesh.count = spots.length; this.pineMesh.count = pines.length; this.leafMesh.count = leafs.length;
     for (const m of [this.trunkMesh, this.pineMesh, this.leafMesh]) {
       m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false;
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
@@ -474,8 +477,8 @@ export class World {
 
     // Bushes (no collision)
     const bushGeo = new THREE.IcosahedronGeometry(1, 0);
-    const bushCount = 520;
-    this.bushMesh = new THREE.InstancedMesh(bushGeo, crownMat, bushCount);
+    const bushCount = Math.round(520 * VEGETATION.bushes);
+    this.bushMesh = new THREE.InstancedMesh(bushGeo, crownMat, Math.max(1, bushCount));
     let placed = 0; tries = 0;
     while (placed < bushCount && tries < 12000) {
       tries++;
@@ -502,12 +505,12 @@ export class World {
     // Rocks
     const rockGeo = new THREE.DodecahedronGeometry(1, 0);
     const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, flatShading: true });
-    const rockCount = 190;
-    this.rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, rockCount);
+    const rockCount = Math.round(190 * VEGETATION.rocks), rocksIn = Math.round(140 * VEGETATION.rocks);
+    this.rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, Math.max(1, rockCount));
     placed = 0; tries = 0;
     while (placed < rockCount && tries < 8000) {
       tries++;
-      const inside = placed < 140;
+      const inside = placed < rocksIn;
       const lim = inside ? PLAY_HALF - 5 : WORLD_HALF - 80;
       const x = (rng() * 2 - 1) * lim, z = (rng() * 2 - 1) * lim;
       if (!inside && Math.max(Math.abs(x), Math.abs(z)) < PLAY_HALF + 10) continue;
@@ -648,8 +651,10 @@ export class World {
     this._propList = { concrete: [], metal: [], sand: [], wood: [] };
     const rng = this.rng;
     const cColors = [0x8a3b2a, 0x2f5d7c, 0x3f6b3a, 0xa0782d, 0x6b6f73, 0x7b2f2f];
+    this._mapProps();
+    if (MAP.randomProps === false) { this._flushProps(); return; }
     for (const f of FLAGS) {
-      const big = f.id === 'C';
+      const big = !!f.town;
       for (let k = 0; k < (big ? 5 : 3); k++) this._placeAround(f.x, f.z, 7, 11, 3.2, 3.2, 20, (x, z, rot, a) => this._sandbags(x, z, a));
       for (let k = 0; k < (big ? 6 : 4); k++) this._placeAround(f.x, f.z, 9, big ? 22 : 22, 3, 0.6, 20, (x, z, rot) => this._barrier(x, z, rot));
       for (let k = 0; k < (big ? 2 : 4); k++) this._placeAround(f.x, f.z, 14, big ? 22 : 32, 6.1, 2.5, 30, (x, z, rot) => this._container(x, z, rot, cColors[Math.floor(rng() * cColors.length)]));
@@ -682,6 +687,27 @@ export class World {
       n++;
     }
     this._flushProps();
+  }
+
+  // Props placed by hand in a map mod
+  _mapProps() {
+    for (const p of MAP_PROPS) {
+      const rot = p.rot, x = p.x, z = p.z;
+      switch (p.type) {
+        case 'container': this._container(x, z, rot, p.color ?? 0x2f5d7c); break;
+        case 'barrier': this._barrier(x, z, rot); break;
+        case 'sandbags': this._sandbags(x, z, rot ? Math.PI / 2 : 0); break;
+        case 'crate': this._crate(x, z); break;
+        case 'wreck': this._wreck(x, z, rot); break;
+        case 'ruin': this._ruin(x, z, rot); break;
+        case 'block': {
+          const [sx, sy, sz] = p.size || [2, 2, 2];
+          const y = this.heightAt(x, z) + (p.y || 0);
+          this._prop('concrete', x, y + sy / 2 - 0.05, z, rot ? sz : sx, sy, rot ? sx : sz, p.color ?? 0xa39a8a, 'concrete');
+          break;
+        }
+      }
+    }
   }
 
   _flushProps() {

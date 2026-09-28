@@ -12,6 +12,23 @@ const SHOT = {
 };
 export const SHOT_SOUNDS = Object.keys(SHOT);
 
+// Foley recipes: [delay s, 'click' (band-passed noise) | 'low' (low-passed noise) | 'tone', freq, dur, vol, sweepTo]
+const FOLEY = {
+  release: [[0, 'click', 2400, 0.025, 0.5], [0.02, 'low', 700, 0.08, 0.25]],
+  grab: [[0, 'low', 500, 0.14, 0.35], [0.05, 'click', 1300, 0.04, 0.15]],
+  out: [[0, 'click', 1500, 0.07, 0.6, 900], [0.05, 'click', 2600, 0.03, 0.35]],
+  drop: [[0.32, 'low', 380, 0.08, 0.7], [0.33, 'tone', 2900, 0.06, 0.12], [0.45, 'low', 450, 0.05, 0.35], [0.46, 'tone', 3300, 0.04, 0.06]],
+  in: [[0, 'click', 1100, 0.06, 0.45, 1900], [0.07, 'click', 3000, 0.035, 0.9], [0.075, 'tone', 420, 0.05, 0.3]],
+  charge: [[0, 'click', 1200, 0.1, 0.55, 2600], [0.14, 'click', 2200, 0.05, 1.0], [0.14, 'tone', 260, 0.08, 0.45]],
+  slide: [[0, 'click', 2600, 0.04, 0.9], [0, 'tone', 380, 0.06, 0.35]],
+  bolt: [[0, 'click', 3000, 0.03, 0.6], [0.12, 'click', 1100, 0.1, 0.5, 2100], [0.34, 'click', 2000, 0.09, 0.5, 1000], [0.52, 'click', 2800, 0.035, 0.8], [0.52, 'tone', 300, 0.06, 0.3]],
+  pump: [[0, 'click', 900, 0.1, 0.8, 1600], [0.16, 'click', 1500, 0.09, 0.9, 800], [0.25, 'tone', 240, 0.07, 0.45]],
+  shell: [[0, 'low', 600, 0.05, 0.4], [0.03, 'click', 1900, 0.04, 0.6], [0.035, 'tone', 1600, 0.03, 0.1]],
+  cover: [[0, 'click', 2200, 0.04, 0.8], [0.12, 'click', 900, 0.08, 0.5, 1400], [0.18, 'tone', 240, 0.08, 0.3]],
+  belt: [[0, 'click', 3200, 0.2, 0.35, 2400], [0.22, 'click', 1800, 0.04, 0.7], [0.3, 'click', 2400, 0.05, 1.0], [0.3, 'tone', 220, 0.09, 0.4]],
+};
+
+
 export class GameAudio {
   constructor() {
     this.ctx = null;
@@ -278,18 +295,45 @@ export class GameAudio {
   kill() { this._tone(900, 0.06, 'triangle', 0.18); this._tone(1350, 0.09, 'triangle', 0.18, 0.06); }
   click() { this._tone(700, 0.03, 'square', 0.06); }
   empty() { this._tone(2400, 0.02, 'square', 0.05); }
-  reload() {
+  // Weapon handling sounds: magazine out/in, bolts, pumps, shells. Positional, so an enemy reloading
+  // behind a wall can be heard up close. Each entry: [delay, kind, freq, dur, vol, sweepTo]
+  foley(kind, x, y, z, own = false, pitch = 1) {
     if (!this.ready) return;
-    const ctx = this.ctx;
-    [0, 0.35, 0.9].forEach((d, i) => {
-      const t = ctx.currentTime + d;
-      const n = this._noise(t, 0.05);
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass'; bp.frequency.value = i === 2 ? 2600 : 1800; bp.Q.value = 5;
-      const e = this._env(t, 0.35, 0.001, 0.05);
-      n.connect(bp).connect(e).connect(this.master);
-    });
+    const parts = FOLEY[kind];
+    if (!parts) return;
+    let gain = 1, pan = 0;
+    if (!own) {
+      const s = this._spatial(x, y, z, 38);
+      if (!s || this.voices > 55) return;
+      gain = s.gain * 1.6; pan = s.pan;
+    }
+    const ctx = this.ctx, t0 = ctx.currentTime;
+    const out = this._out(gain * 0.5, pan, own ? 0.02 : 0.08);
+    for (const [delay, type, f0, dur, vol, f1] of parts) {
+      const t = t0 + delay, f = f0 * pitch;
+      if (type === 'tone') {
+        const o = ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(f, t);
+        if (f1) o.frequency.exponentialRampToValueAtTime(f1 * pitch, t + dur);
+        const e = this._env(t, vol, 0.001, dur);
+        o.connect(e).connect(out);
+        o.start(t); o.stop(t + dur + 0.02);
+        this._track(o);
+      } else {
+        const n = this._noise(t, dur);
+        const bp = ctx.createBiquadFilter();
+        bp.type = type === 'low' ? 'lowpass' : 'bandpass';
+        bp.Q.value = type === 'low' ? 0.7 : 6;
+        bp.frequency.setValueAtTime(f, t);
+        if (f1) bp.frequency.exponentialRampToValueAtTime(f1 * pitch, t + dur);
+        const e = this._env(t, vol, 0.001, dur);
+        n.connect(bp).connect(e).connect(out);
+      }
+    }
   }
+  // Kept for mods that call it: a generic three-part reload
+  reload() { this.foley('out', 0, 0, 0, true); this.foley('in', 0, 0, 0, true); }
   capture() { this._tone(660, 0.14, 'triangle', 0.14); this._tone(990, 0.22, 'triangle', 0.14, 0.14); }
   lost() { this._tone(520, 0.16, 'sawtooth', 0.08); this._tone(350, 0.3, 'sawtooth', 0.08, 0.16); }
   hurt() {

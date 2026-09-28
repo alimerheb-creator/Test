@@ -1,6 +1,12 @@
 {
   "mods": [
-    { "file": "heavy-arsenal.sfmod.json", "id": "heavy-arsenal", "name": "Heavy Arsenal", "description": "New shotgun, battle rifle and a Breacher class." },
+    { "file": "heavy-arsenal.sfmod.json", "id": "heavy-arsenal", "name": "Heavy Arsenal", "description": "Pump shotgun, SCAR-H with its own 3D model, Breacher class." },
+    { "file": "call-ins.sfmod.json", "id": "call-ins", "name": "Commander Call-ins", "description": "Airstrikes (T) and reinforcement squads (Y). The enemy strikes back." },
+    { "file": "jetpack.sfmod.json", "id": "jetpack", "name": "Jetpack", "description": "Hold J to fly. Fuel refills on the ground." },
+    { "file": "explosive-rounds.sfmod.json", "id": "explosive-rounds", "name": "Explosive Rounds", "description": "B toggles high-explosive bullets that burst on impact." },
+    { "file": "bullet-time.sfmod.json", "id": "bullet-time", "name": "Bullet Time", "description": "Headshot kills slow the battle down for a moment." },
+    { "file": "karsa-outskirts.sfmod.json", "id": "karsa-outskirts", "name": "Map: Karsa Outskirts", "description": "A new battlefield with four flags. Restarts the game." },
+    { "file": "team-deathmatch.sfmod.json", "id": "team-deathmatch", "name": "Team Deathmatch", "description": "No flags, 120 tickets each. Restarts the game." },
     { "file": "night-ops.sfmod.json", "id": "night-ops", "name": "Night Ops", "description": "Night battle under the stars, green tracers, renamed armies." },
     { "file": "moon-gravity.sfmod.json", "id": "moon-gravity", "name": "Moon Gravity", "description": "Low gravity, huge jumps, bigger explosions." },
     { "file": "hardcore.sfmod.json", "id": "hardcore", "name": "Hardcore", "description": "60 health, no regeneration, deadlier headshots, tougher tanks." },

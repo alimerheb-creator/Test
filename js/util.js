@@ -171,10 +171,21 @@ export function formatTime(sec) {
 
 // Tiny event emitter
 export class Emitter {
-  constructor() { this._l = {}; }
+  constructor() { this._l = {}; this._f = {}; }
   on(name, fn) { (this._l[name] ||= []).push(fn); return fn; }
   off(name, fn) { const a = this._l[name]; if (a) { const i = a.indexOf(fn); if (i >= 0) a.splice(i, 1); } }
   emit(name, data) { const a = this._l[name]; if (a) for (const fn of a.slice()) fn(data); }
+  // Filters let listeners change or cancel an action: each one gets the data object, may edit it,
+  // and returns false to cancel. filter() returns the (possibly edited) data, or null if cancelled.
+  addFilter(name, fn) { (this._f[name] ||= []).push(fn); return fn; }
+  removeFilter(name, fn) { const a = this._f[name]; if (a) { const i = a.indexOf(fn); if (i >= 0) a.splice(i, 1); } }
+  hasFilter(name) { const a = this._f[name]; return !!(a && a.length); }
+  hasListener(name) { const a = this._l[name]; return !!(a && a.length); }
+  filter(name, data) {
+    const a = this._f[name];
+    if (a) for (const fn of a.slice()) if (fn(data) === false) return null;
+    return data;
+  }
 }
 
 export function loadSettings(defaults) {

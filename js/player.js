@@ -5,6 +5,17 @@ import { MOVE, PLAY_HALF, SCORE, RULES } from './config.js';
 import { clamp, lerp, rand, wrapAngle, yawTo, dirFromAngles } from './util.js';
 
 const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Vector3();
+const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _pc = new THREE.Vector3();
+// Reload animation anchors, in gun space: the pouch (off screen, low left), the hand's grip on a magazine,
+// and where the hand waits below a shotgun's loading port
+const POUCH = new THREE.Vector3(-0.1, -0.36, 0.1);
+const GRAB = new THREE.Vector3(-0.035, -0.035, 0);
+const PORT_BELOW = new THREE.Vector3(-0.01, -0.06, 0.03);
+// Gun pose while reloading: roll the magwell toward the camera, raise it toward the centre [rz, rx, ry, x, y, z]
+const RELOAD_POSE = [-0.5, 0.1, 0.2, -0.14, 0.12, -0.02];
+const RELOAD_POSES = { pistol: [-0.3, -0.15, 0.1, -0.1, 0.06, 0.04] };
+const ease = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
+const seg = (p, a, b) => ease((p - a) / (b - a));
 
 // ---------------------------------------------------------------- viewmodel construction
 const VM_MATS = {};
@@ -55,50 +66,96 @@ function reflex(g, M, y, z, w = 0.042, h = 0.036) {
   box(g, M.lens, w - 0.004, h - 0.002, 0.002, 0, y, z - 0.022);
 }
 
+const _wrist = new THREE.Vector3(), _fdir = new THREE.Vector3(), _zAxis = new THREE.Vector3(0, 0, 1);
+function placeForearm(vm) {
+  const f = vm.forearm;
+  _wrist.set(-0.03, -0.04, 0.04).add(vm.lh.position);
+  _fdir.subVectors(vm.elbow, _wrist);
+  const len = _fdir.length();
+  f.position.copy(_wrist).addScaledVector(_fdir, 0.5);
+  f.quaternion.setFromUnitVectors(_zAxis, _fdir.divideScalar(len));
+  f.scale.set(1, 1, len);
+}
+
+// A moving part (magazine, bolt, slide, pump, feed cover) that the reload animation can move
+function part(g, parts, role, x, y, z, rx = 0) {
+  const p = new THREE.Group();
+  p.position.set(x, y, z);
+  p.rotation.x = rx;
+  p.userData.base = p.position.clone();
+  p.userData.rx = rx;
+  g.add(p);
+  parts[role] = p;
+  return p;
+}
+
 function buildViewmodel(kind) {
   const M = vmMats();
   const g = new THREE.Group();
+  const parts = {};
   let sightY = 0.08, muzzleZ = -0.6, muzzleY = 0.005;
   let gripZ = 0.07, foreZ = -0.3, foreY = -0.035;
   const offset = new THREE.Vector3();
+  // Where the left hand grabs the charging handle / loads shells, and how far the bolt travels back
+  let charge = null, port = null, boltTravel = 0.07;
   switch (kind) {
-    case 'ar':
+    case 'ar': {
       box(g, M.metal, 0.055, 0.075, 0.34, 0, 0, -0.05);
       box(g, M.metal, 0.045, 0.02, 0.32, 0, 0.047, -0.06);
       box(g, M.poly, 0.062, 0.062, 0.26, 0, -0.002, -0.33);
       cyl(g, M.metal, 0.011, 0.011, 0.2, 0, 0.005, -0.55);
       cyl(g, M.poly, 0.017, 0.017, 0.06, 0, 0.005, -0.66);
-      box(g, M.poly, 0.034, 0.15, 0.07, 0, -0.105, -0.1, 0.22);
       box(g, M.poly, 0.032, 0.09, 0.042, 0, -0.07, 0.07, -0.3);
       box(g, M.poly, 0.046, 0.07, 0.2, 0, -0.012, 0.2);
+      box(g, M.metal, 0.012, 0.018, 0.03, 0.03, 0.0, -0.08); // mag release / ejection port
       reflex(g, M, 0.085, -0.07);
+      const mag = part(g, parts, 'mag', 0, -0.105, -0.1, 0.22);
+      box(mag, M.poly, 0.034, 0.15, 0.07, 0, 0, 0);
+      box(mag, M.metal, 0.038, 0.012, 0.074, 0, -0.078, 0);
+      const bolt = part(g, parts, 'bolt', 0, 0.06, 0.1);
+      box(bolt, M.metal, 0.05, 0.01, 0.018, 0, 0, 0);
+      charge = new THREE.Vector3(-0.02, 0.06, 0.1);
       sightY = 0.085; muzzleZ = -0.7; offset.set(0, 0, -0.04);
       break;
-    case 'smg':
+    }
+    case 'smg': {
       box(g, M.metal, 0.05, 0.07, 0.26, 0, 0, -0.03);
       box(g, M.poly, 0.056, 0.055, 0.16, 0, -0.004, -0.23);
       cyl(g, M.metal, 0.012, 0.012, 0.12, 0, 0.004, -0.36);
-      box(g, M.poly, 0.03, 0.2, 0.05, 0, -0.13, -0.06, 0.12);
       box(g, M.poly, 0.03, 0.085, 0.04, 0, -0.07, 0.07, -0.3);
       box(g, M.metal, 0.02, 0.05, 0.16, 0, -0.01, 0.17);
       reflex(g, M, 0.075, -0.05, 0.038, 0.032);
+      const mag = part(g, parts, 'mag', 0, -0.13, -0.06, 0.12);
+      box(mag, M.poly, 0.03, 0.2, 0.05, 0, 0, 0);
+      const bolt = part(g, parts, 'bolt', -0.032, 0.02, -0.14);
+      box(bolt, M.metal, 0.02, 0.012, 0.03, 0, 0, 0);
+      charge = new THREE.Vector3(-0.05, 0.02, -0.14);
       sightY = 0.075; muzzleZ = -0.43; foreZ = -0.22;
       break;
-    case 'lmg':
+    }
+    case 'lmg': {
       box(g, M.metal, 0.07, 0.09, 0.42, 0, 0, -0.04);
-      box(g, M.metal, 0.05, 0.03, 0.2, 0, 0.06, -0.06);
       box(g, M.poly, 0.07, 0.07, 0.24, 0, -0.005, -0.36);
       cyl(g, M.metal, 0.015, 0.015, 0.36, 0, 0.008, -0.64);
       cyl(g, M.poly, 0.022, 0.018, 0.07, 0, 0.008, -0.84);
-      box(g, M.olive, 0.1, 0.11, 0.12, -0.01, -0.1, -0.05);
       box(g, M.poly, 0.032, 0.09, 0.042, 0, -0.08, 0.1, -0.3);
       box(g, M.poly, 0.05, 0.08, 0.22, 0, -0.015, 0.25);
       box(g, M.metal, 0.012, 0.012, 0.2, 0.02, -0.04, -0.52, 0.1);
       box(g, M.metal, 0.012, 0.012, 0.2, -0.02, -0.04, -0.52, 0.1);
-      reflex(g, M, 0.103, -0.09, 0.046, 0.04);
+      const cover = part(g, parts, 'cover', 0, 0.06, 0.04);
+      box(cover, M.metal, 0.05, 0.03, 0.2, 0, 0, -0.1);
+      reflex(cover, M, 0.043, -0.13, 0.046, 0.04);
+      const mag = part(g, parts, 'mag', -0.01, -0.1, -0.05);
+      box(mag, M.olive, 0.1, 0.11, 0.12, 0, 0, 0);
+      box(mag, M.metal, 0.02, 0.05, 0.02, 0.03, 0.07, 0); // belt feeding up into the gun
+      const bolt = part(g, parts, 'bolt', 0.042, -0.005, -0.1);
+      box(bolt, M.metal, 0.018, 0.018, 0.035, 0, 0, 0);
+      charge = new THREE.Vector3(0.05, -0.02, -0.1);
+      boltTravel = 0.1;
       sightY = 0.103; muzzleZ = -0.88; foreZ = -0.34; offset.set(0.01, 0, -0.1);
       break;
-    case 'sniper':
+    }
+    case 'sniper': {
       box(g, M.metal, 0.05, 0.07, 0.4, 0, 0, -0.06);
       cyl(g, M.metal, 0.012, 0.014, 0.55, 0, 0.012, -0.52);
       cyl(g, M.poly, 0.02, 0.02, 0.08, 0, 0.012, -0.82);
@@ -106,31 +163,53 @@ function buildViewmodel(kind) {
       cyl(g, M.poly, 0.03, 0.026, 0.06, 0, 0.088, -0.24);
       cyl(g, M.poly, 0.027, 0.024, 0.05, 0, 0.088, 0.1);
       box(g, M.metal, 0.02, 0.03, 0.03, 0, 0.055, -0.07);
-      box(g, M.metal, 0.05, 0.012, 0.012, 0.04, 0.015, 0.06);
       box(g, M.tan, 0.052, 0.09, 0.32, 0, -0.03, 0.28);
       box(g, M.tan, 0.055, 0.05, 0.3, 0, -0.03, -0.22);
       box(g, M.poly, 0.03, 0.085, 0.04, 0, -0.07, 0.08, -0.3);
-      box(g, M.poly, 0.034, 0.07, 0.07, 0, -0.07, -0.04);
+      const mag = part(g, parts, 'mag', 0, -0.07, -0.04);
+      box(mag, M.poly, 0.034, 0.07, 0.07, 0, 0, 0);
+      // bolt handle sticks out to the right; it lifts, pulls back, pushes forward and locks down
+      const bolt = part(g, parts, 'bolt', 0.0, 0.015, 0.06);
+      box(bolt, M.metal, 0.05, 0.012, 0.012, 0.035, 0, 0);
+      box(bolt, M.metal, 0.02, 0.02, 0.02, 0.064, 0, 0);
+      box(bolt, M.metal, 0.026, 0.026, 0.1, 0, 0, -0.04);
+      parts.bolt.userData.rotary = true;
+      charge = new THREE.Vector3(0.07, 0.015, 0.06);
+      boltTravel = 0.085;
       sightY = 0.088; muzzleZ = -0.86; foreZ = -0.26; offset.set(0.02, -0.01, -0.18);
       break;
-    case 'pistol':
-      box(g, M.metal, 0.03, 0.035, 0.18, 0, 0.022, -0.05);
+    }
+    case 'pistol': {
       box(g, M.poly, 0.028, 0.028, 0.14, 0, -0.008, -0.04);
       box(g, M.poly, 0.028, 0.095, 0.045, 0, -0.062, 0.02, -0.25);
-      box(g, M.metal, 0.006, 0.01, 0.006, 0, 0.044, -0.13);
+      const slide = part(g, parts, 'slide', 0, 0.022, -0.05);
+      box(slide, M.metal, 0.03, 0.035, 0.18, 0, 0, 0);
+      box(slide, M.metal, 0.006, 0.01, 0.006, 0, 0.022, -0.08);
+      box(slide, M.metal, 0.012, 0.008, 0.006, 0, 0.021, 0.08);
+      const mag = part(g, parts, 'mag', 0, -0.062, 0.02, -0.25);
+      box(mag, M.metal, 0.022, 0.1, 0.036, 0, -0.004, 0);
+      box(mag, M.poly, 0.031, 0.012, 0.05, 0, -0.053, 0);
+      charge = new THREE.Vector3(-0.005, 0.03, 0.02);
+      boltTravel = 0.035;
       sightY = 0.046; muzzleZ = -0.16; gripZ = 0.02; foreZ = 0.0; foreY = -0.06; offset.set(-0.03, 0.02, 0.02);
       break;
-    case 'shotgun':
+    }
+    case 'shotgun': {
       box(g, M.metal, 0.055, 0.07, 0.3, 0, 0, -0.03);
       cyl(g, M.metal, 0.016, 0.016, 0.5, 0, 0.018, -0.42);
       cyl(g, M.poly, 0.019, 0.019, 0.36, 0, -0.022, -0.36);
-      box(g, M.tan, 0.058, 0.05, 0.16, 0, -0.024, -0.34);
       box(g, M.poly, 0.032, 0.085, 0.042, 0, -0.07, 0.07, -0.3);
       box(g, M.tan, 0.05, 0.085, 0.24, 0, -0.02, 0.22);
       box(g, M.metal, 0.012, 0.012, 0.012, 0, 0.042, -0.65);
       box(g, M.metal, 0.02, 0.014, 0.02, 0, 0.042, -0.06);
+      box(g, M.poly, 0.03, 0.006, 0.07, 0, -0.037, -0.04); // loading port
+      const pump = part(g, parts, 'pump', 0, -0.024, -0.34);
+      box(pump, M.tan, 0.058, 0.05, 0.16, 0, 0, 0);
+      port = new THREE.Vector3(0, -0.05, -0.04);
+      boltTravel = 0.09;
       sightY = 0.045; muzzleZ = -0.68; foreZ = -0.34; offset.set(0, 0, -0.06);
       break;
+    }
     case 'rpg': {
       cyl(g, M.olive, 0.042, 0.042, 1.0, 0.0, 0.0, -0.1);
       cyl(g, M.olive, 0.05, 0.05, 0.12, 0, 0, 0.38);
@@ -166,19 +245,101 @@ function buildViewmodel(kind) {
       sightY = 0.12; muzzleZ = -0.12; gripZ = 0.0; foreZ = -0.2; foreY = -0.1;
       break;
   }
-  // Hands and forearms reaching back out of frame
+  return finishViewmodel(g, parts, { kind, sightY, muzzleY, muzzleZ, gripZ, foreZ, foreY, offset, charge, port, boltTravel });
+}
+
+// Hands, forearms, the carried shotgun shell and the muzzle point, shared by built-in and modded guns
+function finishViewmodel(g, parts, o) {
+  const M = vmMats();
+  const { kind, sightY, muzzleY, muzzleZ, gripZ, foreZ, foreY, offset, charge, port, boltTravel } = o;
+  // Hands and forearms reaching back out of frame. The left hand is its own group so it can
+  // reach for magazines, charging handles and shells.
   const rh = new THREE.Vector3(0.0, -0.075, gripZ);
-  const lh = new THREE.Vector3(0.0, foreY, foreZ);
   box(g, M.glove, 0.055, 0.08, 0.1, rh.x + 0.012, rh.y, rh.z);
-  box(g, M.glove, 0.06, 0.065, 0.1, lh.x - 0.012, lh.y - 0.02, lh.z);
   limb(g, M.sleeve, new THREE.Vector3(0.035, rh.y - 0.02, rh.z + 0.05), new THREE.Vector3(0.12, -0.2, 0.35), 0.075);
-  limb(g, M.sleeve, new THREE.Vector3(-0.03, lh.y - 0.04, lh.z + 0.04), new THREE.Vector3(-0.22, -0.24, 0.12), 0.07);
+  const lhBase = new THREE.Vector3(0.0, foreY, foreZ);
+  const lh = new THREE.Group();
+  lh.position.copy(lhBase);
+  box(lh, M.glove, 0.06, 0.065, 0.1, -0.012, -0.02, 0);
+  // The forearm runs from the wrist to an elbow that stays put, so it stretches as the hand moves
+  const forearm = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.062, 1), M.sleeve);
+  g.add(forearm);
+  const elbow = new THREE.Vector3(-0.16, -0.36, 0.16);
+  g.add(lh);
+  // A shotgun shell the left hand carries while loading
+  const shell = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.05, 8), new THREE.MeshStandardMaterial({ color: 0xa3261e, roughness: 0.6 }));
+  const brass = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.014, 8), new THREE.MeshStandardMaterial({ color: 0xc9a14a, roughness: 0.35, metalness: 0.8 }));
+  brass.position.y = -0.03;
+  shell.add(hull, brass);
+  shell.rotation.x = Math.PI / 2;
+  shell.position.set(0.0, 0.02, -0.03);
+  shell.visible = false;
+  lh.add(shell);
 
   const muzzle = new THREE.Object3D();
   muzzle.position.set(0, muzzleY, muzzleZ);
   g.add(muzzle);
+  if (parts.mag) {
+    g.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(parts.mag);
+    parts.mag.userData.len = bb.max.y - bb.min.y;
+  }
   g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; } });
-  return { group: g, muzzle, sightY, kind, offset };
+  const vm = { group: g, muzzle, sightY, kind, offset, parts, lh, lhBase, shell, charge, port, boltTravel, forearm, elbow };
+  placeForearm(vm);
+  return vm;
+}
+
+// A weapon model from a mod: a list of boxes, cylinders, spheres and cones. Parts with a role
+// ('mag', 'bolt', 'slide', 'pump', 'cover') move during reloads just like the built-in guns.
+const _cv = new THREE.Vector3(), _xAxis = new THREE.Vector3(1, 0, 0);
+const DEG = Math.PI / 180;
+function buildCustomViewmodel(model) {
+  const M = vmMats();
+  const g = new THREE.Group();
+  const parts = {};
+  const mats = new Map();
+  const matFor = (p) => {
+    const k = `${p.color}|${p.metal}|${p.rough}|${p.emissive}`;
+    if (!mats.has(k)) {
+      mats.set(k, new THREE.MeshStandardMaterial({
+        color: p.color, metalness: p.metal, roughness: p.rough,
+        emissive: p.emissive ?? 0x000000, emissiveIntensity: p.emissive != null ? 1.5 : 0,
+      }));
+    }
+    return mats.get(k);
+  };
+  for (const p of model.parts) {
+    let geo;
+    const s = p.size;
+    if (p.shape === 'cylinder') { geo = new THREE.CylinderGeometry(s[0], s.length > 2 ? s[1] : s[0], s[s.length - 1], 12); geo.rotateX(Math.PI / 2); }
+    else if (p.shape === 'cone') { geo = new THREE.ConeGeometry(s[0], s[1] ?? s[0] * 2, 12); geo.rotateX(-Math.PI / 2); }
+    else if (p.shape === 'sphere') geo = new THREE.SphereGeometry(s[0], 12, 8);
+    else geo = new THREE.BoxGeometry(s[0], s[1] ?? s[0], s[2] ?? s[0]);
+    const mesh = new THREE.Mesh(geo, matFor(p));
+    const rx = p.rot[0] * DEG, ry = p.rot[1] * DEG, rz = p.rot[2] * DEG;
+    if (p.role) {
+      let grp = parts[p.role];
+      if (!grp) grp = part(g, parts, p.role, p.pos[0], p.pos[1], p.pos[2], rx);
+      _cv.set(p.pos[0], p.pos[1], p.pos[2]).sub(grp.userData.base).applyAxisAngle(_xAxis, -grp.userData.rx);
+      mesh.position.copy(_cv);
+      mesh.rotation.set(rx - grp.userData.rx, ry, rz);
+      grp.add(mesh);
+    } else {
+      mesh.position.set(p.pos[0], p.pos[1], p.pos[2]);
+      mesh.rotation.set(rx, ry, rz);
+      g.add(mesh);
+    }
+  }
+  if (model.sight === 'reflex') reflex(g, M, model.sightY, model.sightZ);
+  if (parts.bolt && model.boltAction) parts.bolt.userData.rotary = true;
+  const v3 = (a) => (a ? new THREE.Vector3(a[0], a[1], a[2]) : null);
+  return finishViewmodel(g, parts, {
+    kind: model.pose || 'custom', sightY: model.sightY, muzzleY: model.muzzle[1], muzzleZ: model.muzzle[2],
+    gripZ: model.grip[2], foreZ: model.fore[2], foreY: model.fore[1], offset: v3(model.offset) || new THREE.Vector3(),
+    charge: v3(model.charge), port: v3(model.port), boltTravel: model.boltTravel,
+  });
 }
 
 // ---------------------------------------------------------------- controller
@@ -223,6 +384,15 @@ export class PlayerController {
     this.reset();
   }
 
+  // Mods may have changed weapon models: rebuild them on next use
+  clearViewmodels() {
+    if (this.vm) { this.vm.muzzle.remove(this.flash); this.vmRoot.remove(this.vm.group); }
+    this.vm = null;
+    this.vmKey = null;
+    this.vmCache = {};
+    if (this.s) this._setVM();
+  }
+
   // Keep the weapon in your hands lit like the world around it (mods can switch to night)
   setViewmodelLight(scale) {
     for (const [light, base] of this.vmLights) light.intensity = base * scale;
@@ -230,6 +400,7 @@ export class PlayerController {
 
   reset() {
     this.adsBlend = 0;
+    this.reloadBlend = 0;
     this.sprintBlend = 0;
     this.kick = 0;
     this.recoilAccum = 0;
@@ -247,7 +418,7 @@ export class PlayerController {
     this.tankWeapon = 0;
     this.deathT = 0;
     this.lean = 0;
-    this.vmKind = null;
+    this.vmKey = null;
     this.gadgetBackT = 0;
     this.context = null;
     this.assistScan = 0;
@@ -270,11 +441,12 @@ export class PlayerController {
 
   _setVM() {
     const kind = this._vmKindFor();
-    if (kind === this.vmKind) return;
-    this.vmKind = kind;
+    const key = typeof kind === 'string' ? kind : kind.key;
+    if (key === this.vmKey) return;
+    this.vmKey = key;
     if (this.vm) this.vmRoot.remove(this.vm.group);
-    if (!this.vmCache[kind]) this.vmCache[kind] = buildViewmodel(kind);
-    this.vm = this.vmCache[kind];
+    if (!this.vmCache[key]) this.vmCache[key] = typeof kind === 'string' ? buildViewmodel(kind) : buildCustomViewmodel(kind);
+    this.vm = this.vmCache[key];
     this.vmRoot.add(this.vm.group);
     this.vm.muzzle.add(this.flash);
   }
@@ -367,7 +539,9 @@ export class PlayerController {
     if (wantSprint && s.stance === 1) s.setStance(0);
     s.sprinting = wantSprint && s.stance === 0;
     const adsTime = s.slot < 2 ? gun.def.adsTime : 0.25;
-    const adsTarget = wantAds && !s.sprinting ? 1 : 0;
+    // You can't aim down sights while your hands are busy swapping a magazine
+    const busy = gun && s.slot < 2 && gun.reloading && gun.type !== 'shell';
+    const adsTarget = wantAds && !s.sprinting && !busy ? 1 : 0;
     s.adsT = clamp(s.adsT + (adsTarget ? dt : -dt) / adsTime, 0, 1);
 
     // movement
@@ -388,7 +562,7 @@ export class PlayerController {
     this.switchT = Math.max(0, this.switchT - dt);
     this._fire(dt);
 
-    if (gun && inp.pressed('reload') && gun.startReload()) g.audio.reload();
+    if (gun && inp.pressed('reload')) s.reload();
     if (inp.pressed('grenade') && this.meleeT <= 0) {
       if (g.combat.throwGrenade(s)) this.throwT = 0.45;
       else if (s.grenades <= 0) g.hud.toast('NO GRENADES');
@@ -454,13 +628,12 @@ export class PlayerController {
     const gun = s.gun, def = gun.def;
     let trigger = def.kind === 'auto' ? inp.down('fire') : inp.pressed('fire');
     if (!trigger && inp.touchMode && g.settings.autoFire && !s.sprinting && this._enemyUnderCrosshair()) trigger = true;
+    // A shotgun can fire in the middle of loading shells; anything else waits for the reload
+    const canInterrupt = gun.type === 'shell' && gun.reloading && (gun.ready || gun.mag > 0);
     if (trigger && !s.sprinting) {
-      if (gun.mag === 0) {
-        if (!gun.reloading) {
-          if (gun.reserve > 0) { gun.startReload(); g.audio.reload(); }
-          else if (inp.pressed('fire')) g.audio.empty();
-        }
-      } else if (gun.canFire()) {
+      if (!gun.ready && !canInterrupt) {
+        if (!gun.reloading && !s.reload() && inp.pressed('fire')) g.audio.empty();
+      } else if (gun.canFire() || canInterrupt) {
         const dir = s.forward(_d);
         const muzzle = this._muzzleWorld(_m);
         if (g.combat.fireGun(s, dir, this.currentSpread(), { muzzle })) {
@@ -477,10 +650,7 @@ export class PlayerController {
         }
       }
     }
-    if (gun.mag === 0 && !gun.reloading && gun.reserve > 0 && !inp.down('fire')) {
-      gun.startReload();
-      g.audio.reload();
-    }
+    if (!gun.ready && !gun.reloading && !inp.down('fire')) s.reload();
   }
 
   // Works out the context action (revive / enter tank / detonate) shared by the E key
@@ -724,6 +894,112 @@ export class PlayerController {
     }
   }
 
+  // Moves magazines, bolts, slides, pumps and the left hand through each reload stage and
+  // after each shot. Returns how far the gun should roll toward the camera (0..1).
+  _animateParts(gun) {
+    const vm = this.vm, P = vm.parts, lh = vm.lh;
+    for (const k in P) {
+      const o = P[k];
+      o.position.copy(o.userData.base);
+      o.rotation.set(o.userData.rx, 0, 0);
+      o.visible = true;
+    }
+    const hand = lh.position.copy(vm.lhBase);
+    lh.rotation.set(0, 0, 0);
+    vm.shell.visible = false;
+    if (!gun) return 0;
+    const st = gun.stage, p = gun.stageP, d = gun.def, travel = vm.boltTravel;
+    const mag = P.mag, pump = P.pump, cover = P.cover, slide = P.slide, bolt = P.bolt;
+    let roll = 0;
+    // Positions along the magazine's own axis (0 = seated)
+    const magAt = (dist, out) => out.set(0, -Math.cos(mag.userData.rx), -Math.sin(mag.userData.rx)).multiplyScalar(dist).add(mag.userData.base);
+    const pouchHand = _pa.copy(POUCH).add(GRAB);
+
+    if ((st === 'out' || st === 'in') && mag) {
+      roll = 1;
+      const len = mag.userData.len;
+      if (st === 'out') {
+        if (cover) cover.rotation.x = 1.1 * seg(p, 0.3, 0.45);
+        const grab = magAt(0, _pb).add(GRAB);
+        const t0 = cover ? 0.45 : 0.4;
+        hand.lerpVectors(vm.lhBase, grab, seg(p, cover ? 0.1 : 0, t0));
+        if (p > t0) {
+          const q = (p - t0) / (1 - t0);
+          if (gun.droppedEmpty && !cover) {
+            // an empty magazine falls free while the hand heads for the pouch
+            magAt(0.02 + q * q * 0.7, mag.position);
+            mag.rotation.x = mag.userData.rx + q * 1.4;
+            hand.lerpVectors(grab, pouchHand, seg(q, 0.1, 1));
+          } else {
+            // a magazine with rounds left is pulled out and kept
+            magAt(len * 0.6 * seg(q, 0, 0.35), _pc);
+            mag.position.lerpVectors(_pc, POUCH, seg(q, 0.35, 1));
+            hand.copy(mag.position).add(GRAB);
+          }
+        }
+      } else {
+        if (cover) cover.rotation.x = 1.1 * (1 - seg(p, 0.82, 1));
+        magAt(len * 0.7, _pb);
+        if (p < 0.55) mag.position.lerpVectors(POUCH, _pb, seg(p, 0, 0.55));
+        else mag.position.lerpVectors(_pb, mag.userData.base, seg(p, 0.55, 0.76));
+        hand.copy(mag.position).add(GRAB);
+        if (p > 0.8) hand.lerpVectors(_pc.copy(mag.userData.base).add(GRAB), vm.lhBase, seg(p, 0.8, 1));
+      }
+    } else if (st === 'charge') {
+      roll = 0.6;
+      if (pump) {
+        pump.position.z += travel * Math.sin(seg(p, 0.05, 0.95) * Math.PI);
+        hand.z += pump.position.z - pump.userData.base.z;
+        roll = 0.3;
+      } else if (bolt && bolt.userData.rotary) {
+        this._boltCycle(bolt, p, travel);
+        roll = 0.45;
+      } else if (vm.charge) {
+        const reach = seg(p, 0, 0.35) - seg(p, 0.66, 1);
+        const pull = slide ? 1 - seg(p, 0.44, 0.5) : seg(p, 0.35, 0.6) * (1 - seg(p, 0.6, 0.65));
+        hand.lerpVectors(vm.lhBase, vm.charge, reach);
+        hand.z += pull * travel;
+        const part = slide || bolt;
+        if (part) part.position.z += pull * travel;
+      }
+    } else if ((st === 'start' || st === 'shell' || st === 'end') && vm.port) {
+      roll = 0.8;
+      const below = _pb.copy(vm.port).add(PORT_BELOW);
+      if (st === 'start') hand.lerpVectors(vm.lhBase, below, seg(p, 0, 1));
+      else if (st === 'end') hand.lerpVectors(below, vm.lhBase, seg(p, 0, 1));
+      else {
+        if (p < 0.3) hand.lerpVectors(below, pouchHand, seg(p, 0, 0.3));
+        else if (p < 0.7) hand.lerpVectors(pouchHand, below, seg(p, 0.3, 0.7));
+        else if (p < 0.88) hand.lerpVectors(below, vm.port, seg(p, 0.7, 0.88));
+        else hand.lerpVectors(vm.port, below, seg(p, 0.88, 1));
+        vm.shell.visible = p > 0.3 && p < 0.86;
+      }
+    } else if (!st) {
+      // Working the action after a shot
+      const since = 60 / d.rpm - Math.max(0, gun.cool);
+      if (d.kind === 'bolt' && bolt && bolt.userData.rotary && since > 0.2 && since < 0.9) {
+        this._boltCycle(bolt, (since - 0.2) / 0.7, travel);
+        roll = 0.35;
+      } else if (d.kind === 'bolt' && pump && since > 0.1 && since < 0.45) {
+        const k = Math.sin(((since - 0.1) / 0.35) * Math.PI);
+        pump.position.z += travel * k;
+        hand.z += travel * k;
+      } else if (slide && since < 0.07 && gun.cool > 0) {
+        slide.position.z += travel * Math.sin((since / 0.07) * Math.PI);
+      }
+    }
+    // An empty pistol's slide locks back until a new magazine goes in and the slide is released
+    if (slide && gun.closed && gun.chamber === 0 && st !== 'charge') slide.position.z = slide.userData.base.z + travel;
+    if (mag && gun.magOut && st !== 'in' && st !== 'out') mag.visible = false;
+    return roll;
+  }
+
+  // Bolt-action: lift the handle, pull back, push forward, lock down (q: 0..1)
+  _boltCycle(bolt, q, travel) {
+    bolt.rotation.z = 1.1 * (seg(q, 0, 0.2) - seg(q, 0.8, 1));
+    bolt.position.z += travel * (seg(q, 0.2, 0.42) - seg(q, 0.5, 0.75));
+  }
+
   _updateVM(dt, speed, bobX, bobY) {
     const s = this.s, g = this.game, vm = this.vm;
     this._setVM();
@@ -752,18 +1028,15 @@ export class PlayerController {
     const sb = this.sprintBlend;
     p.x += sb * -0.05; p.y += sb * -0.05; p.z += sb * 0.05;
     r.x += sb * -0.35; r.y += sb * 0.75; r.z += sb * 0.25;
-    // reload dip
+    // reload: the gun rolls toward you while the hands work the magazine, bolt or shells
     const gun = s.gun;
-    if (gun && gun.reloading) {
-      const t = 1 - gun.reloadT / gun.def.reload;
-      const dip = Math.sin(t * Math.PI);
-      r.x -= dip * 0.6; r.z += dip * 0.5; p.y -= dip * 0.07;
-    }
-    if (s.slot === 0 && gun && gun.def.kind === 'bolt' && gun.cool > 0.2) {
-      const t = gun.cool / (60 / gun.def.rpm);
-      r.z += Math.sin(t * Math.PI) * 0.25;
-      p.y -= Math.sin(t * Math.PI) * 0.03;
-    }
+    const roll = this._animateParts(gun);
+    this.reloadBlend += (roll - this.reloadBlend) * Math.min(1, dt * 9);
+    const rb = this.reloadBlend;
+    const VP = RELOAD_POSES[this.vm.kind] || RELOAD_POSE;
+    r.z += rb * VP[0]; r.x += rb * VP[1]; r.y += rb * VP[2];
+    p.x += rb * VP[3]; p.y += rb * VP[4]; p.z += rb * VP[5];
+    placeForearm(this.vm);
     if (s.slot === 2 && s.gadgetCd > 0 && (s.gadget.id === 'rpg' || s.gadget.id === 'ugl')) {
       const t = s.gadgetCd / s.gadget.reload;
       const dip = Math.sin(t * Math.PI);

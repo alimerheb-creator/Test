@@ -84,6 +84,11 @@ export class Conquest {
   // ------------------------------------------------------------ scoring
   award(s, pts, label) {
     if (!s) return;
+    if (this.game.hasFilter('score')) {
+      const f = this.game.filter('score', { soldier: s, points: pts, label });
+      if (!f) return;
+      pts = Math.round(Number(f.points) || 0); label = String(f.label ?? label);
+    }
     s.stats.score += pts;
     if (s.isPlayer) this.game.emit('score', { pts, label });
   }
@@ -177,7 +182,7 @@ export class Conquest {
     for (const f of this.flags) if (f.owner >= 0) own[f.owner]++;
     for (let t = 0; t < 2; t++) {
       const o = 1 - t;
-      if (own[o] > own[t] && own[o] >= 3) {
+      if (own[o] > own[t] && own[o] > this.flags.length / 2) {
         this.tickets[t] = Math.max(0, this.tickets[t] - (0.12 + 0.1 * (own[o] - own[t])) * RULES.bleedSpeed * dt);
         if (this.tickets[t] <= 0) this._end(o);
       }

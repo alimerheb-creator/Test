@@ -1,7 +1,8 @@
 // Sixth Front — shared constants: teams, map layout, weapons, classes, tuning.
 
 export const GAME_TITLE = 'SIXTH FRONT';
-export const MAP_NAME = 'KARSA VALLEY';
+// The battlefield. Map mods replace these tables before the world is built (see MODDING.md).
+export const MAP = { name: 'KARSA VALLEY', randomProps: true };
 
 export const PLAY_HALF = 240;   // half-size of the playable square (m)
 export const WORLD_HALF = 560;  // half-size of the rendered terrain (m)
@@ -23,6 +24,8 @@ export const RULES = {
   spawnProtection: 1.5,   // seconds of invulnerability after spawning
   fallDamage: true,
   infiniteAmmo: false,
+  friendlyFire: false,
+  startTickets: 0,        // 0 uses the ticket count from the match settings
 };
 
 export const VEHICLES = {
@@ -54,7 +57,7 @@ export const HQS = [
 export const FLAGS = [
   { id: 'A', name: 'QUARRY', x: -135, z: 110, radius: 13, flat: 46 },
   { id: 'B', name: 'OLD MILL', x: 120, z: 95, radius: 13, flat: 46 },
-  { id: 'C', name: 'MARKET', x: 0, z: 0, radius: 14, flat: 70 },
+  { id: 'C', name: 'MARKET', x: 0, z: 0, radius: 14, flat: 70, town: true },
   { id: 'D', name: 'RELAY STATION', x: -120, z: -100, radius: 13, flat: 46 },
   { id: 'E', name: 'CEMENT WORKS', x: 135, z: -105, radius: 13, flat: 46 },
 ];
@@ -87,41 +90,48 @@ export const ROADS = [
   [[0, -212], [60, -170], [135, -105], [195, 10], [120, 95]],
 ];
 
+// Terrain shape multipliers and seed, vegetation density multipliers, and hand-placed props
+export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1 };
+export const VEGETATION = { trees: 1, bushes: 1, rocks: 1, grass: 1 };
+export const MAP_PROPS = [];
+
 export const MOVE = {
   walk: 4.6, sprint: 7.3, crouch: 2.5, prone: 1.1, adsMul: 0.6,
   jump: 6.2, accel: 55, airAccel: 9, slideSpeed: 10, slideTime: 0.85,
 };
 
 // Hitscan firearms. dmg: [near, far] across range: [start, end] metres.
+// reload is a tactical reload (round still chambered); reloadEmpty also racks the bolt. reloadType:
+// 'mag' (detachable magazine), 'box' (belt box, open bolt) or 'shell' (one round at a time, shellTime each).
 export const WEAPONS = {
   ar: {
     id: 'ar', name: 'M4K CARBINE', kind: 'auto', rpm: 760, dmg: [25, 17], range: [25, 70], mag: 30, reserve: 150,
-    reload: 2.2, spreadHip: 0.032, spreadAds: 0.0035, bloom: 0.005, bloomMax: 0.03, recoil: [0.011, 0.005],
+    reload: 2.2, reloadEmpty: 2.9, spreadHip: 0.032, spreadAds: 0.0035, bloom: 0.005, bloomMax: 0.03, recoil: [0.011, 0.005],
     adsFov: 48, adsTime: 0.18, head: 1.8, sound: 'rifle', model: 'ar', botRange: 110,
   },
   smg: {
     id: 'smg', name: 'VX-9 PDW', kind: 'auto', rpm: 920, dmg: [22, 12], range: [12, 40], mag: 40, reserve: 200,
-    reload: 1.9, spreadHip: 0.024, spreadAds: 0.006, bloom: 0.004, bloomMax: 0.028, recoil: [0.008, 0.006],
+    reload: 1.9, reloadEmpty: 2.5, spreadHip: 0.024, spreadAds: 0.006, bloom: 0.004, bloomMax: 0.028, recoil: [0.008, 0.006],
     adsFov: 56, adsTime: 0.14, head: 1.6, sound: 'smg', model: 'smg', botRange: 70,
   },
   lmg: {
     id: 'lmg', name: 'KR-250 LMG', kind: 'auto', rpm: 680, dmg: [27, 20], range: [30, 80], mag: 100, reserve: 200,
-    reload: 4.8, spreadHip: 0.045, spreadAds: 0.006, bloom: 0.004, bloomMax: 0.035, recoil: [0.013, 0.008],
+    reload: 4.8, reloadEmpty: 5.4, reloadType: 'box', openBolt: true, spreadHip: 0.045, spreadAds: 0.006, bloom: 0.004, bloomMax: 0.035, recoil: [0.013, 0.008],
     adsFov: 46, adsTime: 0.26, head: 1.7, sound: 'lmg', model: 'lmg', botRange: 120,
   },
   sniper: {
     id: 'sniper', name: 'SR-338 BOLT', kind: 'bolt', rpm: 46, dmg: [96, 82], range: [60, 250], mag: 5, reserve: 30,
-    reload: 3.0, spreadHip: 0.05, spreadAds: 0.0, bloom: 0, bloomMax: 0, recoil: [0.055, 0.01],
+    reload: 2.6, reloadEmpty: 3.4, spreadHip: 0.05, spreadAds: 0.0, bloom: 0, bloomMax: 0, recoil: [0.055, 0.01],
     adsFov: 13, adsTime: 0.3, head: 2.6, sound: 'sniper', model: 'sniper', scope: true, botRange: 230,
   },
   pistol: {
     id: 'pistol', name: 'P-19 SIDEARM', kind: 'semi', rpm: 420, dmg: [30, 18], range: [10, 35], mag: 15, reserve: 60,
-    reload: 1.5, spreadHip: 0.018, spreadAds: 0.006, bloom: 0.012, bloomMax: 0.04, recoil: [0.02, 0.006],
+    reload: 1.5, reloadEmpty: 1.9, spreadHip: 0.018, spreadAds: 0.006, bloom: 0.012, bloomMax: 0.04, recoil: [0.02, 0.006],
     adsFov: 60, adsTime: 0.12, head: 1.8, sound: 'pistol', model: 'pistol', botRange: 50,
   },
   coax: {
     id: 'coax', name: 'COAXIAL MG', kind: 'auto', rpm: 700, dmg: [24, 18], range: [40, 120], mag: 200, reserve: 9999,
-    reload: 3.5, spreadHip: 0.012, spreadAds: 0.008, bloom: 0.002, bloomMax: 0.02, recoil: [0, 0],
+    reload: 3.5, reloadEmpty: 4.0, reloadType: 'box', openBolt: true, spreadHip: 0.012, spreadAds: 0.008, bloom: 0.002, bloomMax: 0.02, recoil: [0, 0],
     adsFov: 30, adsTime: 0.2, head: 1.5, sound: 'lmg', model: 'none', botRange: 120,
   },
 };

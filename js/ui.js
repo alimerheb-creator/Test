@@ -1,5 +1,5 @@
 // Menus: main menu with settings, the deploy screen (class + spawn), pause and after-action report.
-import { CLASSES, CLASS_ORDER, WEAPONS, GADGETS, DIFFICULTY, TEAMS } from './config.js';
+import { CLASSES, CLASS_ORDER, WEAPONS, GADGETS, DIFFICULTY, TEAMS, MAP } from './config.js';
 import { saveSettings, formatTime, esc } from './util.js';
 import { parseMod, slugify } from './mods.js';
 
@@ -136,6 +136,15 @@ export class UI {
   }
 
   // ------------------------------------------------------------ mods
+  // A map mod was switched on or off: the page restarts to build the new battlefield
+  showRestart() {
+    const l = document.getElementById('loading');
+    if (!l) return;
+    l.classList.remove('done', 'error');
+    const label = document.getElementById('load-label');
+    if (label) label.textContent = 'Building the new map';
+  }
+
   updateModsButton() {
     const n = this.game.mods.activeCount;
     $('btn-mods').textContent = n ? `MODS · ${n} ON` : 'MODS';
@@ -252,7 +261,7 @@ export class UI {
             <span class="mod-name">${esc(m.name)}</span></label>
           <span class="mod-status">${statusText[m.status] || ''}</span>
         </div>
-        <p class="mod-meta">${esc([m.version && 'v' + m.version, m.author && 'by ' + m.author, m.hasScript && 'has script'].filter(Boolean).join(' · '))}</p>
+        <p class="mod-meta">${esc([m.version && 'v' + m.version, m.author && 'by ' + m.author, m.hasScript && 'has script', m.hasMap && 'new map (the game restarts when you switch it)'].filter(Boolean).join(' · '))}</p>
         ${m.description ? `<p class="mod-desc">${esc(m.description)}</p>` : ''}
         ${m.messages.length ? `<ul class="mod-notes">${m.messages.slice(0, 12).map((x) => `<li>${esc(x)}</li>`).join('')}${m.messages.length > 12 ? `<li>…and ${m.messages.length - 12} more</li>` : ''}</ul>` : ''}
         <div class="mod-buttons">
@@ -393,7 +402,7 @@ export class UI {
     const h = $('end-title');
     h.textContent = won ? 'VICTORY' : 'DEFEAT';
     h.className = won ? 'win' : 'loss';
-    $('end-sub').textContent = `${TEAMS[winner].name} HOLD KARSA VALLEY · ${formatTime(g.mode.time)} · ${DIFFICULTY[g.settings.difficulty].label} AI`;
+    $('end-sub').textContent = `${TEAMS[winner].name} HOLD ${MAP.name} · ${formatTime(g.mode.time)} · ${DIFFICULTY[g.settings.difficulty].label} AI`;
     const all = [...g.soldiers].sort((a, b) => b.stats.score - a.stats.score);
     const rank = all.indexOf(P) + 1;
     const st = P.stats;

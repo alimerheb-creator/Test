@@ -19,11 +19,26 @@
       "range": [40, 150],
       "mag": 12,
       "reserve": 72,
+      "reload": 2.3,
+      "reloadEmpty": 3.0,
       "spreadAds": 0.001,
       "recoil": [0.03, 0.006],
       "adsFov": 30,
       "sound": "heavy",
       "botRange": 160
+    },
+    "slide_rifle": {
+      "_comment": "Loads one round at a time and pumps the action after every shot",
+      "base": "sniper",
+      "name": "M-95 SLIDE-ACTION",
+      "rpm": 90,
+      "mag": 7,
+      "reserve": 42,
+      "reloadType": "shell",
+      "shellTime": 0.45,
+      "scope": false,
+      "adsFov": 40,
+      "model": "shotgun"
     }
   },
 
@@ -53,7 +68,8 @@
     "regenDelay": 4,
     "captureSpeed": 1.3,
     "fallDamage": true,
-    "infiniteAmmo": false
+    "infiniteAmmo": false,
+    "friendlyFire": false
   },
 
   "scoring": { "capture": 300 },
@@ -69,7 +85,32 @@
 
   "atmosphere": { "preset": "dusk", "clouds": 0.7 },
 
+  "_map": {
+    "_comment": "Rename _map to map to build your own battlefield. The game restarts when a map mod is switched on or off.",
+    "name": "MY MAP",
+    "flags": [
+      { "name": "NORTH FARM", "x": 0, "z": -120, "radius": 13 },
+      { "name": "CROSSROADS", "x": 0, "z": 0, "radius": 14, "town": true },
+      { "name": "SOUTH FARM", "x": 0, "z": 120, "radius": 13 }
+    ],
+    "buildings": [[20, -20, 3, 3, 2], [-20, 22, 4, 3, 1]],
+    "props": [{ "type": "block", "x": 0, "z": 30, "size": [12, 2.5, 0.6] }],
+    "terrain": { "seed": 7, "hills": 1.5 }
+  },
+
   "script": [
-    "api.on('matchStart', () => api.toast('My First Mod is running'));"
+    "// Runs when the mod is applied. See MODDING.md for every event, hook and action.",
+    "api.on('matchStart', () => api.toast('My First Mod is running'));",
+    "",
+    "// Hooks can change what happens: here, knife kills heal you to full",
+    "api.filter('damage', (d) => {",
+    "  if (d.info.melee && d.attacker === api.player()) api.after(0.1, () => api.heal(d.attacker, 999));",
+    "});",
+    "",
+    "// A key with a touch button on phones: press H for a short sprint boost",
+    "api.bindKey('KeyH', 'BOOST', () => {",
+    "  const P = api.player();",
+    "  if (P && P.state === 'alive') api.push(P, P.forward(api.vec()).x * 8, 3, P.forward(api.vec()).z * 8);",
+    "});"
   ]
 }

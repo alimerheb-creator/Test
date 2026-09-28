@@ -122,11 +122,12 @@ export class Tank {
   spawn() {
     const hq = HQS[this.team];
     const side = this.slot === 0 ? -1 : 1;
-    const back = this.team === 0 ? 1 : -1;
+    // Park beside the HQ, relative to the way it faces (map mods can put HQs anywhere)
+    const fx = -Math.sin(hq.yaw), fz = -Math.cos(hq.yaw), rx = Math.cos(hq.yaw), rz = -Math.sin(hq.yaw);
     this.yaw = hq.yaw;
     this.speed = 0;
     for (const [ox, oz] of [[16, 4], [22, 4], [10, 10], [16, -4], [26, -6], [8, -8]]) {
-      this.pos.set(hq.x + side * ox, 0, hq.z + back * oz);
+      this.pos.set(hq.x + rx * side * ox - fx * oz, 0, hq.z + rz * side * ox - fz * oz);
       this.pos.y = this.game.world.heightAt(this.pos.x, this.pos.z);
       if (!this._blockers(this.pos.x, this.pos.z, false).length) break;
     }
@@ -190,6 +191,12 @@ export class Tank {
   damage(amount, attacker, weapon) {
     if (!this.alive || amount <= 0) return;
     if (attacker && attacker.team === this.team) return;
+    if (this.game.hasFilter('vehicleDamage')) {
+      const f = this.game.filter('vehicleDamage', { vehicle: this, attacker, amount, weapon });
+      if (!f) return;
+      amount = Number(f.amount) || 0;
+      if (amount <= 0) return;
+    }
     this.health -= amount;
     this.lastDamageT = this.game.time;
     if (attacker) this.lastAttacker = attacker;
@@ -280,10 +287,10 @@ export class Tank {
   fireCoax() {
     const c = this.coax;
     if (!c.canFire()) {
-      if (c.mag <= 0) c.startReload();
+      if (!c.ready && !c.reloading) c.startReload();
       return;
     }
-    c.mag--;
+    c.consume();
     c.cool = 60 / c.def.rpm;
     const g = this.game;
     this.hull.updateMatrixWorld(true);
@@ -405,7 +412,11 @@ export class Tank {
     this.reload -= dt;
     this.recoilT = Math.max(0, this.recoilT - dt * 3);
     if (inp.fire && this.reload <= 0) this.fireCannon();
-    this.coax.update(dt, true);
+    const cev = this.coax.update(dt, true);
+    if (cev && this.driver && this.driver.isPlayer) {
+      const kinds = { out: 'cover', in: 'belt', charge: 'charge' };
+      if (kinds[cev]) this.game.audio.foley(kinds[cev], 0, 0, 0, true, 0.8);
+    }
     if (inp.fireMG) this.fireCoax();
 
     // Roadkill

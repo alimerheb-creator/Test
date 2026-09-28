@@ -1,6 +1,6 @@
 // Game orchestrator: renderer, match lifecycle, main loop and camera modes.
 import * as THREE from 'three';
-import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, CLASSES, HQS, QUALITY, VEHICLES, ATMOSPHERE } from './config.js';
+import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, CLASSES, HQS, QUALITY, VEHICLES, ATMOSPHERE, RULES, VEGETATION } from './config.js';
 import { Emitter, loadSettings, rand } from './util.js';
 import { World } from './world.js';
 import { Buildings } from './buildings.js';
@@ -34,6 +34,7 @@ export class Game extends Emitter {
     this.menuAngle = 0.6;
     this.frames = 0;
     this._last = 0;
+    this.timeScale = 1; // mods can slow down or speed up the whole simulation
   }
 
   async init(progress = () => {}) {
@@ -55,6 +56,8 @@ export class Game extends Emitter {
 
     // Snapshot the untouched config before anything reads it, so mods can always be undone
     this.mods = new ModManager(this);
+    // Map mods change the battlefield itself, so they go in before the world is built
+    this.mods.applyMap();
     const step = () => new Promise((r) => setTimeout(r, 0));
     progress(0.1, 'Surveying terrain');
     await step();
@@ -143,7 +146,7 @@ export class Game extends Emitter {
     sun.castShadow = shadows;
     this.world.setShadowQuality(Math.max(512, Q.shadows), Q.shadowExtent);
     if (needsRecompile) this.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
-    this.grass.setCount(Q.grass);
+    this.grass.setCount(Math.round(Q.grass * VEGETATION.grass));
     this.post.configure({ samples: Q.msaa, bloom: Q.bloom });
     this.usePost = Q.post;
     this._resize();
@@ -171,6 +174,7 @@ export class Game extends Emitter {
   // Refresh everything that caches config values after mods were (re)applied
   onModsApplied() {
     clearSoldierModelCache();
+    this.playerCtl.clearViewmodels();
     for (const v of this.vehicles) v.rebuildModel();
     const atm = this.world.applyAtmosphere(ATMOSPHERE);
     this.exposure = atm.exposure;
@@ -185,6 +189,12 @@ export class Game extends Emitter {
 
   // Re-apply the mod list (called when leaving the mods screen) and restart the background battle
   reloadMods() {
+    // A different map needs a fresh world: restart the page (the mod list is already saved)
+    if (this.mods.mapChanged()) {
+      this.ui.showRestart();
+      setTimeout(() => location.reload(), 60);
+      return;
+    }
     this.mods.applyAll();
     this.onModsApplied();
     if (this.state === 'menu') this.newMatch();
@@ -222,8 +232,9 @@ export class Game extends Emitter {
     this.combat.clear();
     this.buildings.reset();
     this.world.reset();
-    this.mode.reset(st.tickets);
+    this.mode.reset(RULES.startTickets > 0 ? RULES.startTickets : st.tickets);
     this.time = 0;
+    this.timeScale = 1;
     for (const v of this.vehicles) {
       v.exists = false; v.alive = false; v.driver = null; v.claimedBy = null; v.hull.visible = false;
     }
@@ -339,6 +350,7 @@ export class Game extends Emitter {
   // One tick. `render` can be switched off to fast-forward the simulation.
   frame(dt, render = true) {
     const P = this.player;
+    if (this.timeScale !== 1) dt *= this.timeScale;
     this.frames++;
     if (this.state !== 'paused') {
       this.time += dt;

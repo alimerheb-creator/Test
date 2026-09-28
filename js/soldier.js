@@ -11,7 +11,7 @@ export const EYES = [1.62, 1.1, 0.42];
 const SKINS = [0xc79a7a, 0x9c6e4f, 0x6b4a35, 0xe0b594];
 
 const _tmp = [];
-const _v = new THREE.Vector3();
+const _v = new THREE.Vector3(), _d = new THREE.Vector3();
 
 // ---------------------------------------------------------------- shared model geometry
 let MAT = null;
@@ -189,6 +189,42 @@ export class Soldier {
     this.slot = 0;
   }
 
+  // Starts reloading the weapon in hand. Returns true if a reload began.
+  reload() {
+    const gun = this.gun;
+    if (!gun || gun.reloading) return false;
+    if (this.game.hasFilter('reload') && !this.game.filter('reload', { soldier: this, gun, weapon: gun.def })) return false;
+    if (!gun.startReload()) return false;
+    this._foley(gun.type === 'shell' ? 'grab' : gun.stage === 'charge' ? 'grab' : 'release');
+    this.game.emit('reload', { soldier: this, gun, stage: 'begin' });
+    return true;
+  }
+
+  _foley(kind, pitch = 1) {
+    const e = this.eye(_v);
+    this.game.audio.foley(kind, e.x, e.y - 0.35, e.z, this.isPlayer, pitch);
+  }
+
+  // Reload stages and bolt cycling are audible, so you can hear an enemy reloading nearby
+  _gunEvent(gun, ev) {
+    const g = this.game, def = gun.def, type = gun.type;
+    const pitch = def.model === 'pistol' ? 1.35 : def.model === 'smg' ? 1.15 : type === 'box' ? 0.8 : 1;
+    if (ev === 'cycle') this._foley(type === 'shell' ? 'pump' : 'bolt', pitch);
+    else if (ev === 'out') {
+      this._foley(type === 'box' ? 'cover' : 'out', pitch);
+      if (gun.droppedEmpty && def.model !== 'none') {
+        const e = this.eye(_v);
+        const f = this.forward(_d);
+        g.effects.dropMag(e.x + f.x * 0.4, e.y - 0.45, e.z + f.z * 0.4, this.vel.x, this.vel.z, type === 'box' ? 1.6 : def.model === 'pistol' ? 0.6 : 1);
+        this._foley('drop', pitch);
+      }
+    } else if (ev === 'in') this._foley(type === 'box' ? 'belt' : 'in', pitch);
+    else if (ev === 'charge') this._foley(type === 'shell' ? 'pump' : def.kind === 'bolt' ? 'bolt' : def.model === 'pistol' ? 'slide' : 'charge', pitch);
+    else if (ev === 'shell') this._foley('shell', pitch);
+    else if (ev === 'start' || ev === 'end') this._foley('grab', pitch);
+    if (ev !== 'cycle') g.emit('reload', { soldier: this, gun, stage: ev });
+  }
+
   refill(full = true) {
     for (const g of this.guns) g.refill(full);
     if (full) {
@@ -238,6 +274,10 @@ export class Soldier {
 
   // ------------------------------------------------------------ physics
   move(dt, wx, wz, speed, jump) {
+    if (this.game.hasFilter('moveSpeed')) {
+      const f = this.game.filter('moveSpeed', { soldier: this, speed, jump });
+      if (f) { speed = Math.max(0, Number(f.speed) || 0); jump = !!f.jump; } else { speed = 0; jump = false; }
+    }
     const accel = this.onGround ? MOVE.accel : MOVE.airAccel;
     const ax = wx * speed - this.vel.x, az = wz * speed - this.vel.z;
     const al = Math.sqrt(ax * ax + az * az), maxA = accel * dt;
@@ -336,9 +376,15 @@ export class Soldier {
   takeDamage(amount, attacker, info = {}) {
     if (this.state !== 'alive') return false;
     if (this.spawnProtect > 0 && !info.force) return false;
-    if (attacker && attacker !== this && attacker.team === this.team) return false;
+    if (attacker && attacker !== this && attacker.team === this.team && !RULES.friendlyFire) return false;
     if (attacker === this) amount *= 0.5;
     if (!info.force) amount *= RULES.damageScale;
+    if (this.game.hasFilter('damage')) {
+      const f = this.game.filter('damage', { victim: this, attacker, amount, info });
+      if (!f) return false;
+      amount = Number(f.amount) || 0;
+      if (amount <= 0) return false;
+    }
     this.health -= amount;
     this.lastDamageT = this.game.time;
     if (attacker && attacker !== this) {
@@ -397,7 +443,10 @@ export class Soldier {
   update(dt) {
     if (this.state === 'alive') {
       if (this.spawnProtect > 0) this.spawnProtect -= dt;
-      for (let i = 0; i < this.guns.length; i++) this.guns[i].update(dt, i === this.slot);
+      for (let i = 0; i < this.guns.length; i++) {
+        const ev = this.guns[i].update(dt, i === this.slot && !this.vehicle);
+        if (ev) this._gunEvent(this.guns[i], ev);
+      }
       if (this.gadgetCd > 0) this.gadgetCd -= dt;
       if (this.gadget.recharge && this.gadgetAmmo < this.gadget.ammo && this.gadgetCd <= 0) this.gadgetAmmo = this.gadget.ammo;
       const maxHp = RULES.playerHealth;

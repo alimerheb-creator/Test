@@ -1,0 +1,32 @@
+{
+  "format": "sixthfront-mod",
+  "id": "explosive-rounds",
+  "name": "Explosive Rounds",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "Press B (or the HE AMMO button) to load high-explosive rounds. Every bullet you fire bursts on impact and chips away at walls, but each round hits a little softer.",
+  "script": [
+    "// Hooks used: bindKey, hud.text, store, on('bulletHit'), filter('fire'), explode",
+    "let he = api.store.get('he', true);",
+    "const show = () => api.hud.text('ammo', he ? 'HE ROUNDS  [B]' : 'BALL AMMO  [B]', { x: 50, y: 90, size: 0.7, color: he ? '#ff9a4a' : '#e8eae3' });",
+    "api.bindKey('KeyB', 'HE AMMO', () => {",
+    "  he = !he;",
+    "  api.store.set('he', he);",
+    "  api.sound('click');",
+    "  show();",
+    "});",
+    "api.on('matchStart', show);",
+    "show();",
+    "",
+    "// Each of your bullets bursts where it lands",
+    "api.on('bulletHit', (hit) => {",
+    "  if (!he || !hit.shooter || !hit.shooter.isPlayer) return;",
+    "  api.explode(hit.x, hit.y, hit.z, { radius: 1.8, damage: 24, structural: 40, vehicle: 10, size: 0.25, owner: hit.shooter, name: 'HE ROUND' });",
+    "});",
+    "",
+    "// ...but the bullet itself does less damage",
+    "api.filter('fire', (shot) => {",
+    "  if (he && shot.soldier.isPlayer) shot.dmgMul *= 0.65;",
+    "});"
+  ]
+}

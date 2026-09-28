@@ -1,0 +1,23 @@
+{
+  "format": "sixthfront-mod",
+  "id": "bullet-time",
+  "name": "Bullet Time",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "Headshot kills slow the whole battle down for a moment. Knife takedowns do too.",
+  "script": [
+    "// Hooks used: on('kill'), setTimeScale, tone. Time is measured in game seconds, which run slower in slow motion.",
+    "let until = 0;",
+    "api.on('kill', (e) => {",
+    "  if (!e.killer || !e.killer.isPlayer || e.self) return;",
+    "  if (!e.headshot && e.weapon !== 'COMBAT KNIFE') return;",
+    "  api.setTimeScale(0.3);",
+    "  until = api.time() + 0.45;",
+    "  api.tone(180, 0.6, 'sine', 0.18);",
+    "});",
+    "api.on('tick', () => {",
+    "  if (until && api.time() >= until) { until = 0; api.setTimeScale(1); }",
+    "});",
+    "api.on('matchStart', () => { until = 0; });"
+  ]
+}

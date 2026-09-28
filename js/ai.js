@@ -1,7 +1,7 @@
 // Bot brains: objective play, target acquisition with reaction time and aim error,
 // burst fire, grenades, anti-tank rockets, reviving teammates, crates and tank driving.
 import * as THREE from 'three';
-import { DIFFICULTY, MOVE, PROJECTILES, RULES } from './config.js';
+import { DIFFICULTY, MOVE, PROJECTILES, RULES, PLAY_HALF } from './config.js';
 import { rand, randInt, clamp, wrapAngle, yawTo, dirFromAngles, chance } from './util.js';
 
 const _eye = new THREE.Vector3(), _t = new THREE.Vector3(), _d = new THREE.Vector3(), _c = new THREE.Vector3();
@@ -46,9 +46,29 @@ export class BotBrain {
   }
 
   // ------------------------------------------------------------ strategic layer
+  // Without capture points, bots pick a moving rally point near an enemy (or the middle of the map)
+  _hunt() {
+    const s = this.s, g = this.g;
+    let best = null, bd = Infinity;
+    for (const o of g.soldiers) {
+      if (o.team === s.team || o.state !== 'alive') continue;
+      const d = o.pos.distanceToSquared(s.pos) * rand(0.6, 1.4);
+      if (d < bd) { bd = d; best = o; }
+    }
+    const o = this.hunt || (this.hunt = { x: 0, z: 0, radius: 14, owner: -2, progress: 0, contested: true, hunt: true });
+    const p = best ? (best.vehicle ? best.vehicle.pos : best.pos) : null;
+    const lim = PLAY_HALF - 20;
+    o.x = clamp(p ? p.x + rand(-25, 25) : rand(-60, 60), -lim, lim);
+    o.z = clamp(p ? p.z + rand(-25, 25) : rand(-60, 60), -lim, lim);
+    if (this.objective !== o) { this.objective = o; this.moveTarget = null; }
+    else if (this.moveTarget && Math.hypot(this.moveTarget.x - o.x, this.moveTarget.z - o.z) > 30) this.moveTarget = null;
+  }
+
   think() {
     const s = this.s, g = this.g;
     const flags = g.mode.flags;
+    // No flags (team deathmatch): hunt toward where the enemy was last seen
+    if (!flags.length) { this._hunt(); if (s.vehicle) return; }
     let best = null, bestScore = -Infinity;
     flags.forEach((f, i) => {
       const d = Math.hypot(f.x - s.pos.x, f.z - s.pos.z);
@@ -60,7 +80,7 @@ export class BotBrain {
       if (f === this.objective) sc += 12;
       if (sc > bestScore) { bestScore = sc; best = f; }
     });
-    if (best !== this.objective) { this.objective = best; this.moveTarget = null; }
+    if (flags.length && best !== this.objective) { this.objective = best; this.moveTarget = null; }
 
     if (s.vehicle) return;
     // Revive a nearby downed teammate
@@ -273,19 +293,24 @@ export class BotBrain {
         // Shooting
         const gun = s.gun;
         if (gun) {
-          if (gun.mag === 0) { if (!gun.reloading) gun.startReload(); }
+          if (!gun.ready) {
+            if (!gun.reloading && !s.reload() && gun.reserve === 0) {
+              const other = s.guns[s.slot === 0 ? 1 : 0];
+              if (other && (other.ready || other.reserve > 0)) s.slot = s.slot === 0 ? 1 : 0;
+            }
+          }
           else if (this.visible && this.reactT <= 0) {
             const off = Math.abs(wrapAngle(wantYaw - s.yaw)) + Math.abs(wantPitch - s.pitch);
             if (off < 0.07 + 0.6 / Math.max(5, dist)) {
               if (gun.def.kind === 'auto') {
-                if (this.burst > 0) fire = gun.canFire();
+                if (this.burst > 0) fire = gun.canFire() || (gun.type === 'shell' && gun.reloading);
                 else {
                   this.burstPause -= dt;
                   if (this.burstPause <= 0) this.burst = randInt(D.burst[0], D.burst[1]) + (dist < 20 ? 3 : 0);
                 }
               } else {
                 this.fireDelay -= dt;
-                if (this.fireDelay <= 0 && gun.canFire()) {
+                if (this.fireDelay <= 0 && (gun.canFire() || (gun.type === 'shell' && gun.reloading))) {
                   fire = true;
                   this.fireDelay = rand(0.25, 0.6) * (gun.def.kind === 'bolt' ? 1.8 : 1);
                 }
@@ -384,7 +409,8 @@ export class BotBrain {
 
     // Reload when idle
     const gun = s.gun;
-    if (gun && !this.target && gun.mag < gun.def.mag * 0.5 && !gun.reloading) gun.startReload();
+    if (gun && !this.target && !gun.reloading && (gun.rounds < gun.def.mag * 0.5 || !gun.ready)) s.reload();
+    else if (gun && !this.target && s.slot === 1 && !gun.reloading && s.guns[0].reserve + s.guns[0].rounds > 0) s.slot = 0;
 
     // Keep a little space from teammates
     if (wantMove) {

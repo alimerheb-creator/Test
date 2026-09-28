@@ -275,6 +275,17 @@ export class Effects {
     }
   }
 
+  // An empty magazine falling out of a gun and lying on the ground for a while
+  dropMag(x, y, z, vx = 0, vz = 0, size = 1) {
+    if (this.debrisList.length >= this.debrisMax) this.debrisList.shift();
+    this.debrisList.push({
+      x, y, z, vx: vx * 0.8 + rand(-0.4, 0.4), vy: rand(-1, 0.3), vz: vz * 0.8 + rand(-0.4, 0.4),
+      rx: rand(0, 6), ry: rand(0, 6), rz: 0, wx: rand(-7, 7), wy: rand(-4, 4),
+      sx: 0.07 * size, sy: 0.034 * size, sz: 0.15 * size,
+      life: 14, color: 0x2c2e31, rest: false,
+    });
+  }
+
   tracer(x0, y0, z0, x1, y1, z1, color = 0xffc46b) {
     const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0;
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);

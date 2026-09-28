@@ -237,6 +237,14 @@ label.check { justify-content: flex-start; }
 #w-mag { font-family: var(--font-mono); font-size: 2.9rem; line-height: 1; font-weight: 600; font-variant-numeric: tabular-nums; }
 #w-mag.low { color: var(--enemy); }
 #w-res { font-family: var(--font-mono); font-size: 1.15rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+#w-ch { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; color: var(--text); margin-left: -6px; align-self: flex-start; }
+#w-ch:empty { display: none; }
+#w-pips { display: flex; gap: 3px; height: 9px; justify-content: flex-end; }
+#w-pips i { width: 5px; height: 9px; background: rgba(255, 255, 255, 0.14); position: relative; overflow: hidden; }
+#w-pips i b { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(236, 234, 226, 0.85); }
+#w-reload { width: 96px; height: 2px; background: rgba(255, 255, 255, 0.12); visibility: hidden; }
+#w-reload.on { visibility: visible; }
+#w-reload i { display: block; height: 100%; width: 0; background: var(--signal); }
 #w-mode { font-size: 0.66rem; letter-spacing: 0.22em; color: var(--signal); font-weight: 700; }
 .kit { display: flex; gap: 14px; margin-top: 4px; font-size: 0.72rem; letter-spacing: 0.08em; font-weight: 600; color: var(--text); }
 .health { display: flex; align-items: center; gap: 8px; width: 240px; }
@@ -588,3 +596,21 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .mod-note { margin: 6px 0 0; font-size: 0.78rem; line-height: 1.5; color: var(--muted); }
 .mods-footer { display: flex; gap: 10px; position: sticky; bottom: 0; padding: 12px 0 4px; background: linear-gradient(180deg, rgba(10, 12, 13, 0), rgba(10, 12, 13, 0.95) 40%); }
 #btn-mods-done { padding: 14px 30px; }
+
+/* ---- mod HUD widgets and touch buttons */
+#mod-hud { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+.mod-w { position: absolute; left: 50%; top: 20%; transform: translate(-50%, -50%); text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); white-space: pre; }
+.mod-text { font-size: 0.9rem; font-weight: 700; letter-spacing: 0.08em; }
+.mod-bar { display: flex; flex-direction: column; gap: 3px; min-width: 150px; font-size: 0.64rem; letter-spacing: 0.18em; font-weight: 700; color: var(--muted); }
+.mod-bar span:empty { display: none; }
+.mod-bar i { display: block; height: 5px; background: rgba(255, 255, 255, 0.16); }
+.mod-bar b { display: block; height: 100%; width: 0; background: var(--signal); }
+#t-mods {
+  position: absolute; right: calc(28px + env(safe-area-inset-right, 0px) + 274px * var(--ts, 1)); bottom: calc(12px + var(--safe-b));
+  display: flex; flex-direction: column-reverse; gap: calc(6px * var(--ts, 1)); pointer-events: none;
+}
+#t-mods button {
+  pointer-events: auto; min-width: calc(58px * var(--ts, 1)); height: calc(40px * var(--ts, 1)); border: 1px solid var(--line-strong);
+  background: rgba(13, 16, 18, 0.5); font-size: calc(0.6rem * var(--ts, 1)); font-weight: 700; letter-spacing: 0.06em; border-radius: 4px;
+}
+#t-mods button.on { background: rgba(242, 179, 61, 0.45); border-color: var(--signal); }

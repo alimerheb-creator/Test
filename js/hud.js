@@ -1,7 +1,7 @@
 // In-game HUD: tickets & flags, minimap, ammo, killfeed, score popups, crosshair,
 // hitmarkers, damage direction, world markers, scoreboard and the full-screen map.
 import * as THREE from 'three';
-import { TEAMS, SQUAD_COLOR, PLAY_HALF, BUILDINGS, ROADS, HQS, SQUAD_NAMES, VEHICLES, RULES } from './config.js';
+import { TEAMS, SQUAD_COLOR, PLAY_HALF, BUILDINGS, ROADS, HQS, SQUAD_NAMES, VEHICLES, RULES, MAP, FLAGS } from './config.js';
 import { clamp, wrapAngle, yawTo, formatTime, esc } from './util.js';
 
 const $ = (id) => document.getElementById(id);
@@ -28,7 +28,7 @@ export class HUD {
       killfeed: $('killfeed'), banner: $('banner'), toast: $('toast'), popups: $('popups'),
       capture: $('capture'), capLabel: $('cap-label'), capFill: $('cap-fill'),
       prompt: $('prompt'), promptText: $('prompt-text'), promptFill: $('prompt-fill'),
-      wname: $('w-name'), wmag: $('w-mag'), wres: $('w-res'), wmode: $('w-mode'), gadget: $('w-gadget'), nades: $('w-nades'),
+      wname: $('w-name'), wmag: $('w-mag'), wres: $('w-res'), wmode: $('w-mode'), wch: $('w-ch'), wpips: $('w-pips'), wreload: $('w-reload'), gadget: $('w-gadget'), nades: $('w-nades'),
       hp: $('hp-fill'), hpNum: $('hp-num'), squad: $('squad-list'),
       vehicle: $('vehicle-hud'), vhp: $('v-hp'), vhpNum: $('v-hp-num'), vweap: $('v-weap'), vreload: $('v-reload'),
       weapon: $('weapon-block'), oob: $('oob'), oobT: $('oob-t'),
@@ -68,7 +68,7 @@ export class HUD {
     });
     game.on('score', (e) => this._popup(e.pts, e.label));
     game.on('flag', (e) => this._onFlag(e));
-    game.on('revive', (e) => { if (e.soldier === game.player) this.banner('REVIVED BY ' + e.by.name.toUpperCase(), COL.squad); });
+    game.on('revive', (e) => { if (e.soldier === game.player) this.banner(e.by ? 'REVIVED BY ' + e.by.name.toUpperCase() : 'REVIVED', COL.squad); });
   }
 
   _resize() {
@@ -91,6 +91,11 @@ export class HUD {
     }
     const vt = document.getElementById('vh-title');
     if (vt) vt.textContent = VEHICLES.tank.name;
+    const eb = document.getElementById('mm-eyebrow');
+    if (eb) {
+      const parts = FLAGS.length ? ['CONQUEST', MAP.name, `${FLAGS.length} OBJECTIVE${FLAGS.length === 1 ? '' : 'S'}`] : ['TEAM DEATHMATCH', MAP.name, 'NO OBJECTIVES'];
+      eb.innerHTML = parts.map(esc).join(' <span>·</span> ');
+    }
     this.last.sb = null;
   }
 
@@ -273,6 +278,50 @@ export class HUD {
     this.el.promptFill.style.width = progress >= 0 ? `${Math.min(1, progress) * 100}%` : '0%';
   }
 
+  // What the gun in hand is doing right now, for the fire-mode line
+  _gunStatus(gun) {
+    const d = gun.def, type = gun.type;
+    switch (gun.stage) {
+      case 'out': return type === 'box' ? 'OPENING COVER' : gun.droppedEmpty ? 'DROPPING MAG' : 'MAG OUT';
+      case 'in': return type === 'box' ? 'LOADING BELT' : 'INSERTING MAG';
+      case 'charge': return type === 'shell' ? 'PUMPING' : d.kind === 'bolt' ? 'WORKING BOLT' : d.model === 'pistol' ? 'SLIDE RELEASE' : 'CHAMBERING';
+      case 'start': case 'shell': return `LOADING ${gun.mag}/${d.mag}`;
+      case 'end': return 'READY';
+    }
+    if (gun.cycleT > 0 || (d.kind === 'bolt' && gun.cool > 0.15)) return type === 'shell' ? 'PUMPING' : 'CYCLING BOLT';
+    if (gun.magOut) return gun.reserve > 0 ? 'NO MAG · RELOAD' : 'NO MAG';
+    if (!gun.ready && gun.mag > 0) return 'CHAMBER A ROUND · RELOAD';
+    if (gun.empty) return gun.reserve > 0 ? 'EMPTY · RELOAD' : 'OUT OF AMMO';
+    return d.kind === 'auto' ? 'AUTO' : d.kind === 'bolt' ? 'BOLT' : 'SEMI';
+  }
+
+  // One pip per spare magazine, filled to how many rounds it holds
+  _pips(gun) {
+    let key = '';
+    let levels = null;
+    if (gun && gun.type !== 'shell') { levels = gun.pouchLevels(10); key = levels.map((l) => Math.round(l * 20)).join(','); }
+    if (key === this._pipKey) return;
+    this._pipKey = key;
+    const el = this.el.wpips;
+    el.textContent = '';
+    if (!levels) return;
+    for (const l of levels) {
+      const i = document.createElement('i');
+      const b = document.createElement('b');
+      b.style.height = Math.round(l * 100) + '%';
+      i.appendChild(b);
+      el.appendChild(i);
+    }
+  }
+
+  _reloadBar(gun) {
+    const on = !!(gun && gun.reloading);
+    if (on !== this._reloadOn) { this._reloadOn = on; this.el.wreload.classList.toggle('on', on); }
+    if (!on) return;
+    const p = gun.reloadP;
+    this.el.wreload.firstChild.style.width = Math.round(clamp(p, 0, 1) * 100) + '%';
+  }
+
   _set(key, el, value) {
     if (this.last[key] === value) return;
     this.last[key] = value;
@@ -314,20 +363,26 @@ export class HUD {
       const pct = Math.max(0, v.health / v.maxHealth);
       this.el.vhp.style.width = pct * 100 + '%';
       this._set('vhpn', this.el.vhpNum, String(Math.ceil(pct * 100)));
-      const w = g.playerCtl.tankWeapon === 0 ? '120MM CANNON' : `COAX MG  ${v.coax.mag}`;
+      const w = g.playerCtl.tankWeapon === 0 ? '120MM CANNON' : `COAX MG  ${v.coax.reloading ? 'RELOADING' : v.coax.mag}`;
       this._set('vw', this.el.vweap, w);
       this.el.vreload.style.width = (g.playerCtl.tankWeapon === 0 ? clamp(1 - v.reload / VEHICLES.tank.reload, 0, 1) : 1) * 100 + '%';
     } else if (P.state === 'alive') {
       if (P.slot < 2) {
         const gun = P.gun;
         this._set('wn', this.el.wname, gun.def.name);
-        this._set('wm', this.el.wmag, gun.reloading ? '--' : String(gun.mag));
+        this._set('wm', this.el.wmag, gun.magOut ? '--' : String(gun.mag));
+        this._set('wch', this.el.wch, gun.chamber > 0 ? '+1' : '');
         this._set('wr', this.el.wres, String(gun.reserve));
-        this._set('wmode', this.el.wmode, gun.reloading ? 'RELOADING' : gun.def.kind === 'auto' ? 'AUTO' : gun.def.kind === 'bolt' ? 'BOLT' : 'SEMI');
-        this.el.wmag.classList.toggle('low', gun.mag <= gun.def.mag * 0.25);
+        this._set('wmode', this.el.wmode, this._gunStatus(gun));
+        this.el.wmag.classList.toggle('low', gun.rounds <= gun.def.mag * 0.25);
+        this._pips(gun);
+        this._reloadBar(gun);
       } else {
         this._set('wn', this.el.wname, P.gadget.name);
         this._set('wm', this.el.wmag, String(P.gadgetAmmo));
+        this._set('wch', this.el.wch, '');
+        this._pips(null);
+        this._reloadBar(null);
         this._set('wr', this.el.wres, '');
         this._set('wmode', this.el.wmode, P.gadget.id === 'c4' ? 'RMB DETONATE' : P.gadgetCd > 0 ? 'READYING' : 'READY');
         this.el.wmag.classList.toggle('low', P.gadgetAmmo === 0);
@@ -451,7 +506,7 @@ export class HUD {
       return `<div class="sb-team t${t === P.team ? 'f' : 'e'}"><h3><span>${esc(TEAMS[t].name)}</span><b>${tk}</b></h3>
         <table><thead><tr><th>#</th><th>NAME</th><th>CLS</th><th>SCORE</th><th>K</th><th>D</th><th>A</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     });
-    const html = `<div class="sb-head"><span>CONQUEST · KARSA VALLEY</span><span>${formatTime(g.mode.time)}</span></div><div class="sb-cols">${cols[P.team]}${cols[1 - P.team]}</div>`;
+    const html = `<div class="sb-head"><span>${esc(this.game.mode.flags.length ? 'CONQUEST' : 'TEAM DEATHMATCH')} · ${esc(MAP.name)}</span><span>${formatTime(g.mode.time)}</span></div><div class="sb-cols">${cols[P.team]}${cols[1 - P.team]}</div>`;
     if (this.last.sb !== html) { this.el.scoreboard.innerHTML = html; this.last.sb = html; }
   }
 

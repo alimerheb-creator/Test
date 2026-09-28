@@ -1,43 +1,255 @@
-// Guns (magazine/reload state), hitscan bullets, projectiles, explosions, crates, melee, spotting.
+// Guns (ammo and staged reloads), hitscan bullets, projectiles, explosions, crates, melee, spotting.
 import * as THREE from 'three';
 import { PROJECTILES, SCORE, RULES } from './config.js';
 import { randomInCone, clamp, rand, wrapAngle } from './util.js';
 
+// A firearm's ammunition and reload state.
+//
+// Reloads happen in stages, each with its own sound and animation:
+//   mag   — detachable magazine: 'out' (mag drops), 'in' (new mag seated), then 'charge' (bolt racked)
+//           only when the chamber is empty. A tactical reload keeps the chambered round (30+1).
+//   box   — belt-fed box (open bolt, nothing chambered): 'out', 'in', and 'charge' after running dry.
+//   shell — tube or internal magazine loaded one round at a time: 'start', 'shell' per round, then
+//           'charge' (pump / bolt) if the chamber is empty, or 'end'. Firing interrupts it.
+// Partly used magazines go back in the pouch; the fullest one is always loaded next.
+// Switching weapons cancels a reload. A magazine that already came out stays out.
 export class Gun {
   constructor(def) {
     this.def = def;
-    this.mag = def.mag;
-    this.reserve = def.reserve;
     this.cool = 0;
-    this.reloadT = 0;
     this.bloom = 0;
+    this.cycleT = 0;
+    this.refill(true);
   }
-  get reloading() { return this.reloadT > 0; }
+  get type() { return this.def.reloadType || (this.def.openBolt ? 'box' : 'mag'); }
+  get closed() { return !this.def.openBolt && this.type !== 'box'; }
+  get reloading() { return this.stage !== null; }
+  // Rounds ready to fire (magazine + chamber)
+  get rounds() { return this.mag + this.chamber; }
+  get empty() { return this.mag + this.chamber === 0; }
+  get reserve() {
+    let n = this.loose + this.fullMags * this.def.mag;
+    for (const m of this.partials) n += m;
+    return n;
+  }
+  set reserve(n) { this._fillPouch(Math.max(0, Math.floor(n))); }
+  // Magazines in the pouch, fullest first, as fractions (for the HUD)
+  pouchLevels(max = 8) {
+    const out = [];
+    for (let i = 0; i < this.fullMags && out.length < max; i++) out.push(1);
+    const p = this.partials.slice().sort((a, b) => b - a);
+    for (const m of p) { if (out.length >= max) break; out.push(m / this.def.mag); }
+    return out;
+  }
+  // Ready to fire right now (closed bolt: a round is chambered)
+  get ready() { return this.closed ? this.chamber > 0 : this.mag > 0; }
+  // Stage progress 0..1 (for animation)
+  get stageP() { return this.stageDur > 0 ? 1 - Math.max(0, this.stageT) / this.stageDur : 1; }
+  // Whole-reload progress 0..1 (for the HUD bar); shell reloads show how full the tube is
+  get reloadP() {
+    if (this.type === 'shell') return this.mag / Math.max(1, this.def.mag);
+    return this.reloadTotal > 0 ? Math.min(1, this.reloadElapsed / this.reloadTotal) : 1;
+  }
+
   refill(full) {
-    if (full) { this.mag = this.def.mag; this.reserve = this.def.reserve; }
-    else this.reserve = Math.min(this.def.reserve, this.reserve + Math.ceil(this.def.mag * 0.5));
-    if (full) this.reloadT = 0;
+    if (!full) { this.addReserve(Math.ceil(this.def.mag * 0.5)); return; }
+    this.stage = null; this.stageT = 0; this.stageDur = 0; this.plan = [];
+    this.reloadTotal = 0; this.reloadElapsed = 0;
+    this.magOut = false;
+    this.droppedEmpty = false;
+    this.chamber = this.closed ? 1 : 0;
+    this.mag = this.def.mag;
+    this._fillPouch(this.def.reserve);
   }
+
+  _fillPouch(n) {
+    this.loose = 0; this.fullMags = 0; this.partials = [];
+    if (this.type === 'shell') { this.loose = n; return; }
+    const m = Math.max(1, this.def.mag);
+    this.fullMags = Math.floor(n / m);
+    if (n % m) this.partials.push(n % m);
+  }
+
+  // Adds spare ammo up to the weapon's reserve; tops up partial magazines first. Returns rounds added.
+  addReserve(n) {
+    n = Math.min(Math.floor(n), this.def.reserve - this.reserve);
+    if (n <= 0) return 0;
+    const added = n;
+    if (this.type === 'shell') { this.loose += n; return added; }
+    const m = Math.max(1, this.def.mag);
+    this.partials.sort((a, b) => b - a);
+    while (n > 0 && this.partials.length) {
+      const need = m - this.partials[0];
+      if (need > n) { this.partials[0] += n; n = 0; break; }
+      n -= need; this.partials.shift(); this.fullMags++;
+    }
+    this.fullMags += Math.floor(n / m);
+    if (n % m) this.partials.push(n % m);
+    return added;
+  }
+
+  _bestInPouch() {
+    if (this.type === 'shell') return this.loose > 0 ? 1 : 0;
+    if (this.fullMags > 0) return this.def.mag;
+    let b = 0;
+    for (const m of this.partials) if (m > b) b = m;
+    return b;
+  }
+  _takeFromPouch() {
+    if (this.fullMags > 0) { this.fullMags--; return this.def.mag; }
+    let bi = -1;
+    for (let i = 0; i < this.partials.length; i++) if (bi < 0 || this.partials[i] > this.partials[bi]) bi = i;
+    if (bi < 0) return 0;
+    return this.partials.splice(bi, 1)[0];
+  }
+  _stow(rounds) {
+    if (rounds <= 0) return;
+    if (rounds >= this.def.mag) this.fullMags++;
+    else this.partials.push(rounds);
+  }
+
+  // Starts a reload if there's anything to gain. Returns true if it started.
   startReload() {
-    if (this.reloadT > 0 || this.mag >= this.def.mag || this.reserve <= 0) return false;
-    this.reloadT = this.def.reload;
+    if (this.stage) return false;
+    const d = this.def, closed = this.closed;
+    const needCharge = closed && this.chamber === 0;
+    if (this.type === 'shell') {
+      if (this.mag < d.mag && this.loose > 0) { this._setStage('start'); return true; }
+      if (needCharge && this.mag > 0) { this._setStage('charge'); return true; }
+      return false;
+    }
+    const best = this._bestInPouch();
+    const swap = best > (this.magOut ? 0 : this.mag) && (this.magOut || this.mag < d.mag);
+    if (!swap) {
+      if (needCharge && this.mag > 0) {
+        this.plan = [];
+        this._setStage('charge');
+        this.reloadTotal = this.stageDur; this.reloadElapsed = 0;
+        return true;
+      }
+      return false;
+    }
+    const box = this.type === 'box';
+    const dry = this.empty || needCharge;
+    const T = Math.max(0.1, d.reload), Te = Math.max(0.1, d.reloadEmpty ?? T * (box ? 1.12 : 1.3));
+    const plan = [];
+    if (dry) {
+      if (!this.magOut) plan.push(['out', Te * (box ? 0.34 : 0.3)]);
+      plan.push(['in', Te * (box ? 0.5 : 0.46)]);
+      plan.push(['charge', Te * (box ? 0.16 : 0.24)]);
+    } else {
+      if (!this.magOut) plan.push(['out', T * 0.42]);
+      plan.push(['in', T * 0.58]);
+    }
+    this.droppedEmpty = this.mag === 0 && !this.magOut;
+    this.plan = plan;
+    this.reloadTotal = plan.reduce((t, s) => t + s[1], 0);
+    this.reloadElapsed = 0;
+    this._next();
     return true;
   }
+
+  _stageDur(st) {
+    const d = this.def;
+    if (st === 'start') return d.shellStart ?? 0.35;
+    if (st === 'shell') return Math.max(0.05, d.shellTime ?? 0.5);
+    if (st === 'end') return 0.25;
+    if (st === 'charge') return this.type === 'shell' ? 0.45 : Math.max(0.1, (d.reloadEmpty ?? d.reload * 1.3) * 0.24);
+    return 0.3;
+  }
+  _setStage(st, dur) {
+    this.stage = st;
+    this.cued = false;
+    this.stageDur = this.stageT = dur ?? this._stageDur(st);
+  }
+  _next() {
+    if (this.type === 'shell') {
+      const d = this.def, prev = this.stage;
+      if ((prev === 'start' || prev === 'shell') && this.mag < d.mag && this.loose > 0) this._setStage('shell');
+      else if (prev !== 'charge' && prev !== 'end' && this.closed && this.chamber === 0 && this.mag > 0) this._setStage('charge');
+      else if (prev === 'start' || prev === 'shell') this._setStage('end');
+      else { this.stage = null; this.stageT = this.stageDur = 0; }
+      return;
+    }
+    const s = this.plan.shift();
+    if (s) this._setStage(s[0], s[1]);
+    else { this.stage = null; this.stageT = this.stageDur = 0; }
+  }
+
+  // Stops a reload partway (weapon switch). A magazine that came out stays out.
+  cancel() {
+    this.stage = null; this.stageT = this.stageDur = 0; this.plan = [];
+  }
+
+  // Shotguns: firing during a shell-by-shell reload stops it (after pumping if nothing is chambered)
+  interrupt() {
+    if (this.type !== 'shell' || (this.stage !== 'start' && this.stage !== 'shell')) return false;
+    if (this.chamber > 0) { this.cancel(); return true; }
+    if (this.mag > 0) { this.plan = []; this._setStage('charge'); return true; }
+    return false;
+  }
+
+  // One round fired
+  consume() {
+    if (!RULES.infiniteAmmo) {
+      if (this.closed) {
+        this.chamber = 0;
+        if (this.mag > 0) { this.mag--; this.chamber = 1; }
+      } else if (this.mag > 0) this.mag--;
+    }
+    if (this.def.kind === 'bolt') this.cycleT = Math.min(this.def.cycleDelay ?? (this.type === 'shell' ? 0.12 : 0.2), 60 / this.def.rpm);
+  }
+
+  canFire() { return this.cool <= 0 && !this.stage && this.ready; }
+
+  // The moment in each stage (0..1) when the action happens: the magazine comes free, seats, the bolt
+  // slams home, a shell goes in. Ammo changes and the sound play at that point.
+  _cue(st) {
+    switch (st) {
+      case 'out': return this.type === 'box' ? 0.3 : 0.42;
+      case 'in': return this.type === 'box' ? 0.72 : 0.76;
+      case 'charge': return this.type === 'shell' ? 0.15 : this.def.kind === 'bolt' ? 0.1 : this.def.model === 'pistol' ? 0.5 : 0.6;
+      case 'shell': return 0.85;
+      default: return 0;
+    }
+  }
+
+  _act(st) {
+    if (st === 'out') {
+      this.droppedEmpty = this.mag === 0;
+      this._stow(this.mag);
+      this.mag = 0;
+      this.magOut = true;
+    } else if (st === 'in') {
+      const m = this._takeFromPouch();
+      if (m > 0) { this.mag = m; this.magOut = false; }
+    } else if (st === 'charge') {
+      if (this.closed && this.chamber === 0 && this.mag > 0) { this.mag--; this.chamber = 1; }
+    } else if (st === 'shell') {
+      if (this.loose > 0 && this.mag < this.def.mag) { this.loose--; this.mag++; }
+    }
+  }
+
+  // Advances timers. Returns a stage name ('out', 'in', 'charge', 'shell', 'start', 'end') at the moment
+  // its action happens, 'cycle' when a bolt or pump is worked after a shot, otherwise null.
   update(dt, active) {
     if (this.cool > 0) this.cool -= dt;
     if (this.bloom > 0) this.bloom = Math.max(0, this.bloom - dt * 0.12);
-    if (this.reloadT > 0) {
-      if (!active) { this.reloadT = 0; return; }
-      this.reloadT -= dt;
-      if (this.reloadT <= 0) {
-        const take = Math.min(this.def.mag - this.mag, this.reserve);
-        this.mag += take;
-        this.reserve -= take;
-        this.reloadT = 0;
-      }
+    let ev = null;
+    if (this.cycleT > 0) { this.cycleT -= dt; if (this.cycleT <= 0 && active) ev = 'cycle'; }
+    if (!this.stage) return ev;
+    if (!active) { this.cancel(); return ev; }
+    this.stageT -= dt;
+    this.reloadElapsed += dt;
+    const st = this.stage;
+    if (!this.cued && this.stageP >= this._cue(st)) {
+      this.cued = true;
+      this._act(st);
+      ev = st;
     }
+    if (this.stageT <= 0) this._next();
+    return ev;
   }
-  canFire() { return this.cool <= 0 && this.reloadT <= 0 && this.mag > 0; }
 }
 
 export function dmgAt(def, dist) {
@@ -92,18 +304,28 @@ export class Combat {
   // ------------------------------------------------------------ bullets
   fireGun(s, dir, spread, opts = {}) {
     const gun = s.gun;
-    if (!gun || !gun.canFire()) return false;
-    const def = gun.def;
-    if (!RULES.infiniteAmmo) gun.mag--;
+    if (!gun) return false;
+    if (gun.stage) gun.interrupt();
+    if (!gun.canFire()) return false;
+    const def = gun.def, g = this.game;
+    let dmgMul = opts.dmgMul ?? 1, pellets = Math.max(1, def.pellets || 1);
+    if (g.hasFilter('fire')) {
+      const f = g.filter('fire', { soldier: s, gun, weapon: def, dir, spread, dmgMul, pellets });
+      if (!f) return false;
+      spread = Math.max(0, Number(f.spread) || 0);
+      dmgMul = Number(f.dmgMul) || 0;
+      pellets = Math.max(1, Math.min(64, Math.round(f.pellets) || 1));
+    }
+    gun.consume();
     gun.cool = 60 / def.rpm;
     gun.bloom = Math.min(def.bloomMax, gun.bloom + def.bloom);
     const eye = opts.origin || s.eye(_eye);
     const muzzle = opts.muzzle || s.muzzle(_muz);
-    const pellets = Math.max(1, def.pellets || 1);
     for (let i = 0; i < pellets; i++) {
       randomInCone(dir, spread, _dir);
-      this.fireBullet(s, eye, _dir, def, opts.dmgMul ?? 1, muzzle, i < 3);
+      this.fireBullet(s, eye, _dir, def, dmgMul, muzzle, i < 3);
     }
+    if (g.hasListener('fire')) g.emit('fire', { soldier: s, gun, weapon: def });
     s.lastFireT = this.game.time;
     s.miniUntil = Math.max(s.miniUntil, this.game.time + 1.2);
     this.game.audio.shot(def.sound, eye.x, eye.y, eye.z, s.isPlayer);
@@ -120,7 +342,7 @@ export class Combat {
     const mat = wh.box ? (wh.box.data && wh.box.data.mat) || 'concrete' : 'dirt';
     let victim = null, head = false, veh = null;
     for (const s of g.soldiers) {
-      if (s === shooter || s.team === shooter.team || s.state !== 'alive' || s.vehicle) continue;
+      if (s === shooter || (s.team === shooter.team && !RULES.friendlyFire) || s.state !== 'alive' || s.vehicle) continue;
       const t = s.rayHit(o.x, o.y, o.z, dir.x, dir.y, dir.z, best);
       if (t < best) { best = t; victim = s; head = s._head; }
     }
@@ -144,6 +366,9 @@ export class Combat {
       g.audio.impact(px, py, pz, mat === 'metal');
     }
     if (tracer) g.effects.tracer(muzzle.x, muzzle.y, muzzle.z, px, py, pz, def.tracer || (shooter.team === 0 ? 0xffc46b : 0xff8a5a));
+    if ((victim || veh || wHit) && g.hasListener('bulletHit')) {
+      g.emit('bulletHit', { shooter, weapon: def, x: px, y: py, z: pz, victim, vehicle: veh, headshot: !!(victim && head), material: victim ? 'flesh' : veh ? 'metal' : mat, normal: { x: nx, y: ny, z: nz } });
+    }
 
     // Near misses crack past the player's head and suppress them
     const P = g.player;
@@ -161,6 +386,12 @@ export class Combat {
 
   // ------------------------------------------------------------ projectiles
   launch(key, owner, pos, dir, extraVel = null) {
+    const g = this.game;
+    if (g.hasFilter('projectile')) {
+      const f = g.filter('projectile', { type: key, owner, pos, dir });
+      if (!f) return null;
+      if (PROJECTILES[f.type]) key = f.type;
+    }
     const def = PROJECTILES[key];
     // Modded projectiles behave like the projectile they were based on
     const type = def.behavior || key;
@@ -174,6 +405,7 @@ export class Combat {
     if (extraVel) p.vel.add(extraVel);
     mesh.position.copy(p.pos);
     this.projectiles.push(p);
+    if (g.hasListener('projectile')) g.emit('projectile', p);
     return p;
   }
 
@@ -234,9 +466,17 @@ export class Combat {
 
   explode(x, y, z, def, owner) {
     const g = this.game;
+    if (g.hasFilter('explosion')) {
+      const f = g.filter('explosion', { x, y, z, def, owner, radius: def.radius });
+      if (!f) return;
+      x = f.x; y = f.y; z = f.z; owner = f.owner;
+      if (f.def !== def || f.radius !== def.radius) def = { ...def, ...(f.def || {}), radius: Number(f.radius) || 0 };
+    }
     const r = def.radius * RULES.explosionScale;
-    g.effects.explosion(x, y, z, clamp(r / 5.5, 0.6, 1.5));
-    g.audio.explosion(x, y, z, clamp(r / 5.5, 0.6, 1.4));
+    if (g.hasListener('explosion')) g.emit('explosion', { x, y, z, def, owner, radius: r });
+    const fxs = def.fxScale ?? clamp(r / 5.5, 0.6, 1.5);
+    g.effects.explosion(x, y, z, fxs);
+    g.audio.explosion(x, y, z, Math.min(1.4, fxs));
     for (const s of g.soldiers) {
       if (s.state !== 'alive' || s.vehicle) continue;
       const c = s.chest(_c);
@@ -393,7 +633,7 @@ export class Combat {
       let did = false;
       if (s.health < RULES.playerHealth) { s.health = Math.min(RULES.playerHealth, s.health + RULES.playerHealth * 0.12); did = true; }
       for (const gun of s.guns) {
-        if (gun.reserve < gun.def.reserve) { gun.reserve = Math.min(gun.def.reserve, gun.reserve + Math.ceil(gun.def.mag * 0.25)); did = true; }
+        if (gun.addReserve(Math.ceil(gun.def.mag * 0.25)) > 0) did = true;
       }
       if (p.ticks % 5 === 0) {
         if (s.grenades < s.cls.grenades) { s.grenades++; did = true; }

@@ -2,9 +2,9 @@
   "format": "sixthfront-mod",
   "id": "heavy-arsenal",
   "name": "Heavy Arsenal",
-  "version": "1.0",
+  "version": "2.0",
   "author": "Sixth Front",
-  "description": "Adds the M870 Breacher pump shotgun, the SCAR-H battle rifle and a new Breacher class. Assault now carries the battle rifle.",
+  "description": "Adds the M870 Breacher pump shotgun (loads one shell at a time) and the SCAR-H battle rifle with its own 3D model, plus a new Breacher class. Assault now carries the battle rifle.",
   "weapons": {
     "shotgun": {
       "base": "smg",
@@ -16,7 +16,8 @@
       "range": [8, 32],
       "mag": 6,
       "reserve": 36,
-      "reload": 3.4,
+      "reloadType": "shell",
+      "shellTime": 0.5,
       "spreadHip": 0.07,
       "spreadAds": 0.05,
       "bloom": 0,
@@ -37,12 +38,38 @@
       "range": [30, 90],
       "mag": 20,
       "reserve": 120,
-      "reload": 2.6,
+      "reload": 2.4,
+      "reloadEmpty": 3.1,
       "recoil": [0.017, 0.007],
       "spreadAds": 0.003,
       "sound": "heavy",
       "botRange": 130,
-      "tracer": "#ff7a45"
+      "tracer": "#ff7a45",
+      "model": {
+        "_comment": "Units are metres. -z points down the barrel, +y is up. Parts with a role move when you reload.",
+        "sight": "reflex",
+        "sightY": 0.092,
+        "sightZ": -0.06,
+        "muzzle": [0, 0.015, -0.68],
+        "grip": [0, -0.075, 0.07],
+        "fore": [0, -0.03, -0.32],
+        "charge": [-0.05, 0.03, -0.2],
+        "boltTravel": 0.08,
+        "parts": [
+          { "shape": "box", "size": [0.056, 0.05, 0.42], "pos": [0, 0.022, -0.1], "color": "#b39a6b", "rough": 0.7 },
+          { "shape": "box", "size": [0.05, 0.045, 0.24], "pos": [0, -0.022, -0.04], "color": "#a88f60", "rough": 0.7 },
+          { "shape": "box", "size": [0.03, 0.012, 0.42], "pos": [0, 0.053, -0.1], "color": "#2b2b2b", "metal": 0.5, "rough": 0.4 },
+          { "shape": "box", "size": [0.058, 0.058, 0.22], "pos": [0, 0.014, -0.33], "color": "#b39a6b", "rough": 0.75 },
+          { "shape": "cylinder", "size": [0.012, 0.26], "pos": [0, 0.015, -0.54], "color": "#303236", "metal": 0.6, "rough": 0.35 },
+          { "shape": "cylinder", "size": [0.018, 0.07], "pos": [0, 0.015, -0.65], "color": "#1e1f21", "metal": 0.4, "rough": 0.5 },
+          { "shape": "box", "size": [0.032, 0.09, 0.042], "pos": [0, -0.07, 0.07], "rot": [-17, 0, 0], "color": "#2b2b2b" },
+          { "shape": "box", "size": [0.045, 0.07, 0.2], "pos": [0, -0.005, 0.21], "color": "#2b2b2b" },
+          { "shape": "box", "size": [0.04, 0.022, 0.12], "pos": [0, 0.04, 0.22], "color": "#b39a6b" },
+          { "shape": "box", "size": [0.036, 0.13, 0.07], "pos": [0, -0.1, -0.1], "rot": [10, 0, 0], "color": "#2b2b2b", "role": "mag" },
+          { "shape": "box", "size": [0.04, 0.012, 0.075], "pos": [0, -0.168, -0.112], "rot": [10, 0, 0], "color": "#1c1c1c", "role": "mag" },
+          { "shape": "box", "size": [0.04, 0.012, 0.022], "pos": [-0.04, 0.03, -0.2], "color": "#1c1c1c", "metal": 0.5, "role": "bolt" }
+        ]
+      }
     }
   },
   "classes": {
