@@ -433,11 +433,14 @@ export class ModManager {
     this.keys = [];
     this.models = [];
     this.widgets = new Map();
+    this.cleanups = [];   // api.onDisable callbacks
   }
 
   // Put every table back exactly as the base game shipped it, and undo everything scripts created
   _restore() {
     const P = this.pristine, g = this.game;
+    // Scripts undo their own changes first, while the game is still as they left it
+    for (const fn of (this.cleanups || []).slice().reverse()) fn();
     for (const [table, src] of [[WEAPONS, P.WEAPONS], [GADGETS, P.GADGETS], [PROJECTILES, P.PROJECTILES], [CLASSES, P.CLASSES],
       [MOVE, P.MOVE], [SCORE, P.SCORE], [RULES, P.RULES], [VEHICLES, P.VEHICLES], [ATMOSPHERE, P.ATMOSPHERE]]) {
       for (const k of Object.keys(table)) delete table[k];
@@ -711,6 +714,11 @@ export class ModManager {
         return t;
       },
       cancel(timer) { if (timer) timer.dead = true; },
+      // Runs when the mod is switched off or the mod list is re-applied: undo anything done through api.game
+      onDisable(fn) {
+        fnCheck(fn, 'api.onDisable');
+        mgr.cleanups.push(() => { try { fn(); } catch (e) { report(e); } });
+      },
 
       // ---- information
       player: () => g.player,
@@ -1018,7 +1026,7 @@ export class ModManager {
       },
     };
     // Every API call reports errors on the MODS screen instead of breaking the game
-    for (const k of Object.keys(api)) if (typeof api[k] === 'function' && !['on', 'filter', 'after', 'every', 'bindKey'].includes(k)) api[k] = safe(api[k]);
+    for (const k of Object.keys(api)) if (typeof api[k] === 'function' && !['on', 'filter', 'after', 'every', 'bindKey', 'onDisable'].includes(k)) api[k] = safe(api[k]);
     for (const k of Object.keys(api.hud)) api.hud[k] = safe(api.hud[k]);
     Object.freeze(api.hud);
     Object.freeze(api.store);

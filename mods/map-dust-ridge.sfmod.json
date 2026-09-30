@@ -1,0 +1,1075 @@
+{
+  "format": "sixthfront-mod",
+  "id": "map-dust-ridge",
+  "name": "Map: Dust Ridge",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "A desert battlefield under a hard midday sun: a packed bazaar in the middle, walled compounds at the oasis, the pump station, the radar dome and the border post, rolling dunes and rocky ridges. Five flags. The game restarts when you switch it on or off.",
+  "map": {
+    "name": "DUST RIDGE",
+    "hq": [
+      {
+        "x": 0,
+        "z": 212
+      },
+      {
+        "x": 0,
+        "z": -212
+      }
+    ],
+    "flags": [
+      {
+        "id": "A",
+        "name": "OASIS",
+        "x": -125,
+        "z": 95,
+        "radius": 13
+      },
+      {
+        "id": "B",
+        "name": "PUMP STATION",
+        "x": 115,
+        "z": 115,
+        "radius": 13
+      },
+      {
+        "id": "C",
+        "name": "BAZAAR",
+        "x": 0,
+        "z": 5,
+        "radius": 15,
+        "flat": 64,
+        "town": true
+      },
+      {
+        "id": "D",
+        "name": "RADAR DOME",
+        "x": -110,
+        "z": -115,
+        "radius": 13
+      },
+      {
+        "id": "E",
+        "name": "BORDER POST",
+        "x": 130,
+        "z": -85,
+        "radius": 13
+      }
+    ],
+    "roads": [
+      [
+        [0, 250],
+        [0, 212],
+        [10, 150],
+        [-20, 80],
+        [0, 5],
+        [20, -70],
+        [0, -150],
+        [0, -212],
+        [0, -250]
+      ],
+      [
+        [-250, 40],
+        [-180, 70],
+        [-125, 95],
+        [-60, 40],
+        [0, 5]
+      ],
+      [
+        [250, -30],
+        [190, -60],
+        [130, -85],
+        [60, -40],
+        [0, 5]
+      ],
+      [
+        [0, 5],
+        [60, 70],
+        [115, 115],
+        [160, 190]
+      ],
+      [
+        [0, 5],
+        [-55, -60],
+        [-110, -115],
+        [-170, -180]
+      ]
+    ],
+    "buildings": [
+      [
+        -24.2,
+        51,
+        4,
+        4,
+        1
+      ],
+      [
+        33.9,
+        -7.2,
+        3,
+        3,
+        3
+      ],
+      [
+        -17.2,
+        -53.5,
+        2,
+        3,
+        1
+      ],
+      [
+        -7,
+        -22.9,
+        4,
+        3,
+        1
+      ],
+      [
+        -31.5,
+        6.3,
+        3,
+        4,
+        3
+      ],
+      [
+        -23.9,
+        -6.4,
+        2,
+        3,
+        2
+      ],
+      [
+        -55.6,
+        3.7,
+        3,
+        4,
+        2
+      ],
+      [
+        -32,
+        -15.8,
+        2,
+        3,
+        3
+      ],
+      [
+        18.5,
+        57,
+        3,
+        3,
+        1
+      ],
+      [
+        40.8,
+        21.4,
+        3,
+        3,
+        2
+      ],
+      [
+        20.2,
+        -24,
+        3,
+        2,
+        3
+      ],
+      [
+        -2.9,
+        52.6,
+        3,
+        3,
+        3
+      ],
+      [
+        -48.6,
+        -20.9,
+        4,
+        4,
+        1
+      ],
+      [
+        -1.8,
+        -37.8,
+        3,
+        2,
+        2
+      ],
+      [
+        -106,
+        114,
+        3,
+        3,
+        2
+      ],
+      [
+        -144,
+        76,
+        3,
+        3,
+        1
+      ],
+      [
+        134,
+        96,
+        3,
+        3,
+        2
+      ],
+      [
+        96,
+        134,
+        3,
+        3,
+        1
+      ],
+      [
+        -91,
+        -134,
+        3,
+        3,
+        2
+      ],
+      [
+        -129,
+        -96,
+        3,
+        3,
+        1
+      ],
+      [
+        149,
+        -66,
+        3,
+        3,
+        2
+      ],
+      [
+        111,
+        -104,
+        3,
+        3,
+        1
+      ],
+      [
+        -32.4,
+        145.5,
+        3,
+        3,
+        1
+      ],
+      [
+        49.7,
+        135.9,
+        2,
+        3,
+        2
+      ],
+      [
+        138.4,
+        19.4,
+        2,
+        3,
+        1
+      ],
+      [
+        -123.6,
+        -23.4,
+        2,
+        3,
+        2
+      ],
+      [
+        -132.2,
+        -42.2,
+        3,
+        4,
+        2
+      ],
+      [
+        -71.4,
+        -29.7,
+        2,
+        3,
+        2
+      ],
+      [
+        108,
+        -32.4,
+        2,
+        3,
+        1
+      ],
+      [
+        189,
+        105.7,
+        3,
+        4,
+        2
+      ]
+    ],
+    "props": [
+      {
+        "type": "block",
+        "x": -102,
+        "z": 123,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": -102,
+        "z": 67,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": -148,
+        "z": 123,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": -148,
+        "z": 67,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 138,
+        "z": 143,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 138,
+        "z": 87,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 92,
+        "z": 143,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 92,
+        "z": 87,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": -87,
+        "z": -87,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": -87,
+        "z": -143,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": -133,
+        "z": -87,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": -133,
+        "z": -143,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 153,
+        "z": -57,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 153,
+        "z": -113,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 107,
+        "z": -57,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "block",
+        "x": 107,
+        "z": -113,
+        "color": "#c9ad83",
+        "size": [10, 2.2, 0.6]
+      },
+      {
+        "type": "sandbags",
+        "x": -132.8,
+        "z": 97.6,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -129.9,
+        "z": 102.3
+      },
+      {
+        "type": "sandbags",
+        "x": -120.4,
+        "z": 101.1
+      },
+      {
+        "type": "barrier",
+        "x": -115.4,
+        "z": 81.6,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -137.5,
+        "z": 103
+      },
+      {
+        "type": "barrier",
+        "x": -140.1,
+        "z": 107.9,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": -136,
+        "z": 116.8
+      },
+      {
+        "type": "crate",
+        "x": -113.2,
+        "z": 97
+      },
+      {
+        "type": "crate",
+        "x": -113.8,
+        "z": 76.4
+      },
+      {
+        "type": "crate",
+        "x": -113.3,
+        "z": 86.4
+      },
+      {
+        "type": "container",
+        "x": -134.9,
+        "z": 70.7,
+        "rot": 90,
+        "color": "#6b6f73"
+      },
+      {
+        "type": "container",
+        "x": -99.5,
+        "z": 107.4,
+        "rot": 90,
+        "color": "#6b6f73"
+      },
+      {
+        "type": "container",
+        "x": -130.1,
+        "z": 77.4,
+        "rot": 90,
+        "color": "#a0782d"
+      },
+      {
+        "type": "sandbags",
+        "x": 116.8,
+        "z": 104.3
+      },
+      {
+        "type": "sandbags",
+        "x": 124.7,
+        "z": 116.2,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 107,
+        "z": 115.3,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 125.5,
+        "z": 122.3,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 121.8,
+        "z": 130,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 122.4,
+        "z": 121
+      },
+      {
+        "type": "crate",
+        "x": 111.1,
+        "z": 137.9
+      },
+      {
+        "type": "crate",
+        "x": 103.9,
+        "z": 93.9
+      },
+      {
+        "type": "crate",
+        "x": 106.6,
+        "z": 108.9
+      },
+      {
+        "type": "crate",
+        "x": 110.3,
+        "z": 99.2
+      },
+      {
+        "type": "container",
+        "x": 123.5,
+        "z": 135.5,
+        "color": "#7b2f2f"
+      },
+      {
+        "type": "container",
+        "x": 141.6,
+        "z": 118.8,
+        "rot": 90,
+        "color": "#a0782d"
+      },
+      {
+        "type": "container",
+        "x": 103.9,
+        "z": 100,
+        "rot": 90,
+        "color": "#7b2f2f"
+      },
+      {
+        "type": "sandbags",
+        "x": -3,
+        "z": -3.5
+      },
+      {
+        "type": "sandbags",
+        "x": -7.4,
+        "z": 9.7,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 5.2,
+        "z": -2.5
+      },
+      {
+        "type": "sandbags",
+        "x": 1.3,
+        "z": 15.7
+      },
+      {
+        "type": "sandbags",
+        "x": 8.4,
+        "z": 7.3,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -9.2,
+        "z": -11.3
+      },
+      {
+        "type": "barrier",
+        "x": -2.8,
+        "z": 19.8
+      },
+      {
+        "type": "barrier",
+        "x": 12.7,
+        "z": 15.2
+      },
+      {
+        "type": "barrier",
+        "x": -9.2,
+        "z": 22.6,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -13.1,
+        "z": 18.9
+      },
+      {
+        "type": "crate",
+        "x": -1,
+        "z": -11.3
+      },
+      {
+        "type": "crate",
+        "x": 7.7,
+        "z": 12.1
+      },
+      {
+        "type": "crate",
+        "x": 2.6,
+        "z": -16.3
+      },
+      {
+        "type": "crate",
+        "x": 12,
+        "z": 11.1
+      },
+      {
+        "type": "container",
+        "x": 20.9,
+        "z": -3,
+        "rot": 90,
+        "color": "#8a3b2a"
+      },
+      {
+        "type": "container",
+        "x": 0.8,
+        "z": 24.8,
+        "color": "#7b2f2f"
+      },
+      {
+        "type": "sandbags",
+        "x": -119.3,
+        "z": -116.3,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -117.9,
+        "z": -110.2,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -104.8,
+        "z": -108.3
+      },
+      {
+        "type": "barrier",
+        "x": -124.9,
+        "z": -109.7,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -119.3,
+        "z": -121.1
+      },
+      {
+        "type": "barrier",
+        "x": -114.3,
+        "z": -133.6,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": -129,
+        "z": -118
+      },
+      {
+        "type": "crate",
+        "x": -93.3,
+        "z": -97.6
+      },
+      {
+        "type": "crate",
+        "x": -108.9,
+        "z": -134.5
+      },
+      {
+        "type": "crate",
+        "x": -113.3,
+        "z": -90.1
+      },
+      {
+        "type": "container",
+        "x": -89.5,
+        "z": -111.9,
+        "rot": 90,
+        "color": "#6b6f73"
+      },
+      {
+        "type": "container",
+        "x": -124.1,
+        "z": -137.6,
+        "rot": 90,
+        "color": "#2f5d7c"
+      },
+      {
+        "type": "container",
+        "x": -98.3,
+        "z": -128.2,
+        "rot": 90,
+        "color": "#8a3b2a"
+      },
+      {
+        "type": "sandbags",
+        "x": 121.9,
+        "z": -77.9,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 129.7,
+        "z": -75
+      },
+      {
+        "type": "sandbags",
+        "x": 138.8,
+        "z": -89.7,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 126.8,
+        "z": -102
+      },
+      {
+        "type": "barrier",
+        "x": 140.2,
+        "z": -71.5
+      },
+      {
+        "type": "barrier",
+        "x": 139.1,
+        "z": -82.6,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": 111.5,
+        "z": -88
+      },
+      {
+        "type": "crate",
+        "x": 151.4,
+        "z": -74.5
+      },
+      {
+        "type": "crate",
+        "x": 139.4,
+        "z": -68.1
+      },
+      {
+        "type": "crate",
+        "x": 135.4,
+        "z": -69.9
+      },
+      {
+        "type": "container",
+        "x": 134.2,
+        "z": -102,
+        "color": "#a0782d"
+      },
+      {
+        "type": "container",
+        "x": 119.3,
+        "z": -103.7,
+        "rot": 90,
+        "color": "#a0782d"
+      },
+      {
+        "type": "container",
+        "x": 128.8,
+        "z": -62.4,
+        "color": "#6b6f73"
+      },
+      {
+        "type": "container",
+        "x": 111.4,
+        "z": 85.9,
+        "rot": 90,
+        "color": "#6b6f73"
+      },
+      {
+        "type": "container",
+        "x": 127.7,
+        "z": 98.2,
+        "rot": 90,
+        "color": "#2f5d7c"
+      },
+      {
+        "type": "container",
+        "x": 96,
+        "z": 125,
+        "rot": 90,
+        "color": "#8a3b2a"
+      },
+      {
+        "type": "container",
+        "x": 110.6,
+        "z": 134.2,
+        "color": "#3f6b3a"
+      },
+      {
+        "type": "barrier",
+        "x": 165,
+        "z": -68
+      },
+      {
+        "type": "barrier",
+        "x": 165,
+        "z": -56
+      },
+      {
+        "type": "ruin",
+        "x": 50,
+        "z": 36.5,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": 51.4,
+        "z": 153.9
+      },
+      {
+        "type": "ruin",
+        "x": -156.6,
+        "z": 4.1
+      },
+      {
+        "type": "ruin",
+        "x": 29.9,
+        "z": -48.7,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -196.6,
+        "z": 79.7
+      },
+      {
+        "type": "ruin",
+        "x": 135.7,
+        "z": 32.5,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -102.6,
+        "z": 31.8,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": 70.9,
+        "z": -102,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": 136.9,
+        "z": 4.9
+      },
+      {
+        "type": "ruin",
+        "x": 42.1,
+        "z": 30.4
+      },
+      {
+        "type": "ruin",
+        "x": 135.1,
+        "z": -109.8
+      },
+      {
+        "type": "ruin",
+        "x": 204.2,
+        "z": 44.5
+      },
+      {
+        "type": "ruin",
+        "x": -44.8,
+        "z": -29.5
+      },
+      {
+        "type": "ruin",
+        "x": -77.7,
+        "z": -18.7
+      },
+      {
+        "type": "ruin",
+        "x": -107.8,
+        "z": -82.2,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": 73,
+        "z": -184.5,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -4.4,
+        "z": -44.7,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": 133.9,
+        "z": 162,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": 59.5,
+        "z": 157.1,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": 39.6,
+        "z": 27.9
+      },
+      {
+        "type": "ruin",
+        "x": 13.2,
+        "z": -203.6,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -94,
+        "z": -189.1,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -206.3,
+        "z": 23.5,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -21.1,
+        "z": -80.4,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -124.1,
+        "z": 34.9
+      },
+      {
+        "type": "ruin",
+        "x": 13.4,
+        "z": 117
+      },
+      {
+        "type": "wreck",
+        "x": -104.7,
+        "z": 77.4,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": 158.8,
+        "z": 185.5,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": -164.9,
+        "z": -176.2,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": -0.6,
+        "z": -153.3,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": 190.7,
+        "z": -59.1
+      },
+      {
+        "type": "wreck",
+        "x": -113.6,
+        "z": -120.3
+      }
+    ],
+    "randomProps": false,
+    "terrain": {
+      "seed": 911,
+      "hills": 1.7,
+      "bumps": 0.55,
+      "mountains": 1.3,
+      "valley": 0.4
+    },
+    "vegetation": {
+      "trees": 0.06,
+      "bushes": 0.35,
+      "rocks": 1.9,
+      "grass": 0
+    }
+  },
+  "atmosphere": {
+    "preset": "noon",
+    "skyTop": "#4d86c4",
+    "horizon": "#e6d2ae",
+    "ground": "#b89b70",
+    "sunColor": "#fff1d6",
+    "sunLight": "#fff0d2",
+    "hemiSky": "#e3ddcf",
+    "hemiGround": "#a1835a",
+    "fogNear": 80,
+    "fogFar": 820,
+    "clouds": 0.12,
+    "sunElevation": 58,
+    "exposure": 0.95
+  },
+  "script": [
+    "// Paint the ground, bushes and trees in desert colours (only once per page: this map restarts the game)",
+    "const w = api.game.world;",
+    "const sand = new THREE.Color('#d8b886'), dune = new THREE.Color('#c9a26f');",
+    "const col = w.terrain.geometry.attributes.color;",
+    "const base = (w.terrain.userData.baseColors ||= col.array.slice());",
+    "const c = new THREE.Color();",
+    "for (let i = 0; i < base.length; i += 3) {",
+    "  const lum = 0.3 * base[i] + 0.59 * base[i + 1] + 0.11 * base[i + 2];",
+    "  const k = Math.max(0.55, Math.min(1.5, lum / 0.17));",
+    "  c.copy(sand).lerp(dune, Math.random() * 0.25).multiplyScalar(k);",
+    "  col.array[i] = base[i] * 0.15 + c.r * 0.85;",
+    "  col.array[i + 1] = base[i + 1] * 0.15 + c.g * 0.85;",
+    "  col.array[i + 2] = base[i + 2] * 0.15 + c.b * 0.85;",
+    "}",
+    "col.needsUpdate = true;",
+    "const dry = new THREE.Color('#8f7a4e');",
+    "for (const m of [w.bushMesh, w.pineMesh, w.leafMesh]) {",
+    "  if (!m || !m.instanceColor) continue;",
+    "  const a = m.instanceColor.array;",
+    "  const b0 = (m.userData.baseColors ||= a.slice());",
+    "  for (let i = 0; i < a.length; i += 3) { a[i] = b0[i] * 0.3 + dry.r * 0.7; a[i + 1] = b0[i + 1] * 0.3 + dry.g * 0.7; a[i + 2] = b0[i + 2] * 0.3 + dry.b * 0.7; }",
+    "  m.instanceColor.needsUpdate = true;",
+    "}"
+  ]
+}

@@ -19,6 +19,14 @@ The example mods ship with the game (add them from the MODS screen in one tap) a
 
 | File | What it shows |
 | --- | --- |
+| `hd-weapons.sfmod.json` | Detailed custom models for every base gun (with moving mags, bolts, slides and a feed cover), plus a script for brass, barrel smoke and reflections |
+| `aggressive-reloads.sfmod.json` | Changing every weapon from a script, extending the viewmodel animation through `api.game`, and undoing it with `api.onDisable` |
+| `mode-gun-game.sfmod.json` | A new game mode: loadouts from a script, kill tracking, a HUD, ending the match |
+| `mode-hardpoint.sfmod.json` | A new game mode: moving the single flag around the map |
+| `mode-last-stand.sfmod.json` | A new game mode: waves of bots spawned and removed by the script |
+| `map-dust-ridge.sfmod.json` | A desert map, including a script that repaints the ground |
+| `map-iron-forest.sfmod.json` | A dense forest map with fog |
+| `map-old-town.sfmod.json` | A city map with a street grid and 59 destructible buildings |
 | `heavy-arsenal.sfmod.json` | New weapons, a custom 3D rifle model, a shell-by-shell shotgun reload, a new class |
 | `call-ins.sfmod.json` | Key bindings, raycasts, timers, explosions, spawning and removing bots, HUD text |
 | `jetpack.sfmod.json` | Held keys, velocity control, particle effects, a HUD bar, cancelling fall damage |
@@ -380,6 +388,7 @@ cancel the action.
 | `api.bindKey(code, label, onPress, onRelease)` | A key (e.g. `"KeyH"`), plus a touch button with that label on phones. Up to 12 |
 | `api.isDown(code)` | Whether a key (or its touch button) is held |
 | `api.after(seconds, fn)`, `api.every(seconds, fn)`, `api.cancel(timer)` | Timers in game time |
+| `api.onDisable(fn)` | Runs when your mod is switched off or the mod list is re-applied. Use it to undo anything you changed directly through `api.game` (everything made with the API is undone for you) |
 | `api.store.get(key, fallback)`, `api.store.set(key, value)` | Data saved on the device for this mod |
 | `api.toast(text)`, `api.banner(text, colour)`, `api.award(soldier, points, label)`, `api.log(...)` | Messages and score |
 | `api.config`, `api.rules`, `api.game`, `THREE` | The live tables, the whole game object and three.js, for anything else |

@@ -1,0 +1,207 @@
+{
+  "format": "sixthfront-mod",
+  "id": "mode-hardpoint",
+  "name": "Mode: Hardpoint",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "One capture point that moves around the valley every 60 seconds: the market, the quarry, the cement works, the old mill and the relay station. Whoever holds it drains the other team's tickets fast. The game restarts when you switch it on or off.",
+  "map": {
+    "flags": [
+      {
+        "id": "H",
+        "name": "HARDPOINT",
+        "x": 0,
+        "z": 0,
+        "radius": 13,
+        "flat": 70,
+        "town": true
+      }
+    ],
+    "props": [
+      {
+        "type": "sandbags",
+        "x": -126.7,
+        "z": 113.5,
+        "rot": 0
+      },
+      {
+        "type": "sandbags",
+        "x": -142.2,
+        "z": 115.4,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -136.1,
+        "z": 101.1,
+        "rot": 0
+      },
+      {
+        "type": "container",
+        "x": -119,
+        "z": 104,
+        "rot": 90,
+        "color": "#2f5d7c"
+      },
+      {
+        "type": "barrier",
+        "x": -148,
+        "z": 114,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": -130,
+        "z": 122
+      },
+      {
+        "type": "sandbags",
+        "x": 143.3,
+        "z": -101.5,
+        "rot": 0
+      },
+      {
+        "type": "sandbags",
+        "x": 127.8,
+        "z": -99.6,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 133.9,
+        "z": -113.9,
+        "rot": 0
+      },
+      {
+        "type": "container",
+        "x": 151,
+        "z": -111,
+        "rot": 90,
+        "color": "#2f5d7c"
+      },
+      {
+        "type": "barrier",
+        "x": 122,
+        "z": -101,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": 140,
+        "z": -93
+      },
+      {
+        "type": "sandbags",
+        "x": 128.3,
+        "z": 98.5,
+        "rot": 0
+      },
+      {
+        "type": "sandbags",
+        "x": 112.8,
+        "z": 100.4,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 118.9,
+        "z": 86.1,
+        "rot": 0
+      },
+      {
+        "type": "container",
+        "x": 136,
+        "z": 89,
+        "rot": 90,
+        "color": "#2f5d7c"
+      },
+      {
+        "type": "barrier",
+        "x": 107,
+        "z": 99,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": 125,
+        "z": 107
+      },
+      {
+        "type": "sandbags",
+        "x": -111.7,
+        "z": -96.5,
+        "rot": 0
+      },
+      {
+        "type": "sandbags",
+        "x": -127.2,
+        "z": -94.6,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -121.1,
+        "z": -108.9,
+        "rot": 0
+      },
+      {
+        "type": "container",
+        "x": -104,
+        "z": -106,
+        "rot": 90,
+        "color": "#2f5d7c"
+      },
+      {
+        "type": "barrier",
+        "x": -133,
+        "z": -96,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": -115,
+        "z": -88
+      }
+    ]
+  },
+  "rules": {
+    "startTickets": 150,
+    "bleedSpeed": 4,
+    "captureSpeed": 1.8,
+    "respawnTime": 4
+  },
+  "script": [
+    "const SPOTS = [{\"name\":\"MARKET\",\"x\":0,\"z\":0},{\"name\":\"QUARRY\",\"x\":-135,\"z\":110},{\"name\":\"CEMENT WORKS\",\"x\":135,\"z\":-105},{\"name\":\"OLD MILL\",\"x\":120,\"z\":95},{\"name\":\"RELAY STATION\",\"x\":-120,\"z\":-100}];",
+    "const PERIOD = 60;",
+    "let idx = 0, next = 0;",
+    "function place(i, announce) {",
+    "  const f = api.flags()[0];",
+    "  if (!f) return;",
+    "  const s = SPOTS[i];",
+    "  f.x = s.x; f.z = s.z; f.y = api.heightAt(s.x, s.z); f.name = s.name;",
+    "  f.owner = -1; f.progress = 0; f.contested = false; f.capturing = -1;",
+    "  if (f.cloth && f.cloth.parent) f.cloth.parent.position.set(f.x, f.y, f.z);",
+    "  for (const b of api.soldiers()) if (b.brain) { b.brain.moveTarget = null; b.brain.thinkT = 0; }",
+    "  if (announce) {",
+    "    api.banner(`HARDPOINT MOVED: ${s.name}`, '#f2b33d');",
+    "    api.sound('capture');",
+    "  }",
+    "}",
+    "api.on('matchStart', () => {",
+    "  idx = 0; next = api.time() + PERIOD; place(0, false);",
+    "  const eb = document.getElementById('mm-eyebrow');",
+    "  if (eb) eb.textContent = 'HARDPOINT  ·  ' + api.config.MAP.name + '  ·  MOVES EVERY 60s';",
+    "});",
+    "api.on('tick', () => {",
+    "  if (api.time() < next) return;",
+    "  idx = (idx + 1) % SPOTS.length;",
+    "  next = api.time() + PERIOD;",
+    "  place(idx, true);",
+    "});",
+    "api.every(0.5, () => {",
+    "  if (api.state() !== 'playing') { api.hud.remove('hp'); return; }",
+    "  const left = Math.max(0, Math.ceil(next - api.time()));",
+    "  api.hud.text('hp', `HARDPOINT: ${SPOTS[idx].name}  ·  MOVES IN ${left}s`, { x: 50, y: 17, size: 0.7, color: left <= 10 ? '#ff4b3a' : '#f2b33d' });",
+    "});"
+  ]
+}
