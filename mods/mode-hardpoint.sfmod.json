@@ -2,9 +2,9 @@
   "format": "sixthfront-mod",
   "id": "mode-hardpoint",
   "name": "Mode: Hardpoint",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sixth Front",
-  "description": "One capture point that moves around the valley every 60 seconds: the market, the quarry, the cement works, the old mill and the relay station. Whoever holds it drains the other team's tickets fast. The game restarts when you switch it on or off.",
+  "description": "One capture point that moves every 60 seconds between the capture points of whatever map you are playing. Whoever holds it drains the other team's tickets fast. Put it below a map mod in the list to play it on that map. The game restarts when you switch it on or off.",
   "map": {
     "flags": [
       {
@@ -12,155 +12,7 @@
         "name": "HARDPOINT",
         "x": 0,
         "z": 0,
-        "radius": 13,
-        "flat": 70,
-        "town": true
-      }
-    ],
-    "props": [
-      {
-        "type": "sandbags",
-        "x": -126.7,
-        "z": 113.5,
-        "rot": 0
-      },
-      {
-        "type": "sandbags",
-        "x": -142.2,
-        "z": 115.4,
-        "rot": 90
-      },
-      {
-        "type": "sandbags",
-        "x": -136.1,
-        "z": 101.1,
-        "rot": 0
-      },
-      {
-        "type": "container",
-        "x": -119,
-        "z": 104,
-        "rot": 90,
-        "color": "#2f5d7c"
-      },
-      {
-        "type": "barrier",
-        "x": -148,
-        "z": 114,
-        "rot": 90
-      },
-      {
-        "type": "crate",
-        "x": -130,
-        "z": 122
-      },
-      {
-        "type": "sandbags",
-        "x": 143.3,
-        "z": -101.5,
-        "rot": 0
-      },
-      {
-        "type": "sandbags",
-        "x": 127.8,
-        "z": -99.6,
-        "rot": 90
-      },
-      {
-        "type": "sandbags",
-        "x": 133.9,
-        "z": -113.9,
-        "rot": 0
-      },
-      {
-        "type": "container",
-        "x": 151,
-        "z": -111,
-        "rot": 90,
-        "color": "#2f5d7c"
-      },
-      {
-        "type": "barrier",
-        "x": 122,
-        "z": -101,
-        "rot": 90
-      },
-      {
-        "type": "crate",
-        "x": 140,
-        "z": -93
-      },
-      {
-        "type": "sandbags",
-        "x": 128.3,
-        "z": 98.5,
-        "rot": 0
-      },
-      {
-        "type": "sandbags",
-        "x": 112.8,
-        "z": 100.4,
-        "rot": 90
-      },
-      {
-        "type": "sandbags",
-        "x": 118.9,
-        "z": 86.1,
-        "rot": 0
-      },
-      {
-        "type": "container",
-        "x": 136,
-        "z": 89,
-        "rot": 90,
-        "color": "#2f5d7c"
-      },
-      {
-        "type": "barrier",
-        "x": 107,
-        "z": 99,
-        "rot": 90
-      },
-      {
-        "type": "crate",
-        "x": 125,
-        "z": 107
-      },
-      {
-        "type": "sandbags",
-        "x": -111.7,
-        "z": -96.5,
-        "rot": 0
-      },
-      {
-        "type": "sandbags",
-        "x": -127.2,
-        "z": -94.6,
-        "rot": 90
-      },
-      {
-        "type": "sandbags",
-        "x": -121.1,
-        "z": -108.9,
-        "rot": 0
-      },
-      {
-        "type": "container",
-        "x": -104,
-        "z": -106,
-        "rot": 90,
-        "color": "#2f5d7c"
-      },
-      {
-        "type": "barrier",
-        "x": -133,
-        "z": -96,
-        "rot": 90
-      },
-      {
-        "type": "crate",
-        "x": -115,
-        "z": -88
+        "radius": 13
       }
     ]
   },
@@ -171,8 +23,25 @@
     "respawnTime": 4
   },
   "script": [
-    "const SPOTS = [{\"name\":\"MARKET\",\"x\":0,\"z\":0},{\"name\":\"QUARRY\",\"x\":-135,\"z\":110},{\"name\":\"CEMENT WORKS\",\"x\":135,\"z\":-105},{\"name\":\"OLD MILL\",\"x\":120,\"z\":95},{\"name\":\"RELAY STATION\",\"x\":-120,\"z\":-100}];",
     "const PERIOD = 60;",
+    "const mm = api.game.mods;",
+    "// The hardpoint visits the capture points of the map in play (a map mod above this one, or Karsa Valley)",
+    "const maps = mm.list.filter((m) => m.enabled && m.id !== api.mod.id && m.hasMap && m.mod.map && Array.isArray(m.mod.map.flags) && m.mod.map.flags.length >= 2);",
+    "const src = maps.length ? maps[maps.length - 1].mod.map.flags : mm.pristine.MAP.FLAGS;",
+    "const lim = 225;",
+    "const SPOTS = src.map((f) => ({ name: String(f.name || 'POINT').toUpperCase().slice(0, 20), x: Math.max(-lim, Math.min(lim, +f.x || 0)), z: Math.max(-lim, Math.min(lim, +f.z || 0)) }));",
+    "SPOTS.sort((p, q) => Math.hypot(p.x, p.z) - Math.hypot(q.x, q.z));",
+    "// Maps that rely on automatic cover lose it when their flags are replaced, so put some back",
+    "const randomCover = maps.length ? maps[maps.length - 1].mod.map.randomProps !== false : true;",
+    "if (randomCover) {",
+    "  for (const p of SPOTS) {",
+    "    for (let i = 0; i < 4; i++) {",
+    "      const a = (i / 4) * Math.PI * 2 + 0.5;",
+    "      api.addModel([{ shape: 'box', size: [3.2, 1, 0.9], pos: [0, 0.45, 0], color: '#a89a74', rough: 1 }],",
+    "        { x: p.x + Math.cos(a) * 9, z: p.z + Math.sin(a) * 9 }, { collide: true, rotY: (-a * 180) / Math.PI + 90, material: 'sand' });",
+    "    }",
+    "  }",
+    "}",
     "let idx = 0, next = 0;",
     "function place(i, announce) {",
     "  const f = api.flags()[0];",

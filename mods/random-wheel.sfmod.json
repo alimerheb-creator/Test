@@ -1,0 +1,4574 @@
+{
+  "format": "sixthfront-mod",
+  "id": "random-wheel",
+  "name": "Random Wheel",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "Before every match two wheels spin: the first picks the map (Karsa Valley, Karsa Outskirts, Dust Ridge, Iron Forest or Old Town), the second picks the game mode (Conquest, Capture the Flag, King of the Hill, Team Deathmatch, Hardpoint, Gun Game or Last Stand). The game switches to that map and mode and drops you into the deploy screen. Map and mode mods you have installed are added to the wheels too. Everything it needs is inside this one file.",
+  "script": [
+    "const g = api.game, mm = g.mods;",
+    "const onOff = (fn) => {",
+    "  if (api.onDisable) return api.onDisable(fn);",
+    "  const h = api.addModel([{ shape: 'box', size: [0.01, 0.01, 0.01] }], { x: 0, y: -500, z: 0 });",
+    "  h.setVisible(false);",
+    "  const remove = h.remove;",
+    "  h.remove = () => { remove(); fn(); };",
+    "};",
+    "const self = mm.list.find((m) => m.id === api.mod.id);",
+    "const PACK = (self && self.mod._pack) || {};",
+    "",
+    "// ---- what the wheels can land on: the built-in map and Conquest, the packed maps and modes, and any",
+    "// other map or mode mods you have installed",
+    "const MAPS = [{ id: null, name: 'KARSA VALLEY' }, { id: 'karsa-outskirts', name: 'KARSA OUTSKIRTS' }, { id: 'map-dust-ridge', name: 'DUST RIDGE' },",
+    "  { id: 'map-iron-forest', name: 'IRON FOREST' }, { id: 'map-old-town', name: 'OLD TOWN' }];",
+    "const MODES = [{ id: null, name: 'CONQUEST' }, { id: 'mode-capture-the-flag', name: 'CAPTURE THE FLAG' }, { id: 'mode-king-of-the-hill', name: 'KING OF THE HILL' },",
+    "  { id: 'team-deathmatch', name: 'TEAM DEATHMATCH' }, { id: 'mode-hardpoint', name: 'HARDPOINT' }, { id: 'mode-gun-game', name: 'GUN GAME' },",
+    "  { id: 'mode-last-stand', name: 'LAST STAND' }];",
+    "const isMode = (m) => /^mode-/.test(m.id) || m.id === 'team-deathmatch';",
+    "for (const m of mm.list) {",
+    "  if (!m.hasMap || m.id === api.mod.id) continue;",
+    "  if (isMode(m)) { if (!MODES.some((o) => o.id === m.id)) MODES.push({ id: m.id, name: m.name.replace(/^mode:\\s*/i, '').toUpperCase().slice(0, 18) }); }",
+    "  else if (m.mod.map && m.mod.map.name && !MAPS.some((o) => o.id === m.id)) MAPS.push({ id: m.id, name: String(m.mod.map.name).toUpperCase().slice(0, 18) });",
+    "}",
+    "const available = (o) => !o.id || mm.list.some((m) => m.id === o.id) || PACK[o.id];",
+    "const maps = MAPS.filter(available), modes = MODES.filter(available);",
+    "",
+    "// ---- switching to the chosen map and mode",
+    "function install(id) {",
+    "  if (!id || mm.list.some((m) => m.id === id)) return;",
+    "  mm.add(JSON.stringify(PACK[id]));",
+    "}",
+    "function configure(map, mode) {",
+    "  install(map.id); install(mode.id);",
+    "  for (const o of maps) if (o.id) mm.setEnabled(o.id, o.id === map.id);",
+    "  for (const o of modes) if (o.id) mm.setEnabled(o.id, o.id === mode.id);",
+    "  // the mode goes below the map so its flags replace the map's",
+    "  if (map.id && mode.id) {",
+    "    const L = mm.list, i = L.findIndex((m) => m.id === map.id), j = L.findIndex((m) => m.id === mode.id);",
+    "    if (j < i) { const [e] = L.splice(j, 1); L.splice(L.findIndex((m) => m.id === map.id) + 1, 0, e); mm._save(); }",
+    "  }",
+    "}",
+    "",
+    "// ---- the wheel overlay",
+    "let overlay = null, raf = 0;",
+    "const close = () => { cancelAnimationFrame(raf); if (overlay) overlay.remove(); overlay = null; };",
+    "onOff(close);",
+    "const button = (label, cls, fn) => {",
+    "  const b = document.createElement('button');",
+    "  b.className = 'btn ' + cls;",
+    "  b.textContent = label;",
+    "  b.addEventListener('click', () => { g.audio.click(); fn(); });",
+    "  return b;",
+    "};",
+    "function open(origStart) {",
+    "  close();",
+    "  overlay = document.createElement('div');",
+    "  overlay.style.cssText = 'position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2vh;' +",
+    "    'background:radial-gradient(ellipse at center, rgba(20,26,29,0.9), rgba(6,8,9,0.96));color:var(--text,#e8eae3);font-family:var(--font-ui,sans-serif);padding:12px;';",
+    "  const title = document.createElement('div');",
+    "  title.textContent = 'RANDOM WHEEL';",
+    "  title.style.cssText = 'font-family:var(--font-display,Impact,sans-serif);font-size:min(7vh,2.6rem);letter-spacing:0.08em;line-height:1;';",
+    "  const step = document.createElement('div');",
+    "  step.style.cssText = 'font-size:min(2.6vh,0.95rem);letter-spacing:0.28em;font-weight:700;color:var(--signal,#f2b33d);';",
+    "  const canvas = document.createElement('canvas');",
+    "  const result = document.createElement('div');",
+    "  result.style.cssText = 'display:flex;gap:2.2vw;font-size:min(3.2vh,1.15rem);letter-spacing:0.14em;font-weight:700;min-height:1.4em;text-align:center;flex-wrap:wrap;justify-content:center;';",
+    "  const row = document.createElement('div');",
+    "  row.style.cssText = 'display:flex;gap:10px;';",
+    "  row.append(button('SKIP WHEEL', 'ghost small', () => { close(); origStart(); }), button('CANCEL', 'ghost small', close));",
+    "  overlay.append(title, step, canvas, result, row);",
+    "  document.body.appendChild(overlay);",
+    "",
+    "  const dpr = Math.min(2, window.devicePixelRatio || 1);",
+    "  const css = Math.round(Math.max(200, Math.min(window.innerWidth * 0.8, window.innerHeight * 0.58, 440)));",
+    "  canvas.style.width = canvas.style.height = css + 'px';",
+    "  canvas.width = canvas.height = Math.round(css * dpr);",
+    "  const ctx = canvas.getContext('2d'), S = canvas.width;",
+    "",
+    "  function draw(items, angle, hi) {",
+    "    const n = items.length, seg = (Math.PI * 2) / n, cx = S / 2, cy = S / 2 + 6 * dpr, r = S / 2 - 12 * dpr;",
+    "    ctx.clearRect(0, 0, S, S);",
+    "    for (let i = 0; i < n; i++) {",
+    "      const a0 = angle + i * seg - Math.PI / 2 - seg / 2;",
+    "      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, a0, a0 + seg); ctx.closePath();",
+    "      ctx.fillStyle = i === hi ? '#f2b33d' : i % 2 ? '#1c2227' : '#2a323a';",
+    "      ctx.fill();",
+    "      ctx.strokeStyle = 'rgba(232,234,227,0.2)'; ctx.lineWidth = 2 * dpr; ctx.stroke();",
+    "      ctx.save();",
+    "      ctx.translate(cx, cy); ctx.rotate(a0 + seg / 2);",
+    "      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';",
+    "      ctx.fillStyle = i === hi ? '#16130b' : '#e8eae3';",
+    "      // shrink long names so they fit between the hub and the rim",
+    "      let fs = Math.round(S * (n > 7 ? 0.036 : 0.042));",
+    "      const room = r * 0.86 - 22 * dpr;",
+    "      do { ctx.font = `700 ${fs}px 'Saira Semi Condensed', 'Arial Narrow', sans-serif`; } while (ctx.measureText(items[i].name).width > room && --fs > 7);",
+    "      ctx.fillText(items[i].name, r - 12 * dpr, 0);",
+    "      ctx.restore();",
+    "    }",
+    "    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.strokeStyle = '#f2b33d'; ctx.lineWidth = 4 * dpr; ctx.stroke();",
+    "    ctx.beginPath(); ctx.arc(cx, cy, r * 0.14, 0, Math.PI * 2); ctx.fillStyle = '#0d1012'; ctx.fill(); ctx.stroke();",
+    "    // pointer at the top",
+    "    ctx.beginPath(); ctx.moveTo(cx - 13 * dpr, 2 * dpr); ctx.lineTo(cx + 13 * dpr, 2 * dpr); ctx.lineTo(cx, cy - r + 16 * dpr); ctx.closePath();",
+    "    ctx.fillStyle = '#e8eae3'; ctx.fill(); ctx.strokeStyle = '#0d1012'; ctx.lineWidth = 2 * dpr; ctx.stroke();",
+    "  }",
+    "",
+    "  // spins `items` and calls done(pick) once it stops",
+    "  function spin(label, items, done) {",
+    "    step.textContent = label;",
+    "    const n = items.length, seg = (Math.PI * 2) / n, pick = Math.floor(Math.random() * n);",
+    "    const start = Math.random() * Math.PI * 2, jitter = (Math.random() - 0.5) * seg * 0.7;",
+    "    const target = -pick * seg + jitter, turns = 5 + Math.floor(Math.random() * 2);",
+    "    const end = start + turns * Math.PI * 2 + ((((target - start) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2));",
+    "    const dur = 3800 + Math.random() * 900, t0 = performance.now();",
+    "    let lastSeg = -1;",
+    "    const frame = (now) => {",
+    "      if (!overlay) return;",
+    "      const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 4);",
+    "      const ang = start + (end - start) * e;",
+    "      const under = ((Math.round(-ang / seg) % n) + n) % n;",
+    "      if (under !== lastSeg) { if (lastSeg >= 0) api.tone(1500, 0.015, 'square', 0.05); lastSeg = under; }",
+    "      draw(items, ang, t >= 1 ? pick : -1);",
+    "      if (t < 1) raf = requestAnimationFrame(frame);",
+    "      else { api.tone(660, 0.12, 'triangle', 0.15); api.tone(990, 0.2, 'triangle', 0.15); setTimeout(() => overlay && done(items[pick]), 900); }",
+    "    };",
+    "    raf = requestAnimationFrame(frame);",
+    "  }",
+    "",
+    "  const chip = (k, v) => { const s = document.createElement('span'); s.innerHTML = `<span style=\"color:var(--muted,#9aa39b)\">${k}</span> `; s.append(v); return s; };",
+    "  spin('SPINNING FOR THE MAP', maps, (map) => {",
+    "    result.append(chip('MAP', map.name));",
+    "    spin('SPINNING FOR THE GAME MODE', modes, (mode) => {",
+    "      result.append(chip('MODE', mode.name));",
+    "      step.textContent = 'GET READY';",
+    "      row.remove();",
+    "      setTimeout(() => {",
+    "        api.store.set('pending', { map: map.id, mode: mode.id, at: Date.now() });",
+    "        configure(map, mode);",
+    "        close();",
+    "        if (g.state !== 'menu') g.quitToMenu(); // e.g. PLAY AGAIN on the end screen",
+    "        g.reloadMods(); // restarts the page if the map changes; the match starts by itself either way",
+    "      }, 1400);",
+    "    });",
+    "  });",
+    "}",
+    "",
+    "// ---- DEPLOY and PLAY AGAIN go through the wheel first",
+    "const origStart = () => Object.getPrototypeOf(g).startMatch.call(g);",
+    "g.startMatch = function () { open(origStart); };",
+    "onOff(() => { delete g.startMatch; close(); });",
+    "",
+    "// ---- after the wheel switched things over: go straight into the deploy screen",
+    "const pending = api.store.get('pending', null);",
+    "if (pending && Date.now() - pending.at < 60000) {",
+    "  api.store.set('pending', null);",
+    "  let started = false;",
+    "  api.on('matchStart', () => {",
+    "    if (started) return;",
+    "    started = true;",
+    "    let tries = 0;",
+    "    const go = () => {",
+    "      if (g.state === 'menu') origStart();",
+    "      else if (tries++ < 60) setTimeout(go, 100);",
+    "    };",
+    "    setTimeout(go, 50);",
+    "  });",
+    "}"
+  ],
+  "_pack": {
+    "karsa-outskirts": {
+      "format": "sixthfront-mod",
+      "id": "karsa-outskirts",
+      "name": "Map: Karsa Outskirts",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "A new battlefield. The armies deploy from the east and west and fight over a hilltop chapel, a rail depot, a sawmill and a radio hill in the south. The game restarts when you switch it on or off.",
+      "map": {
+        "name": "KARSA OUTSKIRTS",
+        "terrain": {
+          "seed": 4242,
+          "hills": 1.35,
+          "bumps": 1.2,
+          "mountains": 1.15,
+          "valley": -1.6
+        },
+        "vegetation": {
+          "trees": 1.6,
+          "bushes": 1.3,
+          "rocks": 1.2,
+          "grass": 1.2
+        },
+        "hq": [
+          {
+            "x": 205,
+            "z": 0
+          },
+          {
+            "x": -205,
+            "z": 0
+          }
+        ],
+        "flags": [
+          {
+            "name": "RAIL DEPOT",
+            "x": 90,
+            "z": 70,
+            "radius": 13
+          },
+          {
+            "name": "CHAPEL",
+            "x": 0,
+            "z": -20,
+            "radius": 14,
+            "town": true
+          },
+          {
+            "name": "SAWMILL",
+            "x": -95,
+            "z": 75,
+            "radius": 13
+          },
+          {
+            "name": "RADIO HILL",
+            "x": 0,
+            "z": 140,
+            "radius": 12
+          }
+        ],
+        "_buildings": "[x, z, width in 2.5 m panels, depth in panels, floors]",
+        "buildings": [
+          [
+            -20,
+            -40,
+            4,
+            3,
+            2
+          ],
+          [
+            18,
+            -42,
+            3,
+            3,
+            2
+          ],
+          [
+            -24,
+            0,
+            3,
+            4,
+            1
+          ],
+          [
+            22,
+            2,
+            4,
+            3,
+            2
+          ],
+          [
+            0,
+            -62,
+            3,
+            3,
+            4
+          ],
+          [
+            -2,
+            20,
+            4,
+            3,
+            1
+          ],
+          [
+            112,
+            82,
+            5,
+            4,
+            1
+          ],
+          [
+            70,
+            92,
+            3,
+            3,
+            2
+          ],
+          [
+            104,
+            46,
+            3,
+            3,
+            1
+          ],
+          [
+            -118,
+            88,
+            5,
+            3,
+            1
+          ],
+          [
+            -78,
+            98,
+            3,
+            3,
+            2
+          ],
+          [
+            -110,
+            52,
+            3,
+            3,
+            1
+          ],
+          [
+            16,
+            158,
+            3,
+            3,
+            1
+          ],
+          [
+            150,
+            -90,
+            3,
+            3,
+            2
+          ],
+          [
+            -150,
+            -95,
+            3,
+            4,
+            1
+          ],
+          [
+            60,
+            -150,
+            4,
+            3,
+            1
+          ],
+          [
+            -60,
+            -150,
+            3,
+            3,
+            2
+          ],
+          [
+            150,
+            150,
+            3,
+            3,
+            1
+          ],
+          [
+            -150,
+            160,
+            3,
+            3,
+            2
+          ],
+          [
+            40,
+            -95,
+            3,
+            3,
+            1
+          ],
+          [
+            -40,
+            -100,
+            3,
+            3,
+            2
+          ]
+        ],
+        "roads": [
+          [
+            [250, 0],
+            [205, 0],
+            [150, 20],
+            [90, 70],
+            [40, 30],
+            [0, -20],
+            [-45, 30],
+            [-95, 75],
+            [-150, 20],
+            [-205, 0],
+            [-250, 0]
+          ],
+          [
+            [0, -20],
+            [0, 60],
+            [0, 140],
+            [10, 250]
+          ],
+          [
+            [0, -20],
+            [10, -100],
+            [60, -150],
+            [80, -250]
+          ]
+        ],
+        "props": [
+          {
+            "type": "container",
+            "x": 84,
+            "z": 56,
+            "color": "#8a3b2a"
+          },
+          {
+            "type": "container",
+            "x": 97,
+            "z": 56,
+            "color": "#2f5d7c"
+          },
+          {
+            "type": "container",
+            "x": 78,
+            "z": 82,
+            "rot": 90,
+            "color": "#3f6b3a"
+          },
+          {
+            "type": "container",
+            "x": 102,
+            "z": 84,
+            "rot": 90,
+            "color": "#a0782d"
+          },
+          {
+            "type": "wreck",
+            "x": 128,
+            "z": 38,
+            "rot": 90
+          },
+          {
+            "type": "block",
+            "x": 0,
+            "z": -36,
+            "size": [16, 2.4, 0.6],
+            "color": "#b9ae98"
+          },
+          {
+            "type": "block",
+            "x": -8,
+            "z": -28,
+            "size": [0.6, 2.4, 16],
+            "color": "#b9ae98"
+          },
+          {
+            "type": "barrier",
+            "x": 12,
+            "z": -8
+          },
+          {
+            "type": "barrier",
+            "x": -12,
+            "z": -6,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -7,
+            "z": 132
+          },
+          {
+            "type": "sandbags",
+            "x": 7,
+            "z": 148,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 8,
+            "z": 130
+          },
+          {
+            "type": "crate",
+            "x": -2,
+            "z": 136
+          },
+          {
+            "type": "block",
+            "x": -9,
+            "z": 147,
+            "size": [1.2, 14, 1.2],
+            "color": "#6b6f73"
+          },
+          {
+            "type": "ruin",
+            "x": -84,
+            "z": 64
+          },
+          {
+            "type": "ruin",
+            "x": -104,
+            "z": 90,
+            "rot": 90
+          },
+          {
+            "type": "crate",
+            "x": -92,
+            "z": 62
+          },
+          {
+            "type": "crate",
+            "x": -99,
+            "z": 86
+          },
+          {
+            "type": "wreck",
+            "x": -45,
+            "z": 34
+          },
+          {
+            "type": "wreck",
+            "x": 40,
+            "z": 32,
+            "rot": 90
+          }
+        ]
+      },
+      "atmosphere": {
+        "preset": "overcast",
+        "clouds": 0.8
+      }
+    },
+    "map-dust-ridge": {
+      "format": "sixthfront-mod",
+      "id": "map-dust-ridge",
+      "name": "Map: Dust Ridge",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "A desert battlefield under a hard midday sun: a packed bazaar in the middle, walled compounds at the oasis, the pump station, the radar dome and the border post, rolling dunes and rocky ridges. Five flags. The game restarts when you switch it on or off.",
+      "map": {
+        "name": "DUST RIDGE",
+        "hq": [
+          {
+            "x": 0,
+            "z": 212
+          },
+          {
+            "x": 0,
+            "z": -212
+          }
+        ],
+        "flags": [
+          {
+            "id": "A",
+            "name": "OASIS",
+            "x": -125,
+            "z": 95,
+            "radius": 13
+          },
+          {
+            "id": "B",
+            "name": "PUMP STATION",
+            "x": 115,
+            "z": 115,
+            "radius": 13
+          },
+          {
+            "id": "C",
+            "name": "BAZAAR",
+            "x": 0,
+            "z": 5,
+            "radius": 15,
+            "flat": 64,
+            "town": true
+          },
+          {
+            "id": "D",
+            "name": "RADAR DOME",
+            "x": -110,
+            "z": -115,
+            "radius": 13
+          },
+          {
+            "id": "E",
+            "name": "BORDER POST",
+            "x": 130,
+            "z": -85,
+            "radius": 13
+          }
+        ],
+        "roads": [
+          [
+            [0, 250],
+            [0, 212],
+            [10, 150],
+            [-20, 80],
+            [0, 5],
+            [20, -70],
+            [0, -150],
+            [0, -212],
+            [0, -250]
+          ],
+          [
+            [-250, 40],
+            [-180, 70],
+            [-125, 95],
+            [-60, 40],
+            [0, 5]
+          ],
+          [
+            [250, -30],
+            [190, -60],
+            [130, -85],
+            [60, -40],
+            [0, 5]
+          ],
+          [
+            [0, 5],
+            [60, 70],
+            [115, 115],
+            [160, 190]
+          ],
+          [
+            [0, 5],
+            [-55, -60],
+            [-110, -115],
+            [-170, -180]
+          ]
+        ],
+        "buildings": [
+          [
+            -24.2,
+            51,
+            4,
+            4,
+            1
+          ],
+          [
+            33.9,
+            -7.2,
+            3,
+            3,
+            3
+          ],
+          [
+            -17.2,
+            -53.5,
+            2,
+            3,
+            1
+          ],
+          [
+            -7,
+            -22.9,
+            4,
+            3,
+            1
+          ],
+          [
+            -31.5,
+            6.3,
+            3,
+            4,
+            3
+          ],
+          [
+            -23.9,
+            -6.4,
+            2,
+            3,
+            2
+          ],
+          [
+            -55.6,
+            3.7,
+            3,
+            4,
+            2
+          ],
+          [
+            -32,
+            -15.8,
+            2,
+            3,
+            3
+          ],
+          [
+            18.5,
+            57,
+            3,
+            3,
+            1
+          ],
+          [
+            40.8,
+            21.4,
+            3,
+            3,
+            2
+          ],
+          [
+            20.2,
+            -24,
+            3,
+            2,
+            3
+          ],
+          [
+            -2.9,
+            52.6,
+            3,
+            3,
+            3
+          ],
+          [
+            -48.6,
+            -20.9,
+            4,
+            4,
+            1
+          ],
+          [
+            -1.8,
+            -37.8,
+            3,
+            2,
+            2
+          ],
+          [
+            -106,
+            114,
+            3,
+            3,
+            2
+          ],
+          [
+            -144,
+            76,
+            3,
+            3,
+            1
+          ],
+          [
+            134,
+            96,
+            3,
+            3,
+            2
+          ],
+          [
+            96,
+            134,
+            3,
+            3,
+            1
+          ],
+          [
+            -91,
+            -134,
+            3,
+            3,
+            2
+          ],
+          [
+            -129,
+            -96,
+            3,
+            3,
+            1
+          ],
+          [
+            149,
+            -66,
+            3,
+            3,
+            2
+          ],
+          [
+            111,
+            -104,
+            3,
+            3,
+            1
+          ],
+          [
+            -32.4,
+            145.5,
+            3,
+            3,
+            1
+          ],
+          [
+            49.7,
+            135.9,
+            2,
+            3,
+            2
+          ],
+          [
+            138.4,
+            19.4,
+            2,
+            3,
+            1
+          ],
+          [
+            -123.6,
+            -23.4,
+            2,
+            3,
+            2
+          ],
+          [
+            -132.2,
+            -42.2,
+            3,
+            4,
+            2
+          ],
+          [
+            -71.4,
+            -29.7,
+            2,
+            3,
+            2
+          ],
+          [
+            108,
+            -32.4,
+            2,
+            3,
+            1
+          ],
+          [
+            189,
+            105.7,
+            3,
+            4,
+            2
+          ]
+        ],
+        "props": [
+          {
+            "type": "block",
+            "x": -102,
+            "z": 123,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": -102,
+            "z": 67,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": -148,
+            "z": 123,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": -148,
+            "z": 67,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 138,
+            "z": 143,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 138,
+            "z": 87,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 92,
+            "z": 143,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 92,
+            "z": 87,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": -87,
+            "z": -87,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": -87,
+            "z": -143,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": -133,
+            "z": -87,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": -133,
+            "z": -143,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 153,
+            "z": -57,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 153,
+            "z": -113,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 107,
+            "z": -57,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "block",
+            "x": 107,
+            "z": -113,
+            "color": "#c9ad83",
+            "size": [10, 2.2, 0.6]
+          },
+          {
+            "type": "sandbags",
+            "x": -132.8,
+            "z": 97.6,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -129.9,
+            "z": 102.3
+          },
+          {
+            "type": "sandbags",
+            "x": -120.4,
+            "z": 101.1
+          },
+          {
+            "type": "barrier",
+            "x": -115.4,
+            "z": 81.6,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -137.5,
+            "z": 103
+          },
+          {
+            "type": "barrier",
+            "x": -140.1,
+            "z": 107.9,
+            "rot": 90
+          },
+          {
+            "type": "crate",
+            "x": -136,
+            "z": 116.8
+          },
+          {
+            "type": "crate",
+            "x": -113.2,
+            "z": 97
+          },
+          {
+            "type": "crate",
+            "x": -113.8,
+            "z": 76.4
+          },
+          {
+            "type": "crate",
+            "x": -113.3,
+            "z": 86.4
+          },
+          {
+            "type": "container",
+            "x": -134.9,
+            "z": 70.7,
+            "rot": 90,
+            "color": "#6b6f73"
+          },
+          {
+            "type": "container",
+            "x": -99.5,
+            "z": 107.4,
+            "rot": 90,
+            "color": "#6b6f73"
+          },
+          {
+            "type": "container",
+            "x": -130.1,
+            "z": 77.4,
+            "rot": 90,
+            "color": "#a0782d"
+          },
+          {
+            "type": "sandbags",
+            "x": 116.8,
+            "z": 104.3
+          },
+          {
+            "type": "sandbags",
+            "x": 124.7,
+            "z": 116.2,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 107,
+            "z": 115.3,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 125.5,
+            "z": 122.3,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 121.8,
+            "z": 130,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 122.4,
+            "z": 121
+          },
+          {
+            "type": "crate",
+            "x": 111.1,
+            "z": 137.9
+          },
+          {
+            "type": "crate",
+            "x": 103.9,
+            "z": 93.9
+          },
+          {
+            "type": "crate",
+            "x": 106.6,
+            "z": 108.9
+          },
+          {
+            "type": "crate",
+            "x": 110.3,
+            "z": 99.2
+          },
+          {
+            "type": "container",
+            "x": 123.5,
+            "z": 135.5,
+            "color": "#7b2f2f"
+          },
+          {
+            "type": "container",
+            "x": 141.6,
+            "z": 118.8,
+            "rot": 90,
+            "color": "#a0782d"
+          },
+          {
+            "type": "container",
+            "x": 103.9,
+            "z": 100,
+            "rot": 90,
+            "color": "#7b2f2f"
+          },
+          {
+            "type": "sandbags",
+            "x": -3,
+            "z": -3.5
+          },
+          {
+            "type": "sandbags",
+            "x": -7.4,
+            "z": 9.7,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 5.2,
+            "z": -2.5
+          },
+          {
+            "type": "sandbags",
+            "x": 1.3,
+            "z": 15.7
+          },
+          {
+            "type": "sandbags",
+            "x": 8.4,
+            "z": 7.3,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -9.2,
+            "z": -11.3
+          },
+          {
+            "type": "barrier",
+            "x": -2.8,
+            "z": 19.8
+          },
+          {
+            "type": "barrier",
+            "x": 12.7,
+            "z": 15.2
+          },
+          {
+            "type": "barrier",
+            "x": -9.2,
+            "z": 22.6,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -13.1,
+            "z": 18.9
+          },
+          {
+            "type": "crate",
+            "x": -1,
+            "z": -11.3
+          },
+          {
+            "type": "crate",
+            "x": 7.7,
+            "z": 12.1
+          },
+          {
+            "type": "crate",
+            "x": 2.6,
+            "z": -16.3
+          },
+          {
+            "type": "crate",
+            "x": 12,
+            "z": 11.1
+          },
+          {
+            "type": "container",
+            "x": 20.9,
+            "z": -3,
+            "rot": 90,
+            "color": "#8a3b2a"
+          },
+          {
+            "type": "container",
+            "x": 0.8,
+            "z": 24.8,
+            "color": "#7b2f2f"
+          },
+          {
+            "type": "sandbags",
+            "x": -119.3,
+            "z": -116.3,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -117.9,
+            "z": -110.2,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -104.8,
+            "z": -108.3
+          },
+          {
+            "type": "barrier",
+            "x": -124.9,
+            "z": -109.7,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -119.3,
+            "z": -121.1
+          },
+          {
+            "type": "barrier",
+            "x": -114.3,
+            "z": -133.6,
+            "rot": 90
+          },
+          {
+            "type": "crate",
+            "x": -129,
+            "z": -118
+          },
+          {
+            "type": "crate",
+            "x": -93.3,
+            "z": -97.6
+          },
+          {
+            "type": "crate",
+            "x": -108.9,
+            "z": -134.5
+          },
+          {
+            "type": "crate",
+            "x": -113.3,
+            "z": -90.1
+          },
+          {
+            "type": "container",
+            "x": -89.5,
+            "z": -111.9,
+            "rot": 90,
+            "color": "#6b6f73"
+          },
+          {
+            "type": "container",
+            "x": -124.1,
+            "z": -137.6,
+            "rot": 90,
+            "color": "#2f5d7c"
+          },
+          {
+            "type": "container",
+            "x": -98.3,
+            "z": -128.2,
+            "rot": 90,
+            "color": "#8a3b2a"
+          },
+          {
+            "type": "sandbags",
+            "x": 121.9,
+            "z": -77.9,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 129.7,
+            "z": -75
+          },
+          {
+            "type": "sandbags",
+            "x": 138.8,
+            "z": -89.7,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 126.8,
+            "z": -102
+          },
+          {
+            "type": "barrier",
+            "x": 140.2,
+            "z": -71.5
+          },
+          {
+            "type": "barrier",
+            "x": 139.1,
+            "z": -82.6,
+            "rot": 90
+          },
+          {
+            "type": "crate",
+            "x": 111.5,
+            "z": -88
+          },
+          {
+            "type": "crate",
+            "x": 151.4,
+            "z": -74.5
+          },
+          {
+            "type": "crate",
+            "x": 139.4,
+            "z": -68.1
+          },
+          {
+            "type": "crate",
+            "x": 135.4,
+            "z": -69.9
+          },
+          {
+            "type": "container",
+            "x": 134.2,
+            "z": -102,
+            "color": "#a0782d"
+          },
+          {
+            "type": "container",
+            "x": 119.3,
+            "z": -103.7,
+            "rot": 90,
+            "color": "#a0782d"
+          },
+          {
+            "type": "container",
+            "x": 128.8,
+            "z": -62.4,
+            "color": "#6b6f73"
+          },
+          {
+            "type": "container",
+            "x": 111.4,
+            "z": 85.9,
+            "rot": 90,
+            "color": "#6b6f73"
+          },
+          {
+            "type": "container",
+            "x": 127.7,
+            "z": 98.2,
+            "rot": 90,
+            "color": "#2f5d7c"
+          },
+          {
+            "type": "container",
+            "x": 96,
+            "z": 125,
+            "rot": 90,
+            "color": "#8a3b2a"
+          },
+          {
+            "type": "container",
+            "x": 110.6,
+            "z": 134.2,
+            "color": "#3f6b3a"
+          },
+          {
+            "type": "barrier",
+            "x": 165,
+            "z": -68
+          },
+          {
+            "type": "barrier",
+            "x": 165,
+            "z": -56
+          },
+          {
+            "type": "ruin",
+            "x": 50,
+            "z": 36.5,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": 51.4,
+            "z": 153.9
+          },
+          {
+            "type": "ruin",
+            "x": -156.6,
+            "z": 4.1
+          },
+          {
+            "type": "ruin",
+            "x": 29.9,
+            "z": -48.7,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": -196.6,
+            "z": 79.7
+          },
+          {
+            "type": "ruin",
+            "x": 135.7,
+            "z": 32.5,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": -102.6,
+            "z": 31.8,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": 70.9,
+            "z": -102,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": 136.9,
+            "z": 4.9
+          },
+          {
+            "type": "ruin",
+            "x": 42.1,
+            "z": 30.4
+          },
+          {
+            "type": "ruin",
+            "x": 135.1,
+            "z": -109.8
+          },
+          {
+            "type": "ruin",
+            "x": 204.2,
+            "z": 44.5
+          },
+          {
+            "type": "ruin",
+            "x": -44.8,
+            "z": -29.5
+          },
+          {
+            "type": "ruin",
+            "x": -77.7,
+            "z": -18.7
+          },
+          {
+            "type": "ruin",
+            "x": -107.8,
+            "z": -82.2,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": 73,
+            "z": -184.5,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": -4.4,
+            "z": -44.7,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": 133.9,
+            "z": 162,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": 59.5,
+            "z": 157.1,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": 39.6,
+            "z": 27.9
+          },
+          {
+            "type": "ruin",
+            "x": 13.2,
+            "z": -203.6,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": -94,
+            "z": -189.1,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": -206.3,
+            "z": 23.5,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": -21.1,
+            "z": -80.4,
+            "rot": 90
+          },
+          {
+            "type": "ruin",
+            "x": -124.1,
+            "z": 34.9
+          },
+          {
+            "type": "ruin",
+            "x": 13.4,
+            "z": 117
+          },
+          {
+            "type": "wreck",
+            "x": -104.7,
+            "z": 77.4,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 158.8,
+            "z": 185.5,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -164.9,
+            "z": -176.2,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -0.6,
+            "z": -153.3,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 190.7,
+            "z": -59.1
+          },
+          {
+            "type": "wreck",
+            "x": -113.6,
+            "z": -120.3
+          }
+        ],
+        "randomProps": false,
+        "terrain": {
+          "seed": 911,
+          "hills": 1.7,
+          "bumps": 0.55,
+          "mountains": 1.3,
+          "valley": 0.4
+        },
+        "vegetation": {
+          "trees": 0.06,
+          "bushes": 0.35,
+          "rocks": 1.9,
+          "grass": 0
+        }
+      },
+      "atmosphere": {
+        "preset": "noon",
+        "skyTop": "#4d86c4",
+        "horizon": "#e6d2ae",
+        "ground": "#b89b70",
+        "sunColor": "#fff1d6",
+        "sunLight": "#fff0d2",
+        "hemiSky": "#e3ddcf",
+        "hemiGround": "#a1835a",
+        "fogNear": 80,
+        "fogFar": 820,
+        "clouds": 0.12,
+        "sunElevation": 58,
+        "exposure": 0.95
+      },
+      "script": [
+        "// Paint the ground, bushes and trees in desert colours (only once per page: this map restarts the game)",
+        "const w = api.game.world;",
+        "const sand = new THREE.Color('#d8b886'), dune = new THREE.Color('#c9a26f');",
+        "const col = w.terrain.geometry.attributes.color;",
+        "const base = (w.terrain.userData.baseColors ||= col.array.slice());",
+        "const c = new THREE.Color();",
+        "for (let i = 0; i < base.length; i += 3) {",
+        "  const lum = 0.3 * base[i] + 0.59 * base[i + 1] + 0.11 * base[i + 2];",
+        "  const k = Math.max(0.55, Math.min(1.5, lum / 0.17));",
+        "  c.copy(sand).lerp(dune, Math.random() * 0.25).multiplyScalar(k);",
+        "  col.array[i] = base[i] * 0.15 + c.r * 0.85;",
+        "  col.array[i + 1] = base[i + 1] * 0.15 + c.g * 0.85;",
+        "  col.array[i + 2] = base[i + 2] * 0.15 + c.b * 0.85;",
+        "}",
+        "col.needsUpdate = true;",
+        "const dry = new THREE.Color('#8f7a4e');",
+        "for (const m of [w.bushMesh, w.pineMesh, w.leafMesh]) {",
+        "  if (!m || !m.instanceColor) continue;",
+        "  const a = m.instanceColor.array;",
+        "  const b0 = (m.userData.baseColors ||= a.slice());",
+        "  for (let i = 0; i < a.length; i += 3) { a[i] = b0[i] * 0.3 + dry.r * 0.7; a[i + 1] = b0[i + 1] * 0.3 + dry.g * 0.7; a[i + 2] = b0[i + 2] * 0.3 + dry.b * 0.7; }",
+        "  m.instanceColor.needsUpdate = true;",
+        "}"
+      ]
+    },
+    "map-iron-forest": {
+      "format": "sixthfront-mod",
+      "id": "map-iron-forest",
+      "name": "Map: Iron Forest",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "Dense, misty woods where you rarely see further than a hundred metres. Fight over a sawmill, a ranger tower you can climb, a logging camp, a hunting lodge and a stone quarry. The armies deploy from the east and west. Five flags. The game restarts when you switch it on or off.",
+      "map": {
+        "name": "IRON FOREST",
+        "hq": [
+          {
+            "x": 210,
+            "z": 10
+          },
+          {
+            "x": -210,
+            "z": -10
+          }
+        ],
+        "flags": [
+          {
+            "id": "A",
+            "name": "LOGGING CAMP",
+            "x": 120,
+            "z": -90,
+            "radius": 13
+          },
+          {
+            "id": "B",
+            "name": "RANGER TOWER",
+            "x": 70,
+            "z": 110,
+            "radius": 12
+          },
+          {
+            "id": "C",
+            "name": "SAWMILL",
+            "x": 0,
+            "z": 0,
+            "radius": 15,
+            "flat": 58,
+            "town": true
+          },
+          {
+            "id": "D",
+            "name": "HUNTING LODGE",
+            "x": -75,
+            "z": -105,
+            "radius": 12
+          },
+          {
+            "id": "E",
+            "name": "STONE QUARRY",
+            "x": -120,
+            "z": 95,
+            "radius": 13
+          }
+        ],
+        "roads": [
+          [
+            [250, 10],
+            [210, 10],
+            [160, -20],
+            [120, -90],
+            [60, -40],
+            [0, 0],
+            [-40, -60],
+            [-75, -105],
+            [-150, -40],
+            [-210, -10],
+            [-250, -10]
+          ],
+          [
+            [210, 10],
+            [140, 70],
+            [70, 110],
+            [20, 60],
+            [0, 0],
+            [-60, 50],
+            [-120, 95],
+            [-170, 40],
+            [-210, -10]
+          ]
+        ],
+        "buildings": [
+          [
+            -2,
+            -30,
+            6,
+            3,
+            1
+          ],
+          [
+            30,
+            18,
+            5,
+            3,
+            1
+          ],
+          [
+            -31.3,
+            -9.5,
+            4,
+            3,
+            2
+          ],
+          [
+            -22.4,
+            33.3,
+            4,
+            3,
+            2
+          ],
+          [
+            -38.9,
+            -31.2,
+            3,
+            3,
+            2
+          ],
+          [
+            51.3,
+            101.8,
+            2,
+            2,
+            5
+          ],
+          [
+            92.6,
+            132.6,
+            3,
+            3,
+            1
+          ],
+          [
+            110.7,
+            -111.1,
+            3,
+            3,
+            1
+          ],
+          [
+            124.1,
+            -115.3,
+            3,
+            3,
+            1
+          ],
+          [
+            140.3,
+            -77.5,
+            3,
+            3,
+            1
+          ],
+          [
+            -51.1,
+            -115.7,
+            5,
+            4,
+            2
+          ],
+          [
+            -64.8,
+            -135.1,
+            2,
+            2,
+            1
+          ],
+          [
+            -96.6,
+            114.4,
+            4,
+            2,
+            1
+          ],
+          [
+            -146.7,
+            110.8,
+            3,
+            3,
+            1
+          ],
+          [
+            -77.7,
+            -161.1,
+            3,
+            3,
+            1
+          ],
+          [
+            -69.3,
+            -32.5,
+            2,
+            3,
+            2
+          ],
+          [
+            -22.1,
+            147.9,
+            2,
+            3,
+            2
+          ],
+          [
+            162.1,
+            13.2,
+            3,
+            3,
+            2
+          ],
+          [
+            -165,
+            73.1,
+            2,
+            3,
+            2
+          ],
+          [
+            100.6,
+            -27.4,
+            3,
+            3,
+            1
+          ],
+          [
+            -52,
+            79.7,
+            2,
+            3,
+            2
+          ]
+        ],
+        "props": [
+          {
+            "type": "block",
+            "x": 134,
+            "z": -80.4,
+            "color": "#6b4a2e",
+            "size": [1.8, 1.3, 6]
+          },
+          {
+            "type": "block",
+            "x": 98.4,
+            "z": -91.2,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "block",
+            "x": 125.8,
+            "z": -78.5,
+            "color": "#6b4a2e",
+            "size": [1.8, 1.3, 6]
+          },
+          {
+            "type": "crate",
+            "x": 128.4,
+            "z": -86.7
+          },
+          {
+            "type": "crate",
+            "x": 120.8,
+            "z": -98.6
+          },
+          {
+            "type": "crate",
+            "x": 130.8,
+            "z": -97.5
+          },
+          {
+            "type": "crate",
+            "x": 128.7,
+            "z": -78.7
+          },
+          {
+            "type": "sandbags",
+            "x": 120.3,
+            "z": -82
+          },
+          {
+            "type": "sandbags",
+            "x": 114,
+            "z": -95,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 111.2,
+            "z": -87.2,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 147.9,
+            "z": -80.8
+          },
+          {
+            "type": "block",
+            "x": 86.6,
+            "z": 125.4,
+            "color": "#6b4a2e",
+            "size": [1.8, 1.3, 6]
+          },
+          {
+            "type": "block",
+            "x": 74.3,
+            "z": 131.8,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "block",
+            "x": 78.7,
+            "z": 127.7,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "crate",
+            "x": 59.2,
+            "z": 91.1
+          },
+          {
+            "type": "crate",
+            "x": 88,
+            "z": 111.3
+          },
+          {
+            "type": "crate",
+            "x": 73.2,
+            "z": 118
+          },
+          {
+            "type": "crate",
+            "x": 60.3,
+            "z": 118.7
+          },
+          {
+            "type": "sandbags",
+            "x": 72.3,
+            "z": 102.9
+          },
+          {
+            "type": "sandbags",
+            "x": 69.1,
+            "z": 120.7
+          },
+          {
+            "type": "sandbags",
+            "x": 65.4,
+            "z": 100.2
+          },
+          {
+            "type": "wreck",
+            "x": 46.3,
+            "z": 99.3,
+            "rot": 90
+          },
+          {
+            "type": "block",
+            "x": -19.1,
+            "z": -10.2,
+            "color": "#6b4a2e",
+            "size": [1.8, 1.3, 6]
+          },
+          {
+            "type": "block",
+            "x": 22.5,
+            "z": 7.5,
+            "color": "#6b4a2e",
+            "size": [1.8, 1.3, 6]
+          },
+          {
+            "type": "block",
+            "x": -14.2,
+            "z": -0.7,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "crate",
+            "x": 1.2,
+            "z": -16.8
+          },
+          {
+            "type": "crate",
+            "x": 5.5,
+            "z": -14
+          },
+          {
+            "type": "crate",
+            "x": 2.7,
+            "z": 18.8
+          },
+          {
+            "type": "crate",
+            "x": -5,
+            "z": -11.4
+          },
+          {
+            "type": "sandbags",
+            "x": 2.5,
+            "z": 9
+          },
+          {
+            "type": "sandbags",
+            "x": 1.8,
+            "z": -8.5
+          },
+          {
+            "type": "sandbags",
+            "x": -6.7,
+            "z": 6.1,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -7.3,
+            "z": 21.7
+          },
+          {
+            "type": "block",
+            "x": -88.9,
+            "z": -105.4,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "block",
+            "x": -99.8,
+            "z": -107.3,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "block",
+            "x": -71.7,
+            "z": -130.4,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "crate",
+            "x": -54.4,
+            "z": -106
+          },
+          {
+            "type": "crate",
+            "x": -72.9,
+            "z": -90.2
+          },
+          {
+            "type": "crate",
+            "x": -81.1,
+            "z": -113.4
+          },
+          {
+            "type": "crate",
+            "x": -87.3,
+            "z": -100
+          },
+          {
+            "type": "sandbags",
+            "x": -70,
+            "z": -113.1
+          },
+          {
+            "type": "sandbags",
+            "x": -76.3,
+            "z": -97.5
+          },
+          {
+            "type": "sandbags",
+            "x": -66.4,
+            "z": -108.4,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -89.4,
+            "z": -92.1,
+            "rot": 90
+          },
+          {
+            "type": "block",
+            "x": -133.1,
+            "z": 79.9,
+            "color": "#6b4a2e",
+            "size": [6, 1.3, 1.8]
+          },
+          {
+            "type": "block",
+            "x": -118.8,
+            "z": 113,
+            "color": "#6b4a2e",
+            "size": [1.8, 1.3, 6]
+          },
+          {
+            "type": "block",
+            "x": -108,
+            "z": 117,
+            "color": "#6b4a2e",
+            "size": [1.8, 1.3, 6]
+          },
+          {
+            "type": "crate",
+            "x": -125.2,
+            "z": 109.3
+          },
+          {
+            "type": "crate",
+            "x": -110.8,
+            "z": 107.2
+          },
+          {
+            "type": "crate",
+            "x": -128.1,
+            "z": 95.7
+          },
+          {
+            "type": "crate",
+            "x": -131.1,
+            "z": 96
+          },
+          {
+            "type": "sandbags",
+            "x": -123.2,
+            "z": 104.4
+          },
+          {
+            "type": "sandbags",
+            "x": -115.9,
+            "z": 101.7
+          },
+          {
+            "type": "sandbags",
+            "x": -129.5,
+            "z": 90.5,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -98.1,
+            "z": 100.8,
+            "rot": 90
+          },
+          {
+            "type": "block",
+            "x": -18.3,
+            "z": -34.1,
+            "color": "#6b4a2e",
+            "size": [2.2, 1.6, 7]
+          },
+          {
+            "type": "block",
+            "x": -12.5,
+            "z": -10.6,
+            "color": "#6b4a2e",
+            "size": [7, 1.6, 2.2]
+          },
+          {
+            "type": "block",
+            "x": 38.5,
+            "z": 1,
+            "color": "#6b4a2e",
+            "size": [2.2, 1.6, 7]
+          },
+          {
+            "type": "block",
+            "x": -35.7,
+            "z": 5.1,
+            "color": "#6b4a2e",
+            "size": [7, 1.6, 2.2]
+          },
+          {
+            "type": "block",
+            "x": -3.1,
+            "z": 37.7,
+            "color": "#6b4a2e",
+            "size": [7, 1.6, 2.2]
+          },
+          {
+            "type": "block",
+            "x": 15.9,
+            "z": 11.2,
+            "color": "#6b4a2e",
+            "size": [2.2, 1.6, 7]
+          },
+          {
+            "type": "block",
+            "x": -7.1,
+            "z": -36.6,
+            "color": "#6b4a2e",
+            "size": [7, 1.6, 2.2]
+          },
+          {
+            "type": "block",
+            "x": 7.9,
+            "z": 38,
+            "color": "#6b4a2e",
+            "size": [7, 1.6, 2.2]
+          },
+          {
+            "type": "block",
+            "x": -142.8,
+            "z": 91.6,
+            "color": "#8d8a84",
+            "size": [3.533769221510738, 1.419443385093473, 2.991100386250764]
+          },
+          {
+            "type": "block",
+            "x": -118.5,
+            "z": 121.7,
+            "color": "#8d8a84",
+            "size": [3.6297486973926425, 1.0924412091262639, 3.0036807633005083]
+          },
+          {
+            "type": "block",
+            "x": -121.7,
+            "z": 85,
+            "color": "#8d8a84",
+            "size": [2.9998299670405686, 1.872152107884176, 2.8806273522786796]
+          },
+          {
+            "type": "block",
+            "x": -118.2,
+            "z": 69.5,
+            "color": "#8d8a84",
+            "size": [3.9555564345791936, 1.71090373583138, 4.473867022432387]
+          },
+          {
+            "type": "block",
+            "x": -111,
+            "z": 94.7,
+            "color": "#8d8a84",
+            "size": [3.14264212269336, 2.0210837366757914, 4.079799968749285]
+          },
+          {
+            "type": "block",
+            "x": -105.1,
+            "z": 77.1,
+            "color": "#8d8a84",
+            "size": [4.246812068857253, 2.2175390063785017, 2.8011043812148273]
+          },
+          {
+            "type": "block",
+            "x": 57.4,
+            "z": 95.9,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -76.9,
+            "z": 25.3,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 147.8,
+            "z": -103.7,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -24.5,
+            "z": 111.6,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -20.4,
+            "z": 120.1,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 73,
+            "z": -38,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 32.7,
+            "z": 51.9,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -165.6,
+            "z": -78,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -81.7,
+            "z": -58.8,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -52.3,
+            "z": 131.1,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 13.1,
+            "z": 82.2,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -29.8,
+            "z": -36.3,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 150,
+            "z": -89,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -55.5,
+            "z": 73.1,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": 107.4,
+            "z": 58.3,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 72.9,
+            "z": -82.3,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -39.9,
+            "z": 43.6,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -104.7,
+            "z": 124.6,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -73.1,
+            "z": 38.4,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": -67.4,
+            "z": 136.1,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -21,
+            "z": -91.2,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -74.6,
+            "z": 195.4,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -180.4,
+            "z": 63.7,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": 98.2,
+            "z": -36.7,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 187.4,
+            "z": 11.3,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 117.9,
+            "z": -72.8,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -138.1,
+            "z": 25.5,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -25.3,
+            "z": -43.6,
+            "color": "#6b4a2e",
+            "size": [5, 0.9, 0.9]
+          },
+          {
+            "type": "block",
+            "x": -66.2,
+            "z": 54.1,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          },
+          {
+            "type": "block",
+            "x": 105.9,
+            "z": 71.5,
+            "color": "#6b4a2e",
+            "size": [0.9, 0.9, 5]
+          }
+        ],
+        "randomProps": false,
+        "terrain": {
+          "seed": 3131,
+          "hills": 1.6,
+          "bumps": 1.5,
+          "mountains": 1.2,
+          "valley": 0.6
+        },
+        "vegetation": {
+          "trees": 2.6,
+          "bushes": 2.2,
+          "rocks": 1.4,
+          "grass": 1.3
+        }
+      },
+      "atmosphere": {
+        "preset": "overcast",
+        "skyTop": "#76848a",
+        "horizon": "#8e9a93",
+        "ground": "#5d6353",
+        "hemiSky": "#b9c6bf",
+        "hemiGround": "#4a4f40",
+        "fogNear": 22,
+        "fogFar": 340,
+        "clouds": 0.92,
+        "exposure": 1.12
+      }
+    },
+    "map-old-town": {
+      "format": "sixthfront-mod",
+      "id": "map-old-town",
+      "name": "Map: Old Town",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "Street fighting in a whole city: a grid of streets and blocks packed with multi-storey buildings you can blow apart, around a rail yard, a cathedral, the city hall, a tram depot and the market hall. Five flags. The game restarts when you switch it on or off.",
+      "map": {
+        "name": "OLD TOWN",
+        "hq": [
+          {
+            "x": 0,
+            "z": 214
+          },
+          {
+            "x": 0,
+            "z": -214
+          }
+        ],
+        "flags": [
+          {
+            "id": "A",
+            "name": "RAIL YARD",
+            "x": -120,
+            "z": 120,
+            "radius": 14
+          },
+          {
+            "id": "B",
+            "name": "CATHEDRAL",
+            "x": 120,
+            "z": 120,
+            "radius": 14,
+            "town": true
+          },
+          {
+            "id": "C",
+            "name": "CITY HALL",
+            "x": 0,
+            "z": 0,
+            "radius": 15,
+            "flat": 60,
+            "town": true
+          },
+          {
+            "id": "D",
+            "name": "TRAM DEPOT",
+            "x": -120,
+            "z": -120,
+            "radius": 14
+          },
+          {
+            "id": "E",
+            "name": "MARKET HALL",
+            "x": 120,
+            "z": -120,
+            "radius": 14,
+            "town": true
+          }
+        ],
+        "roads": [
+          [
+            [-180, -236],
+            [-180, 236]
+          ],
+          [
+            [-236, -180],
+            [236, -180]
+          ],
+          [
+            [-120, -236],
+            [-120, 236]
+          ],
+          [
+            [-236, -120],
+            [236, -120]
+          ],
+          [
+            [-60, -236],
+            [-60, 236]
+          ],
+          [
+            [-236, -60],
+            [236, -60]
+          ],
+          [
+            [0, -236],
+            [0, 236]
+          ],
+          [
+            [-236, 0],
+            [236, 0]
+          ],
+          [
+            [60, -236],
+            [60, 236]
+          ],
+          [
+            [-236, 60],
+            [236, 60]
+          ],
+          [
+            [120, -236],
+            [120, 236]
+          ],
+          [
+            [-236, 120],
+            [236, 120]
+          ],
+          [
+            [180, -236],
+            [180, 236]
+          ],
+          [
+            [-236, 180],
+            [236, 180]
+          ]
+        ],
+        "buildings": [
+          [
+            150,
+            90,
+            6,
+            8,
+            4
+          ],
+          [
+            30,
+            30,
+            8,
+            5,
+            3
+          ],
+          [
+            -162.5,
+            -165.3,
+            3,
+            3,
+            3
+          ],
+          [
+            -140.3,
+            -81.8,
+            5,
+            3,
+            3
+          ],
+          [
+            -132.9,
+            -20.6,
+            3,
+            3,
+            3
+          ],
+          [
+            -155.5,
+            -48.3,
+            3,
+            3,
+            3
+          ],
+          [
+            -148.2,
+            10.8,
+            3,
+            3,
+            2
+          ],
+          [
+            -143.7,
+            85.2,
+            3,
+            3,
+            3
+          ],
+          [
+            -153.2,
+            106.8,
+            4,
+            4,
+            3
+          ],
+          [
+            -159.6,
+            164.2,
+            5,
+            3,
+            2
+          ],
+          [
+            -100.9,
+            -145.3,
+            3,
+            4,
+            3
+          ],
+          [
+            -84.7,
+            -140.5,
+            3,
+            4,
+            3
+          ],
+          [
+            -78,
+            -79,
+            3,
+            5,
+            3
+          ],
+          [
+            -101.8,
+            -38.1,
+            5,
+            3,
+            3
+          ],
+          [
+            -81.1,
+            28.2,
+            4,
+            4,
+            3
+          ],
+          [
+            -88.3,
+            82.3,
+            5,
+            4,
+            2
+          ],
+          [
+            -76.1,
+            105.1,
+            3,
+            3,
+            3
+          ],
+          [
+            -103.6,
+            154.3,
+            6,
+            3,
+            3
+          ],
+          [
+            -93.3,
+            133.7,
+            4,
+            4,
+            2
+          ],
+          [
+            -41.2,
+            -145.8,
+            5,
+            4,
+            3
+          ],
+          [
+            -25.6,
+            -108.4,
+            4,
+            3,
+            3
+          ],
+          [
+            -45.7,
+            -105.9,
+            3,
+            4,
+            2
+          ],
+          [
+            -27.3,
+            -44.9,
+            3,
+            4,
+            3
+          ],
+          [
+            -17.6,
+            -26.8,
+            4,
+            3,
+            3
+          ],
+          [
+            -48.2,
+            17.6,
+            4,
+            4,
+            3
+          ],
+          [
+            -40.2,
+            49.6,
+            5,
+            3,
+            3
+          ],
+          [
+            -43.8,
+            74.2,
+            3,
+            4,
+            3
+          ],
+          [
+            -13.7,
+            86.5,
+            4,
+            4,
+            2
+          ],
+          [
+            -31.9,
+            165,
+            5,
+            4,
+            2
+          ],
+          [
+            -12.2,
+            160.4,
+            3,
+            3,
+            2
+          ],
+          [
+            44,
+            -168.3,
+            5,
+            3,
+            2
+          ],
+          [
+            36.8,
+            -148.6,
+            3,
+            4,
+            3
+          ],
+          [
+            23.5,
+            -102.8,
+            4,
+            3,
+            3
+          ],
+          [
+            38.2,
+            -105.5,
+            4,
+            3,
+            2
+          ],
+          [
+            34.2,
+            -29,
+            3,
+            4,
+            2
+          ],
+          [
+            38.9,
+            10.8,
+            5,
+            3,
+            2
+          ],
+          [
+            25.7,
+            48.8,
+            3,
+            4,
+            3
+          ],
+          [
+            14.8,
+            104,
+            4,
+            3,
+            2
+          ],
+          [
+            13.3,
+            156.2,
+            4,
+            4,
+            2
+          ],
+          [
+            31.7,
+            156.5,
+            3,
+            3,
+            2
+          ],
+          [
+            91.9,
+            -155.3,
+            6,
+            3,
+            2
+          ],
+          [
+            93.5,
+            -137.5,
+            3,
+            4,
+            3
+          ],
+          [
+            95.3,
+            -94.1,
+            3,
+            5,
+            2
+          ],
+          [
+            105.2,
+            -30.1,
+            4,
+            3,
+            2
+          ],
+          [
+            99.6,
+            -15,
+            3,
+            3,
+            2
+          ],
+          [
+            76.1,
+            35.6,
+            4,
+            3,
+            2
+          ],
+          [
+            109.5,
+            12.4,
+            3,
+            5,
+            3
+          ],
+          [
+            105.8,
+            80.7,
+            3,
+            3,
+            2
+          ],
+          [
+            84.8,
+            94.4,
+            6,
+            3,
+            3
+          ],
+          [
+            82.5,
+            149.8,
+            4,
+            4,
+            3
+          ],
+          [
+            169.4,
+            -160,
+            3,
+            5,
+            2
+          ],
+          [
+            158,
+            -137,
+            4,
+            4,
+            2
+          ],
+          [
+            148.2,
+            -99.7,
+            3,
+            4,
+            2
+          ],
+          [
+            138.6,
+            -30.3,
+            6,
+            3,
+            2
+          ],
+          [
+            159.8,
+            -43.4,
+            5,
+            3,
+            3
+          ],
+          [
+            158.3,
+            22.4,
+            6,
+            3,
+            3
+          ],
+          [
+            168,
+            90.9,
+            3,
+            5,
+            3
+          ],
+          [
+            152.5,
+            109.4,
+            5,
+            3,
+            3
+          ],
+          [
+            153.9,
+            154.7,
+            5,
+            3,
+            3
+          ]
+        ],
+        "props": [
+          {
+            "type": "crate",
+            "x": -154.1,
+            "z": -146.3
+          },
+          {
+            "type": "crate",
+            "x": -169.3,
+            "z": -96.6
+          },
+          {
+            "type": "crate",
+            "x": -162.2,
+            "z": -36.8
+          },
+          {
+            "type": "crate",
+            "x": -154.9,
+            "z": 21.2
+          },
+          {
+            "type": "crate",
+            "x": -139.2,
+            "z": 102.9
+          },
+          {
+            "type": "crate",
+            "x": -156.6,
+            "z": 132.6
+          },
+          {
+            "type": "crate",
+            "x": -73.6,
+            "z": -154.2
+          },
+          {
+            "type": "crate",
+            "x": -85.7,
+            "z": -86.8
+          },
+          {
+            "type": "crate",
+            "x": -90.2,
+            "z": -31
+          },
+          {
+            "type": "crate",
+            "x": -91.8,
+            "z": 29.3
+          },
+          {
+            "type": "crate",
+            "x": -78.2,
+            "z": 97.7
+          },
+          {
+            "type": "crate",
+            "x": -90.6,
+            "z": 150.9
+          },
+          {
+            "type": "crate",
+            "x": -29.9,
+            "z": -148.5
+          },
+          {
+            "type": "crate",
+            "x": -20.6,
+            "z": -70.9
+          },
+          {
+            "type": "crate",
+            "x": -29.5,
+            "z": -30
+          },
+          {
+            "type": "crate",
+            "x": -37,
+            "z": 26.1
+          },
+          {
+            "type": "crate",
+            "x": -30.3,
+            "z": 89.6
+          },
+          {
+            "type": "crate",
+            "x": -26.7,
+            "z": 133.2
+          },
+          {
+            "type": "crate",
+            "x": 12.3,
+            "z": -156.3
+          },
+          {
+            "type": "crate",
+            "x": 41,
+            "z": -94.6
+          },
+          {
+            "type": "crate",
+            "x": 27.4,
+            "z": -22.9
+          },
+          {
+            "type": "crate",
+            "x": 33,
+            "z": 39.9
+          },
+          {
+            "type": "crate",
+            "x": 28.4,
+            "z": 88.8
+          },
+          {
+            "type": "crate",
+            "x": 22.7,
+            "z": 155.1
+          },
+          {
+            "type": "crate",
+            "x": 101.5,
+            "z": -137.8
+          },
+          {
+            "type": "crate",
+            "x": 83.5,
+            "z": -91.2
+          },
+          {
+            "type": "crate",
+            "x": 96,
+            "z": -40.1
+          },
+          {
+            "type": "crate",
+            "x": 86.8,
+            "z": 40
+          },
+          {
+            "type": "crate",
+            "x": 91.6,
+            "z": 80.1
+          },
+          {
+            "type": "crate",
+            "x": 104.4,
+            "z": 153.8
+          },
+          {
+            "type": "crate",
+            "x": 148.1,
+            "z": -148.5
+          },
+          {
+            "type": "crate",
+            "x": 160.4,
+            "z": -91.1
+          },
+          {
+            "type": "crate",
+            "x": 146.4,
+            "z": -48.6
+          },
+          {
+            "type": "crate",
+            "x": 158.6,
+            "z": 34.3
+          },
+          {
+            "type": "crate",
+            "x": 148.5,
+            "z": 70.9
+          },
+          {
+            "type": "crate",
+            "x": 165.6,
+            "z": 143.5
+          },
+          {
+            "type": "block",
+            "x": -94,
+            "z": 102,
+            "color": "#6e2f22",
+            "size": [14, 3.2, 3]
+          },
+          {
+            "type": "block",
+            "x": -146,
+            "z": 114,
+            "color": "#6e2f22",
+            "size": [14, 3.2, 3]
+          },
+          {
+            "type": "block",
+            "x": -94,
+            "z": 114,
+            "color": "#4a3a2c",
+            "size": [14, 3.2, 3]
+          },
+          {
+            "type": "block",
+            "x": -146,
+            "z": 126,
+            "color": "#4a3a2c",
+            "size": [14, 3.2, 3]
+          },
+          {
+            "type": "block",
+            "x": -94,
+            "z": 126,
+            "color": "#6e2f22",
+            "size": [14, 3.2, 3]
+          },
+          {
+            "type": "block",
+            "x": -146,
+            "z": 138,
+            "color": "#6e2f22",
+            "size": [14, 3.2, 3]
+          },
+          {
+            "type": "sandbags",
+            "x": -120.3,
+            "z": 111.1
+          },
+          {
+            "type": "sandbags",
+            "x": -120.2,
+            "z": 128.3
+          },
+          {
+            "type": "sandbags",
+            "x": -111.8,
+            "z": 115.9,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -123.7,
+            "z": 109.9,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -109.3,
+            "z": 105
+          },
+          {
+            "type": "barrier",
+            "x": -108.1,
+            "z": 133.4,
+            "rot": 90
+          },
+          {
+            "type": "crate",
+            "x": -128.7,
+            "z": 140.4
+          },
+          {
+            "type": "crate",
+            "x": -100.6,
+            "z": 119.9
+          },
+          {
+            "type": "crate",
+            "x": -112.7,
+            "z": 95.5
+          },
+          {
+            "type": "crate",
+            "x": -104,
+            "z": 113.4
+          },
+          {
+            "type": "container",
+            "x": -142.3,
+            "z": 109.9,
+            "color": "#7b2f2f"
+          },
+          {
+            "type": "container",
+            "x": -123.2,
+            "z": 92.5,
+            "rot": 90,
+            "color": "#2f5d7c"
+          },
+          {
+            "type": "container",
+            "x": -124.2,
+            "z": 98.2,
+            "color": "#2f5d7c"
+          },
+          {
+            "type": "sandbags",
+            "x": 124.9,
+            "z": 112
+          },
+          {
+            "type": "sandbags",
+            "x": 130.6,
+            "z": 118.2,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 112.3,
+            "z": 115,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 121.3,
+            "z": 100.3
+          },
+          {
+            "type": "barrier",
+            "x": 105.6,
+            "z": 115.6
+          },
+          {
+            "type": "barrier",
+            "x": 129,
+            "z": 129.9
+          },
+          {
+            "type": "crate",
+            "x": 107.9,
+            "z": 136.3
+          },
+          {
+            "type": "crate",
+            "x": 94.7,
+            "z": 125.4
+          },
+          {
+            "type": "crate",
+            "x": 139.5,
+            "z": 135
+          },
+          {
+            "type": "crate",
+            "x": 136.3,
+            "z": 130.3
+          },
+          {
+            "type": "container",
+            "x": 135.5,
+            "z": 124.8,
+            "color": "#8a3b2a"
+          },
+          {
+            "type": "container",
+            "x": 112.9,
+            "z": 93,
+            "rot": 90,
+            "color": "#7b2f2f"
+          },
+          {
+            "type": "container",
+            "x": 98.8,
+            "z": 105.6,
+            "rot": 90,
+            "color": "#a0782d"
+          },
+          {
+            "type": "sandbags",
+            "x": -2.8,
+            "z": 8.5
+          },
+          {
+            "type": "sandbags",
+            "x": -5.9,
+            "z": -7.3
+          },
+          {
+            "type": "sandbags",
+            "x": 8.1,
+            "z": 2.8,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -10,
+            "z": -0.3,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 8.7,
+            "z": -6.5,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -0.5,
+            "z": -13
+          },
+          {
+            "type": "barrier",
+            "x": 7.8,
+            "z": 15.8,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 19.2,
+            "z": 2.6,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -15.3,
+            "z": -5.6,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 4.3,
+            "z": 13.4,
+            "rot": 90
+          },
+          {
+            "type": "crate",
+            "x": 19.6,
+            "z": 10.7
+          },
+          {
+            "type": "crate",
+            "x": 1.3,
+            "z": 11.7
+          },
+          {
+            "type": "crate",
+            "x": -10.6,
+            "z": -12.5
+          },
+          {
+            "type": "crate",
+            "x": 8.3,
+            "z": -22.9
+          },
+          {
+            "type": "container",
+            "x": 10.7,
+            "z": 20.4,
+            "color": "#3f6b3a"
+          },
+          {
+            "type": "container",
+            "x": 9.7,
+            "z": -27.2,
+            "color": "#6b6f73"
+          },
+          {
+            "type": "sandbags",
+            "x": -112.8,
+            "z": -115,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -115.1,
+            "z": -126.4
+          },
+          {
+            "type": "sandbags",
+            "x": -115.7,
+            "z": -109.9
+          },
+          {
+            "type": "barrier",
+            "x": -104,
+            "z": -119.7,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -130.4,
+            "z": -136.7
+          },
+          {
+            "type": "barrier",
+            "x": -117.4,
+            "z": -137.9,
+            "rot": 90
+          },
+          {
+            "type": "crate",
+            "x": -121.9,
+            "z": -110.1
+          },
+          {
+            "type": "crate",
+            "x": -135.7,
+            "z": -117
+          },
+          {
+            "type": "crate",
+            "x": -126.7,
+            "z": -131.6
+          },
+          {
+            "type": "crate",
+            "x": -124.5,
+            "z": -100.7
+          },
+          {
+            "type": "container",
+            "x": -113.6,
+            "z": -144.7,
+            "color": "#7b2f2f"
+          },
+          {
+            "type": "container",
+            "x": -102.5,
+            "z": -134.8,
+            "color": "#a0782d"
+          },
+          {
+            "type": "container",
+            "x": -98,
+            "z": -104.7,
+            "color": "#2f5d7c"
+          },
+          {
+            "type": "sandbags",
+            "x": 115.2,
+            "z": -126.1
+          },
+          {
+            "type": "sandbags",
+            "x": 123.6,
+            "z": -129.4
+          },
+          {
+            "type": "sandbags",
+            "x": 111.1,
+            "z": -119.1,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 102.8,
+            "z": -122.1
+          },
+          {
+            "type": "barrier",
+            "x": 126.9,
+            "z": -114.1
+          },
+          {
+            "type": "barrier",
+            "x": 104.4,
+            "z": -120.2
+          },
+          {
+            "type": "crate",
+            "x": 113.7,
+            "z": -108.5
+          },
+          {
+            "type": "crate",
+            "x": 116.9,
+            "z": -102.8
+          },
+          {
+            "type": "crate",
+            "x": 123.9,
+            "z": -141.1
+          },
+          {
+            "type": "crate",
+            "x": 114.1,
+            "z": -139
+          },
+          {
+            "type": "container",
+            "x": 133,
+            "z": -132.5,
+            "rot": 90,
+            "color": "#7b2f2f"
+          },
+          {
+            "type": "container",
+            "x": 107.7,
+            "z": -99.3,
+            "color": "#3f6b3a"
+          },
+          {
+            "type": "container",
+            "x": 102.2,
+            "z": -130.7,
+            "color": "#a0782d"
+          },
+          {
+            "type": "wreck",
+            "x": 177.7,
+            "z": 164.9,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -107.1,
+            "z": -1.4
+          },
+          {
+            "type": "wreck",
+            "x": -87.3,
+            "z": -178.3
+          },
+          {
+            "type": "wreck",
+            "x": -78.6,
+            "z": -121.9
+          },
+          {
+            "type": "wreck",
+            "x": -179.2,
+            "z": -10.4,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -120.3,
+            "z": -27.3,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 179.5,
+            "z": -124,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 153.1,
+            "z": 179.6
+          },
+          {
+            "type": "wreck",
+            "x": 81.1,
+            "z": -181.8
+          },
+          {
+            "type": "wreck",
+            "x": 120.9,
+            "z": -21.1,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -78.2,
+            "z": 118.4
+          },
+          {
+            "type": "wreck",
+            "x": -66.5,
+            "z": -122.2
+          },
+          {
+            "type": "wreck",
+            "x": -1.2,
+            "z": 54.7,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 2.1,
+            "z": -177.9,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -137.4,
+            "z": 0.9
+          },
+          {
+            "type": "wreck",
+            "x": 0.2,
+            "z": -22.7,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -179.9,
+            "z": 28,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 122.3,
+            "z": 95.4,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": -23.1,
+            "z": -178.6
+          },
+          {
+            "type": "wreck",
+            "x": 72.2,
+            "z": 60.1
+          },
+          {
+            "type": "wreck",
+            "x": 148.2,
+            "z": 59
+          },
+          {
+            "type": "wreck",
+            "x": -199.5,
+            "z": -177.9
+          },
+          {
+            "type": "wreck",
+            "x": 120.5,
+            "z": -0.6,
+            "rot": 90
+          },
+          {
+            "type": "wreck",
+            "x": 106.2,
+            "z": 122.3
+          },
+          {
+            "type": "wreck",
+            "x": 132.8,
+            "z": -61.3
+          },
+          {
+            "type": "barrier",
+            "x": 64,
+            "z": 60,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 56,
+            "z": 60,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 67,
+            "z": 67
+          },
+          {
+            "type": "barrier",
+            "x": -56,
+            "z": 60,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -64,
+            "z": 60,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -53,
+            "z": 67
+          },
+          {
+            "type": "barrier",
+            "x": 64,
+            "z": -60,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": 56,
+            "z": -60,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 67,
+            "z": -53
+          },
+          {
+            "type": "barrier",
+            "x": -56,
+            "z": -60,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -64,
+            "z": -60,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": -53,
+            "z": -53
+          },
+          {
+            "type": "barrier",
+            "x": 4,
+            "z": 120,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -4,
+            "z": 120,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 7,
+            "z": 127
+          },
+          {
+            "type": "barrier",
+            "x": 4,
+            "z": -120,
+            "rot": 90
+          },
+          {
+            "type": "barrier",
+            "x": -4,
+            "z": -120,
+            "rot": 90
+          },
+          {
+            "type": "sandbags",
+            "x": 7,
+            "z": -113
+          }
+        ],
+        "randomProps": false,
+        "terrain": {
+          "seed": 77,
+          "hills": 0.3,
+          "bumps": 0.25,
+          "mountains": 1,
+          "valley": 0
+        },
+        "vegetation": {
+          "trees": 0.25,
+          "bushes": 0.3,
+          "rocks": 0.1,
+          "grass": 0.45
+        }
+      },
+      "atmosphere": {
+        "preset": "dusk",
+        "sunElevation": 14,
+        "clouds": 0.6,
+        "fogNear": 50,
+        "fogFar": 620,
+        "horizon": "#d9b48f",
+        "exposure": 1.1
+      }
+    },
+    "mode-capture-the-flag": {
+      "format": "sixthfront-mod",
+      "id": "mode-capture-the-flag",
+      "name": "Mode: Capture the Flag",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "Each team has a flag in front of its HQ. Grab the enemy flag and carry it back to your own flag to score, but only while yours is safe at home. Dropped flags go home if a teammate touches them or after 20 seconds. First team to 3 captures wins, or the team ahead after 10 minutes. Bots attack, defend, escort carriers and chase thieves. Works on every map. The game restarts when you switch it on or off.",
+      "map": {
+        "flags": []
+      },
+      "rules": {
+        "startTickets": 300,
+        "respawnTime": 4,
+        "downedTime": 6
+      },
+      "scoring": {
+        "kill": 100
+      },
+      "script": [
+        "// Undo helper: api.onDisable on 1.4+, a hidden model's remove() on older versions",
+        "const onOff = (fn) => {",
+        "  if (api.onDisable) return api.onDisable(fn);",
+        "  const h = api.addModel([{ shape: 'box', size: [0.01, 0.01, 0.01] }], { x: 0, y: -500, z: 0 });",
+        "  h.setVisible(false);",
+        "  const remove = h.remove;",
+        "  h.remove = () => { remove(); fn(); };",
+        "};",
+        "const CAPS = 3, RETURN = 20, TOUCH = 3.4, LIMIT = 600;",
+        "const g = api.game, TEAMS = api.config.TEAMS, HQS = api.config.HQS;",
+        "const score = [0, 0];",
+        "let F = [], over = false, ends = 0;",
+        "",
+        "// ---- flags",
+        "function clearSpot(x, z) {",
+        "  for (let r = 0; r <= 27; r += 3) {",
+        "    for (let a = 0; a < 6.3; a += r ? 0.45 : 9) {",
+        "      const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r, y = api.heightAt(px, pz);",
+        "      if (g.world.isFree(px, y + 0.1, pz, 2.4, 3.5)) return { x: px, y, z: pz };",
+        "    }",
+        "  }",
+        "  return { x, y: api.heightAt(x, z), z };",
+        "}",
+        "function basePos(t) {",
+        "  const h = HQS[t], d = Math.hypot(h.x, h.z) || 1, k = Math.max(30, d - 65);",
+        "  return clearSpot(h.x - (h.x / d) * k, h.z - (h.z / d) * k);",
+        "}",
+        "function build() {",
+        "  for (const f of F) { f.stand.remove(); f.model.remove(); }",
+        "  F = [0, 1].map((t) => {",
+        "    const col = TEAMS[t].color, b = basePos(t);",
+        "    const stand = api.addModel([",
+        "      { shape: 'cylinder', size: [2.2, 0.25], pos: [0, 0.12, 0], color: '#3a3d42', metal: 0.3, rough: 0.6 },",
+        "      { shape: 'cylinder', size: [2.7, 0.06], pos: [0, 0.03, 0], color: col, emissive: col, opacity: 0.8 },",
+        "    ], { x: b.x, z: b.z }, { shadows: false });",
+        "    const model = api.addModel([",
+        "      { shape: 'cylinder', size: [0.05, 3.2], pos: [0, 1.6, 0], color: '#9aa0a6', metal: 0.6, rough: 0.4 },",
+        "      { shape: 'box', size: [1.3, 0.8, 0.04], pos: [0.66, 2.75, 0], color: col, emissive: col },",
+        "      { shape: 'cylinder', size: [0.2, 70], pos: [0, 35, 0], color: col, emissive: col, opacity: 0.16 },",
+        "    ], { x: b.x, z: b.z }, { shadows: false });",
+        "    return { t, base: b, pos: { x: b.x, y: b.y, z: b.z }, state: 'home', carrier: null, dropT: 0, stand, model };",
+        "  });",
+        "}",
+        "onOff(() => { for (const f of F) { f.stand.remove(); f.model.remove(); } F = []; });",
+        "",
+        "const isMine = (t) => t === api.player().team;",
+        "const tname = (t) => TEAMS[t].name;",
+        "function goHome(f, why) {",
+        "  f.state = 'home'; f.carrier = null;",
+        "  f.pos.x = f.base.x; f.pos.y = f.base.y; f.pos.z = f.base.z;",
+        "  f.model.move(f.base.x, f.base.y, f.base.z);",
+        "  if (why) api.banner(why, isMine(f.t) ? '#3fa9f5' : '#ff4b3a');",
+        "}",
+        "function drop(f, x, y, z) {",
+        "  f.state = 'dropped'; f.carrier = null; f.dropT = api.time();",
+        "  f.pos.x = x; f.pos.y = y; f.pos.z = z;",
+        "  f.model.move(x, y, z);",
+        "  api.banner(isMine(f.t) ? 'YOUR FLAG WAS DROPPED' : 'ENEMY FLAG DROPPED', '#f2b33d');",
+        "}",
+        "",
+        "// ---- match flow",
+        "api.on('matchStart', () => {",
+        "  score[0] = score[1] = 0; over = false; ends = api.time() + LIMIT;",
+        "  build();",
+        "  patchBots();",
+        "  dealRoles();",
+        "  const eb = document.getElementById('mm-eyebrow');",
+        "  if (eb) eb.textContent = 'CAPTURE THE FLAG  ·  ' + api.config.MAP.name + '  ·  FIRST TO ' + CAPS;",
+        "});",
+        "if (api.soldiers().length) build();",
+        "",
+        "api.on('tick', () => {",
+        "  if (!F.length || over) return;",
+        "  const now = api.time();",
+        "  // time limit: most captures wins, then most tickets",
+        "  if (now > ends) {",
+        "    over = true;",
+        "    const tk = api.tickets();",
+        "    const w = score[0] !== score[1] ? (score[0] > score[1] ? 0 : 1) : tk[0] >= tk[1] ? 0 : 1;",
+        "    api.banner(`TIME UP  ·  ${tname(w)} WIN ${score[w]} — ${score[1 - w]}`, isMine(w) ? '#3fa9f5' : '#ff4b3a');",
+        "    api.after(1.5, () => api.endMatch(w));",
+        "    return;",
+        "  }",
+        "  for (const f of F) {",
+        "    if (f.state === 'carried') {",
+        "      const c = f.carrier;",
+        "      if (!c || c.state !== 'alive' || !g.soldiers.includes(c)) { drop(f, c ? c.pos.x : f.pos.x, c ? c.pos.y : f.pos.y, c ? c.pos.z : f.pos.z); continue; }",
+        "      if (c.vehicle) { drop(f, c.vehicle.pos.x + 3, api.heightAt(c.vehicle.pos.x + 3, c.vehicle.pos.z), c.vehicle.pos.z); continue; }",
+        "      const bx = Math.sin(c.yaw) * 0.45, bz = Math.cos(c.yaw) * 0.45;",
+        "      f.pos.x = c.pos.x + bx; f.pos.y = c.pos.y + 0.8; f.pos.z = c.pos.z + bz;",
+        "      f.model.move(f.pos.x, f.pos.y, f.pos.z);",
+        "      c.miniUntil = now + 1; // the carrier shows on everyone's minimap",
+        "      // score: bring it to your own flag while yours is at home",
+        "      const home = F[c.team];",
+        "      if (home.state === 'home' && Math.hypot(c.pos.x - home.base.x, c.pos.z - home.base.z) < TOUCH + 0.6) {",
+        "        score[c.team]++;",
+        "        api.award(c, 500, 'FLAG CAPTURED');",
+        "        goHome(f, null);",
+        "        api.banner(`${c.name.toUpperCase()} CAPTURED THE FLAG  ·  ${score[0]} — ${score[1]}`, isMine(c.team) ? '#3fa9f5' : '#ff4b3a');",
+        "        api.sound('capture');",
+        "        if (score[c.team] >= CAPS) {",
+        "          over = true;",
+        "          api.after(1.5, () => api.endMatch(c.team));",
+        "        }",
+        "      }",
+        "      continue;",
+        "    }",
+        "    if (f.state === 'dropped' && now - f.dropT > RETURN) { goHome(f, isMine(f.t) ? 'YOUR FLAG RETURNED' : 'ENEMY FLAG RETURNED'); continue; }",
+        "    for (const s of g.soldiers) {",
+        "      if (s.state !== 'alive' || s.vehicle) continue;",
+        "      if (Math.hypot(s.pos.x - f.pos.x, s.pos.z - f.pos.z) > TOUCH || Math.abs(s.pos.y - f.pos.y) > 2.5) continue;",
+        "      if (s.team !== f.t) {",
+        "        f.state = 'carried'; f.carrier = s;",
+        "        api.award(s, 50, 'FLAG TAKEN');",
+        "        api.banner(isMine(f.t) ? `${s.name.toUpperCase()} HAS YOUR FLAG` : s.isPlayer ? 'YOU HAVE THE FLAG · GET IT HOME' : `${s.name.toUpperCase()} HAS THE ENEMY FLAG`, isMine(f.t) ? '#ff4b3a' : '#3fa9f5');",
+        "        break;",
+        "      } else if (f.state === 'dropped') {",
+        "        api.award(s, 100, 'FLAG RETURNED');",
+        "        goHome(f, isMine(f.t) ? 'YOUR FLAG RETURNED' : 'ENEMY FLAG RETURNED');",
+        "        break;",
+        "      }",
+        "    }",
+        "  }",
+        "});",
+        "",
+        "api.on('kill', (e) => {",
+        "  if (!e.killer || e.killer.team === e.victim.team) return;",
+        "  if (F.some((f) => f.carrier === e.victim)) api.award(e.killer, 100, 'FLAG CARRIER KILLED');",
+        "});",
+        "",
+        "// ---- bots: attackers go for the enemy flag, defenders guard yours, everyone chases a thief",
+        "let proto = null, orig = null, origScan = null;",
+        "// Roles are dealt out evenly in each team: about half attack, a fifth defend, the rest hunt",
+        "const roles = new Map(), lanes = new Map();",
+        "function dealRoles() {",
+        "  roles.clear();",
+        "  for (const t of [0, 1]) {",
+        "    const bots = api.soldiers().filter((s) => s.team === t && s.brain).sort(() => Math.random() - 0.5);",
+        "    bots.forEach((s, i) => {",
+        "      const k = i / bots.length;",
+        "      roles.set(s, k < 0.5 ? 'attack' : k < 0.72 ? 'defend' : 'hunt');",
+        "      lanes.set(s, [0, -70, 70, -35, 35][i % 5]); // attackers spread over five routes",
+        "    });",
+        "  }",
+        "}",
+        "const roleOf = (b) => roles.get(b.s) || 'attack';",
+        "// Go via a flanking waypoint part of the way along, so attackers don't all funnel down one street",
+        "function viaLane(s, from, to, share) {",
+        "  const ax = to.x - from.x, az = to.z - from.z, L = Math.hypot(ax, az) || 1, ux = ax / L, uz = az / L;",
+        "  const prog = ((s.pos.x - from.x) * ux + (s.pos.z - from.z) * uz) / L;",
+        "  const lane = lanes.get(s) || 0;",
+        "  if (Math.abs(lane) < 1 || prog > share) return null;",
+        "  const c = (v) => Math.max(-222, Math.min(222, v));",
+        "  return [c(from.x + ax * share - uz * lane), c(from.z + az * share + ux * lane)];",
+        "}",
+        "// Carriers and attackers only fight enemies that are close, so they keep pushing for the flag",
+        "function focusScan(...a) {",
+        "  origScan.apply(this, a);",
+        "  if (!F.length || !this.target) return;",
+        "  const s = this.s, carrying = F.some((f) => f.carrier === s);",
+        "  const lim = carrying ? 15 : roleOf(this) === 'attack' ? 25 : 0;",
+        "  if (lim && this.target.pos.distanceTo(s.pos) > lim) { this.target = null; this.visible = false; }",
+        "}",
+        "function ctfHunt() {",
+        "  const s = this.s;",
+        "  if (!F.length) return orig.call(this);",
+        "  const mine = F[s.team], theirs = F[1 - s.team];",
+        "  const role = roleOf(this);",
+        "  let tx = null, tz = null, rad = 2;",
+        "  const d2 = (p) => Math.hypot(p.x - s.pos.x, p.z - s.pos.z);",
+        "  if (theirs.carrier === s) {",
+        "    const w = viaLane(s, theirs.base, mine.base, 0.45);",
+        "    if (w) { [tx, tz] = w; rad = 6; } else { tx = mine.base.x; tz = mine.base.z; }",
+        "  }",
+        "  else if (mine.state === 'carried' && (role !== 'attack' || d2(mine.pos) < 70)) { tx = mine.pos.x; tz = mine.pos.z; rad = 4; }",
+        "  else if (mine.state === 'dropped' && (role !== 'attack' || d2(mine.pos) < 80)) { tx = mine.pos.x; tz = mine.pos.z; }",
+        "  else if (theirs.state === 'carried' && role === 'hunt') { tx = theirs.pos.x; tz = theirs.pos.z; rad = 10; }",
+        "  else if (role === 'attack') {",
+        "    const w = theirs.state === 'home' ? viaLane(s, mine.base, theirs.pos, 0.6) : null;",
+        "    if (w) { [tx, tz] = w; rad = 6; } else { tx = theirs.pos.x; tz = theirs.pos.z; }",
+        "  }",
+        "  else if (role === 'defend') { tx = mine.base.x; tz = mine.base.z; rad = 22; }",
+        "  if (tx === null) return orig.call(this);",
+        "  // No progress for 6 seconds (trapped in a building, wedged behind cover): back out sideways for a bit",
+        "  const now = api.time(), d = Math.hypot(tx - s.pos.x, tz - s.pos.z);",
+        "  let p = this.ctfProg;",
+        "  if (!p || Math.hypot(p.tx - tx, p.tz - tz) > 8) p = this.ctfProg = { tx, tz, best: d, t: now, until: 0, ex: 0, ez: 0 };",
+        "  if (d < p.best - 3 || this.target) { p.best = Math.min(p.best, d); p.t = now; }",
+        "  else if (now - p.t > 6 && now > p.until && d > 4) {",
+        "    const ux = (tx - s.pos.x) / (d || 1), uz = (tz - s.pos.z) / (d || 1), side = Math.random() < 0.5 ? 1 : -1;",
+        "    const c = (v) => Math.max(-222, Math.min(222, v));",
+        "    p.ex = c(s.pos.x - ux * 12 - uz * side * 24); p.ez = c(s.pos.z - uz * 12 + ux * side * 24);",
+        "    p.until = now + 5; p.t = now + 5; p.best = d;",
+        "  }",
+        "  if (now < p.until) { tx = p.ex; tz = p.ez; rad = 3; }",
+        "  const o = this.ctfObj || (this.ctfObj = { x: 0, z: 0, radius: 2, owner: -2, progress: 0, contested: true, hunt: true });",
+        "  if (this.objective !== o || Math.hypot(o.x - tx, o.z - tz) > (rad > 2 ? 5 : 1.5) || o.radius !== rad) this.moveTarget = null;",
+        "  o.x = tx; o.z = tz; o.radius = rad;",
+        "  this.objective = o;",
+        "}",
+        "function patchBots() {",
+        "  if (proto) return;",
+        "  const b = api.soldiers().find((x) => x.brain);",
+        "  if (!b) return;",
+        "  proto = Object.getPrototypeOf(b.brain);",
+        "  orig = proto._hunt;",
+        "  origScan = proto.scan;",
+        "  proto._hunt = ctfHunt;",
+        "  proto.scan = focusScan;",
+        "}",
+        "onOff(() => { if (proto) { proto._hunt = orig; proto.scan = origScan; } });",
+        "",
+        "// ---- you can also deploy at your own flag base (bots come from the HQ)",
+        "const mode = g.mode, origPoints = mode.spawnPoints;",
+        "mode.spawnPoints = function (team, forPlayer) {",
+        "  const pts = origPoints.call(this, team, forPlayer);",
+        "  if (F.length && forPlayer) pts.push({ type: 'hq', id: 'FLAGBASE', label: 'FLAG BASE', x: F[team].base.x, z: F[team].base.z });",
+        "  return pts;",
+        "};",
+        "onOff(() => { mode.spawnPoints = origPoints; });",
+        "patchBots();",
+        "// moving targets (carriers, thieves) need fresher orders than the bots' own planning gives",
+        "api.every(0.5, () => {",
+        "  if (!F.length) return;",
+        "  for (const s of g.soldiers) if (s.brain && s.state === 'alive' && !s.vehicle) s.brain._hunt();",
+        "});",
+        "",
+        "// ---- HUD",
+        "const ARROWS = ['↑', '↖', '←', '↙', '↓', '↘', '→', '↗'];",
+        "function pointer(P, p) {",
+        "  const dx = p.x - P.pos.x, dz = p.z - P.pos.z;",
+        "  let a = Math.atan2(-dx, -dz) - P.yaw;",
+        "  a = Math.atan2(Math.sin(a), Math.cos(a));",
+        "  return `${ARROWS[((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8]} ${Math.round(Math.hypot(dx, dz))}m`;",
+        "}",
+        "function status(f) {",
+        "  if (f.state === 'home') return 'AT BASE';",
+        "  if (f.state === 'dropped') return `DROPPED · HOME IN ${Math.max(0, Math.ceil(RETURN - (api.time() - f.dropT)))}s`;",
+        "  return `TAKEN BY ${f.carrier.name.toUpperCase()}`;",
+        "}",
+        "api.every(0.2, () => {",
+        "  if (api.state() !== 'playing' || !F.length) { for (const k of ['ctf1', 'ctf2', 'ctf3']) api.hud.remove(k); return; }",
+        "  const P = api.player(), me = P.team, mine = F[me], theirs = F[1 - me];",
+        "  const left = Math.max(0, Math.ceil(ends - api.time())), clock = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');",
+        "  api.hud.text('ctf1', `CAPTURE THE FLAG  ·  ${tname(me)} ${score[me]} — ${score[1 - me]} ${tname(1 - me)}  ·  FIRST TO ${CAPS}  ·  ${clock}`, { x: 50, y: 17, size: 0.7, color: '#f2b33d' });",
+        "  api.hud.text('ctf2', `YOUR FLAG: ${status(mine)}${mine.state !== 'home' ? '  ' + pointer(P, mine.pos) : ''}`, { x: 50, y: 21, size: 0.6, color: mine.state === 'home' ? '#3fa9f5' : '#ff4b3a' });",
+        "  let goal;",
+        "  if (theirs.carrier === P) goal = mine.state === 'home' ? `YOU HAVE THE FLAG · TAKE IT HOME  ${pointer(P, mine.base)}` : `YOU HAVE THE FLAG · YOUR FLAG MUST BE HOME TO SCORE`;",
+        "  else goal = `ENEMY FLAG: ${status(theirs)}  ${pointer(P, theirs.pos)}`;",
+        "  api.hud.text('ctf3', goal, { x: 50, y: 24.5, size: 0.6, color: theirs.carrier === P ? '#7ce35b' : '#e8eae3' });",
+        "});"
+      ]
+    },
+    "mode-king-of-the-hill": {
+      "format": "sixthfront-mod",
+      "id": "mode-king-of-the-hill",
+      "name": "Mode: King of the Hill",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "One big capture point in the middle of the map, and nothing else. Hold it to drain the enemy's tickets; lose it and yours drain instead. Works on every map: it uses the map's most central capture point. The game restarts when you switch it on or off.",
+      "map": {
+        "flags": [
+          {
+            "id": "K",
+            "name": "THE HILL",
+            "x": 0,
+            "z": 0,
+            "radius": 17,
+            "town": true
+          }
+        ]
+      },
+      "rules": {
+        "startTickets": 200,
+        "bleedSpeed": 3,
+        "captureSpeed": 1.3,
+        "respawnTime": 4
+      },
+      "script": [
+        "const mm = api.game.mods;",
+        "// The hill sits on the map's most central capture point",
+        "const maps = mm.list.filter((m) => m.enabled && m.id !== api.mod.id && m.hasMap && m.mod.map && Array.isArray(m.mod.map.flags) && m.mod.map.flags.length >= 2);",
+        "const src = maps.length ? maps[maps.length - 1].mod.map.flags : mm.pristine.MAP.FLAGS;",
+        "let spot = { name: 'THE HILL', x: 0, z: 0 };",
+        "for (const f of src) if (Math.hypot(+f.x, +f.z) < Math.hypot(spot.x, spot.z) || spot.name === 'THE HILL') spot = { name: String(f.name || 'THE HILL').toUpperCase().slice(0, 20), x: +f.x || 0, z: +f.z || 0 };",
+        "api.on('matchStart', () => {",
+        "  const f = api.flags()[0];",
+        "  if (f) {",
+        "    f.x = spot.x; f.z = spot.z; f.y = api.heightAt(spot.x, spot.z); f.name = spot.name;",
+        "    if (f.cloth && f.cloth.parent) f.cloth.parent.position.set(f.x, f.y, f.z);",
+        "  }",
+        "  const eb = document.getElementById('mm-eyebrow');",
+        "  if (eb) eb.textContent = 'KING OF THE HILL  ·  ' + api.config.MAP.name + '  ·  ' + spot.name;",
+        "});",
+        "api.every(0.3, () => {",
+        "  if (api.state() !== 'playing') { api.hud.remove('koth'); return; }",
+        "  const f = api.flags()[0];",
+        "  if (!f) return;",
+        "  const me = api.player().team, T = api.config.TEAMS;",
+        "  const held = f.owner < 0 ? (f.capturing >= 0 ? `${T[f.capturing].name} TAKING IT` : 'NOBODY HOLDS IT') : `HELD BY ${T[f.owner].name}`;",
+        "  api.hud.text('koth', `KING OF THE HILL: ${spot.name}  ·  ${held}${f.contested ? '  ·  CONTESTED' : ''}`, { x: 50, y: 17, size: 0.7, color: f.owner < 0 ? '#f2b33d' : f.owner === me ? '#3fa9f5' : '#ff4b3a' });",
+        "});"
+      ]
+    },
+    "team-deathmatch": {
+      "format": "sixthfront-mod",
+      "id": "team-deathmatch",
+      "name": "Team Deathmatch",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "No flags, just the fight. Each side starts with 120 tickets and loses one for every soldier who dies for good. Bots hunt the enemy across the whole valley. Changes the map, so the game restarts when you switch it.",
+      "map": {
+        "flags": []
+      },
+      "rules": {
+        "startTickets": 120,
+        "respawnTime": 3,
+        "downedTime": 8
+      },
+      "scoring": {
+        "kill": 150,
+        "headshot": 50
+      },
+      "script": [
+        "api.on('matchStart', () => api.after(1, () => api.banner('TEAM DEATHMATCH', '#f2b33d')));",
+        "api.on('kill', (e) => {",
+        "  const P = api.player();",
+        "  if (e.killer === P && P.stats.kills % 5 === 0) api.toast(`${P.stats.kills} KILLS`);",
+        "});"
+      ]
+    },
+    "mode-hardpoint": {
+      "format": "sixthfront-mod",
+      "id": "mode-hardpoint",
+      "name": "Mode: Hardpoint",
+      "version": "1.1",
+      "author": "Sixth Front",
+      "description": "One capture point that moves every 60 seconds between the capture points of whatever map you are playing. Whoever holds it drains the other team's tickets fast. Put it below a map mod in the list to play it on that map. The game restarts when you switch it on or off.",
+      "map": {
+        "flags": [
+          {
+            "id": "H",
+            "name": "HARDPOINT",
+            "x": 0,
+            "z": 0,
+            "radius": 13
+          }
+        ]
+      },
+      "rules": {
+        "startTickets": 150,
+        "bleedSpeed": 4,
+        "captureSpeed": 1.8,
+        "respawnTime": 4
+      },
+      "script": [
+        "const PERIOD = 60;",
+        "const mm = api.game.mods;",
+        "// The hardpoint visits the capture points of the map in play (a map mod above this one, or Karsa Valley)",
+        "const maps = mm.list.filter((m) => m.enabled && m.id !== api.mod.id && m.hasMap && m.mod.map && Array.isArray(m.mod.map.flags) && m.mod.map.flags.length >= 2);",
+        "const src = maps.length ? maps[maps.length - 1].mod.map.flags : mm.pristine.MAP.FLAGS;",
+        "const lim = 225;",
+        "const SPOTS = src.map((f) => ({ name: String(f.name || 'POINT').toUpperCase().slice(0, 20), x: Math.max(-lim, Math.min(lim, +f.x || 0)), z: Math.max(-lim, Math.min(lim, +f.z || 0)) }));",
+        "SPOTS.sort((p, q) => Math.hypot(p.x, p.z) - Math.hypot(q.x, q.z));",
+        "// Maps that rely on automatic cover lose it when their flags are replaced, so put some back",
+        "const randomCover = maps.length ? maps[maps.length - 1].mod.map.randomProps !== false : true;",
+        "if (randomCover) {",
+        "  for (const p of SPOTS) {",
+        "    for (let i = 0; i < 4; i++) {",
+        "      const a = (i / 4) * Math.PI * 2 + 0.5;",
+        "      api.addModel([{ shape: 'box', size: [3.2, 1, 0.9], pos: [0, 0.45, 0], color: '#a89a74', rough: 1 }],",
+        "        { x: p.x + Math.cos(a) * 9, z: p.z + Math.sin(a) * 9 }, { collide: true, rotY: (-a * 180) / Math.PI + 90, material: 'sand' });",
+        "    }",
+        "  }",
+        "}",
+        "let idx = 0, next = 0;",
+        "function place(i, announce) {",
+        "  const f = api.flags()[0];",
+        "  if (!f) return;",
+        "  const s = SPOTS[i];",
+        "  f.x = s.x; f.z = s.z; f.y = api.heightAt(s.x, s.z); f.name = s.name;",
+        "  f.owner = -1; f.progress = 0; f.contested = false; f.capturing = -1;",
+        "  if (f.cloth && f.cloth.parent) f.cloth.parent.position.set(f.x, f.y, f.z);",
+        "  for (const b of api.soldiers()) if (b.brain) { b.brain.moveTarget = null; b.brain.thinkT = 0; }",
+        "  if (announce) {",
+        "    api.banner(`HARDPOINT MOVED: ${s.name}`, '#f2b33d');",
+        "    api.sound('capture');",
+        "  }",
+        "}",
+        "api.on('matchStart', () => {",
+        "  idx = 0; next = api.time() + PERIOD; place(0, false);",
+        "  const eb = document.getElementById('mm-eyebrow');",
+        "  if (eb) eb.textContent = 'HARDPOINT  ·  ' + api.config.MAP.name + '  ·  MOVES EVERY 60s';",
+        "});",
+        "api.on('tick', () => {",
+        "  if (api.time() < next) return;",
+        "  idx = (idx + 1) % SPOTS.length;",
+        "  next = api.time() + PERIOD;",
+        "  place(idx, true);",
+        "});",
+        "api.every(0.5, () => {",
+        "  if (api.state() !== 'playing') { api.hud.remove('hp'); return; }",
+        "  const left = Math.max(0, Math.ceil(next - api.time()));",
+        "  api.hud.text('hp', `HARDPOINT: ${SPOTS[idx].name}  ·  MOVES IN ${left}s`, { x: 50, y: 17, size: 0.7, color: left <= 10 ? '#ff4b3a' : '#f2b33d' });",
+        "});"
+      ]
+    },
+    "mode-gun-game": {
+      "format": "sixthfront-mod",
+      "id": "mode-gun-game",
+      "name": "Mode: Gun Game",
+      "version": "1.0",
+      "author": "Sixth Front",
+      "description": "Every kill with your current gun moves you up to the next one: PDW, carbine, SCAR-H, pump shotgun, LMG, DMR, sniper, magnum revolver, pistol. The first soldier to get a kill with the pistol wins for their team. A knife kill steals a level. No gadgets, no grenades, no tanks, no flags. The game restarts when you switch it on or off.",
+      "map": {
+        "flags": []
+      },
+      "rules": {
+        "startTickets": 5000,
+        "respawnTime": 2,
+        "downedTime": 5,
+        "spawnProtection": 2
+      },
+      "vehicles": {
+        "tank": {
+          "perTeam": 0
+        }
+      },
+      "weapons": {
+        "gg_scar": {
+          "base": "ar",
+          "name": "SCAR-H",
+          "rpm": 600,
+          "dmg": [34, 26],
+          "range": [30, 90],
+          "mag": 20,
+          "reserve": 100,
+          "reload": 2.4,
+          "reloadEmpty": 3.1,
+          "recoil": [0.017, 0.007],
+          "sound": "heavy",
+          "botRange": 130,
+          "tracer": "#ff7a45"
+        },
+        "gg_pump": {
+          "base": "smg",
+          "name": "M870 PUMP",
+          "kind": "bolt",
+          "rpm": 70,
+          "pellets": 9,
+          "dmg": [17, 3],
+          "range": [8, 32],
+          "mag": 6,
+          "reserve": 36,
+          "reloadType": "shell",
+          "shellTime": 0.5,
+          "spreadHip": 0.07,
+          "spreadAds": 0.05,
+          "bloom": 0,
+          "bloomMax": 0,
+          "recoil": [0.06, 0.012],
+          "adsFov": 58,
+          "head": 1.4,
+          "sound": "shotgun",
+          "model": "shotgun",
+          "botRange": 32
+        },
+        "gg_dmr": {
+          "base": "ar",
+          "name": "MK-11 DMR",
+          "kind": "semi",
+          "rpm": 240,
+          "dmg": [48, 38],
+          "range": [40, 150],
+          "mag": 12,
+          "reserve": 72,
+          "spreadAds": 0.001,
+          "recoil": [0.03, 0.006],
+          "adsFov": 30,
+          "sound": "heavy",
+          "botRange": 160
+        },
+        "gg_magnum": {
+          "base": "pistol",
+          "name": "R-44 MAGNUM",
+          "rpm": 150,
+          "dmg": [70, 45],
+          "range": [15, 45],
+          "mag": 6,
+          "reserve": 36,
+          "reloadType": "shell",
+          "shellTime": 0.35,
+          "recoil": [0.05, 0.01],
+          "sound": "heavy",
+          "botRange": 50
+        }
+      },
+      "gadgets": {
+        "gg_none": {
+          "base": "c4",
+          "name": "NO GADGET",
+          "ammo": 0
+        }
+      },
+      "script": [
+        "const LADDER = ['smg', 'ar', 'gg_scar', 'gg_pump', 'lmg', 'gg_dmr', 'sniper', 'gg_magnum', 'pistol'];",
+        "const W = api.config.WEAPONS;",
+        "const level = new Map();",
+        "let over = false;",
+        "const lv = (s) => level.get(s) || 0;",
+        "const gunOf = (s) => W[LADDER[Math.min(lv(s), LADDER.length - 1)]];",
+        "",
+        "// Everyone carries only their current gun",
+        "function arm(s) {",
+        "  if (s.state !== 'alive') return;",
+        "  const id = LADDER[Math.min(lv(s), LADDER.length - 1)];",
+        "  s.slot = 0;",
+        "  api.giveWeapon(s, 0, id);",
+        "  api.giveWeapon(s, 1, id);",
+        "  api.setGadget(s, 'gg_none');",
+        "  s.grenades = 0;",
+        "}",
+        "api.on('matchStart', () => {",
+        "  level.clear(); over = false;",
+        "  const eb = document.getElementById('mm-eyebrow');",
+        "  if (eb) eb.textContent = 'GUN GAME  ·  ' + api.config.MAP.name + '  ·  9 GUNS';",
+        "});",
+        "api.on('spawn', (s) => arm(s));",
+        "api.on('revive', (e) => arm(e.soldier));",
+        "",
+        "api.on('kill', (e) => {",
+        "  const k = e.killer, v = e.victim;",
+        "  if (over || !k || k === v || k.team === v.team) return;",
+        "  const knife = e.weapon === 'COMBAT KNIFE';",
+        "  if (!knife && e.weapon !== gunOf(k).name) return; // only kills with your current gun count",
+        "  if (knife && lv(v) > 0) {",
+        "    level.set(v, lv(v) - 1);",
+        "    if (v.isPlayer) api.banner('KNIFED! YOU LOST A LEVEL', '#ff4b3a');",
+        "  }",
+        "  if (lv(k) >= LADDER.length - 1) {",
+        "    over = true;",
+        "    const mine = k.team === api.player().team;",
+        "    api.banner(`${k.name.toUpperCase()} WINS THE GUN GAME`, mine ? '#3fa9f5' : '#ff4b3a');",
+        "    api.after(1, () => api.endMatch(k.team));",
+        "    return;",
+        "  }",
+        "  level.set(k, lv(k) + 1);",
+        "  api.award(k, 50, 'LEVEL UP');",
+        "  api.after(0, () => arm(k)); // swap guns after this shot has finished",
+        "  if (k.isPlayer) {",
+        "    api.banner(`LEVEL ${lv(k) + 1}: ${gunOf(k).name}`, '#f2b33d');",
+        "    api.tone(880, 0.12, 'triangle', 0.15);",
+        "  }",
+        "});",
+        "",
+        "api.every(0.3, () => {",
+        "  if (api.state() !== 'playing') { api.hud.remove('gg'); api.hud.remove('lead'); return; }",
+        "  const P = api.player();",
+        "  const l = lv(P);",
+        "  const next = l + 1 < LADDER.length ? W[LADDER[l + 1]].name : 'VICTORY';",
+        "  api.hud.text('gg', `GUN GAME  ·  LEVEL ${l + 1}/${LADDER.length}  ·  NEXT: ${next}`, { x: 50, y: 17, size: 0.7, color: '#f2b33d' });",
+        "  let best = P;",
+        "  for (const s of api.soldiers()) if (lv(s) > lv(best)) best = s;",
+        "  api.hud.text('lead', `LEADER: ${best.name.toUpperCase()}  ·  LEVEL ${lv(best) + 1}`, { x: 50, y: 21, size: 0.6, color: best.team === P.team ? '#3fa9f5' : '#ff4b3a' });",
+        "});"
+      ]
+    },
+    "mode-last-stand": {
+      "format": "sixthfront-mod",
+      "id": "mode-last-stand",
+      "name": "Mode: Last Stand",
+      "version": "1.1",
+      "author": "Sixth Front",
+      "description": "Hold out against 10 waves of raiders. Each wave is bigger and tougher than the last, and they come from the enemy side of the map and its flanks. Your team shares 50 lives, and the last few raiders of each wave show up on your minimap. Survive every wave to win. The game restarts when you switch it on or off.",
+      "map": {
+        "flags": []
+      },
+      "rules": {
+        "startTickets": 50,
+        "respawnTime": 4
+      },
+      "teams": [
+        {
+          "name": "DEFENDERS"
+        },
+        {
+          "name": "RAIDERS"
+        }
+      ],
+      "script": [
+        "const WAVES = 10, BREAK = 12;",
+        "// Raiders come from the enemy HQ and both flanks of it, on any map",
+        "const H = api.config.HQS[1], H0 = api.config.HQS[0];",
+        "const L = Math.hypot(H.x - H0.x, H.z - H0.z) || 1, ux = (H.x - H0.x) / L, uz = (H.z - H0.z) / L;",
+        "const lim = (v) => Math.max(-222, Math.min(222, v));",
+        "const SPAWNS = [0, 60, -60, 120, -120, 170, -170].map((side) => [lim(H.x - uz * side - ux * Math.abs(side) * 0.3), lim(H.z + ux * side - uz * Math.abs(side) * 0.3)]);",
+        "const horde = new Set();",
+        "let wave = 0, pending = 0, next = 0, phase = 'break';",
+        "",
+        "api.on('matchStart', () => {",
+        "  wave = 0; pending = 0; horde.clear(); phase = 'break'; next = api.time() + 10;",
+        "  // the enemy team only comes in waves",
+        "  for (const s of api.soldiers()) if (s.team === 1) api.removeBot(s);",
+        "  const eb = document.getElementById('mm-eyebrow');",
+        "  if (eb) eb.textContent = 'LAST STAND  ·  ' + api.config.MAP.name + '  ·  ' + WAVES + ' WAVES';",
+        "});",
+        "",
+        "function spawnWave() {",
+        "  wave++;",
+        "  const n = Math.min(3 + wave * 2, 24);",
+        "  const hp = 100 + (wave - 1) * 12;",
+        "  pending = n;",
+        "  api.banner(`WAVE ${wave} INCOMING`, '#ff4b3a');",
+        "  api.sound('capture');",
+        "  for (let i = 0; i < n; i++) {",
+        "    api.after(i * 0.5, () => {",
+        "      pending--;",
+        "      const sp = SPAWNS[Math.floor(Math.random() * SPAWNS.length)];",
+        "      const b = api.spawnBot(1, { x: sp[0] + (Math.random() - 0.5) * 24, z: sp[1] + (Math.random() - 0.5) * 24 });",
+        "      if (!b) return;",
+        "      horde.add(b);",
+        "      api.setHealth(b, hp);",
+        "    });",
+        "  }",
+        "}",
+        "// Raiders don't redeploy: they leave the battle when they die",
+        "const gone = (s) => {",
+        "  if (!horde.delete(s)) return;",
+        "  api.after(2, () => api.removeBot(s));",
+        "};",
+        "api.on('bleedout', gone);",
+        "api.on('kill', (e) => { if (e.victim.state === 'dead') gone(e.victim); });",
+        "",
+        "api.on('tick', () => {",
+        "  api.setTickets(1, 9999);",
+        "  const now = api.time();",
+        "  // the last few raiders of a wave show up on your minimap",
+        "  if (phase === 'fight' && pending === 0 && horde.size <= 3) for (const s of horde) { s.spottedUntil = now + 1; s.miniUntil = now + 1; }",
+        "  if (phase === 'fight' && pending === 0 && horde.size === 0) {",
+        "    if (wave >= WAVES) {",
+        "      phase = 'done';",
+        "      api.banner('ALL WAVES SURVIVED', '#7ce35b');",
+        "      api.after(1.5, () => api.endMatch(api.player().team));",
+        "    } else {",
+        "      phase = 'break';",
+        "      next = now + BREAK;",
+        "      api.banner(`WAVE ${wave} CLEARED`, '#7ce35b');",
+        "    }",
+        "  } else if (phase === 'break' && now >= next) {",
+        "    phase = 'fight';",
+        "    spawnWave();",
+        "  }",
+        "});",
+        "",
+        "api.every(0.25, () => {",
+        "  if (api.state() !== 'playing') { api.hud.remove('ls'); return; }",
+        "  const text = phase === 'break' ? `WAVE ${wave + 1}/${WAVES} IN ${Math.max(0, Math.ceil(next - api.time()))}s`",
+        "    : phase === 'fight' ? `WAVE ${wave}/${WAVES}  ·  ${horde.size + pending} RAIDERS LEFT` : 'VICTORY';",
+        "  api.hud.text('ls', text, { x: 50, y: 17, size: 0.75, color: phase === 'fight' ? '#ff4b3a' : '#7ce35b' });",
+        "});"
+      ]
+    }
+  }
+}

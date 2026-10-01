@@ -89,8 +89,9 @@ full control of the game:
   can spawn explosions and bots, move soldiers, build 3D objects with collision, add HUD elements, bind keys
   (with touch buttons on phones), run timers, save data and slow down time.
 
-Bundled examples: HD Weapons (detailed gun models), Aggressive Reloads, three game modes (Gun Game, Hardpoint,
-Last Stand) plus Team Deathmatch, four extra maps (Dust Ridge, Iron Forest, Old Town, Karsa Outskirts), Heavy
+Bundled examples: Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
+Aggressive Reloads, five game modes (Capture the Flag, King of the Hill, Gun Game, Hardpoint, Last Stand) plus Team
+Deathmatch, four extra maps (Dust Ridge, Iron Forest, Old Town, Karsa Outskirts), Heavy
 Arsenal, Commander Call-ins (airstrikes and reinforcements), Jetpack, Explosive Rounds, Bullet Time, Night Ops,
 Moon Gravity, Hardcore and Vampire Rounds. The
 format and the whole script API are documented in [MODDING.md](MODDING.md), and

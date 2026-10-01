@@ -2,9 +2,9 @@
   "format": "sixthfront-mod",
   "id": "mode-last-stand",
   "name": "Mode: Last Stand",
-  "version": "1.0",
+  "version": "1.1",
   "author": "Sixth Front",
-  "description": "Hold out against 10 waves of raiders. Each wave is bigger and tougher than the last, and they come from the south and the flanks. Your team shares 50 lives, and the last few raiders of each wave show up on your minimap. Survive every wave to win. The game restarts when you switch it on or off.",
+  "description": "Hold out against 10 waves of raiders. Each wave is bigger and tougher than the last, and they come from the enemy side of the map and its flanks. Your team shares 50 lives, and the last few raiders of each wave show up on your minimap. Survive every wave to win. The game restarts when you switch it on or off.",
   "map": {
     "flags": []
   },
@@ -22,7 +22,11 @@
   ],
   "script": [
     "const WAVES = 10, BREAK = 12;",
-    "const SPAWNS = [[0, -205], [-150, -190], [150, -190], [-205, -60], [205, -60], [-90, -215], [90, -215]];",
+    "// Raiders come from the enemy HQ and both flanks of it, on any map",
+    "const H = api.config.HQS[1], H0 = api.config.HQS[0];",
+    "const L = Math.hypot(H.x - H0.x, H.z - H0.z) || 1, ux = (H.x - H0.x) / L, uz = (H.z - H0.z) / L;",
+    "const lim = (v) => Math.max(-222, Math.min(222, v));",
+    "const SPAWNS = [0, 60, -60, 120, -120, 170, -170].map((side) => [lim(H.x - uz * side - ux * Math.abs(side) * 0.3), lim(H.z + ux * side - uz * Math.abs(side) * 0.3)]);",
     "const horde = new Set();",
     "let wave = 0, pending = 0, next = 0, phase = 'break';",
     "",

@@ -1,9 +1,12 @@
 {
   "mods": [
+    { "file": "random-wheel.sfmod.json", "id": "random-wheel", "name": "Random Wheel", "description": "Spins a random map and a random game mode before every match." },
+    { "file": "mode-capture-the-flag.sfmod.json", "id": "mode-capture-the-flag", "name": "Mode: Capture the Flag", "description": "Steal the enemy flag and bring it home. First to 3. Restarts the game." },
+    { "file": "mode-king-of-the-hill.sfmod.json", "id": "mode-king-of-the-hill", "name": "Mode: King of the Hill", "description": "One big point in the middle. Hold it to win. Restarts the game." },
     { "file": "hd-weapons.sfmod.json", "id": "hd-weapons", "name": "HD Weapons", "description": "Detailed 3D models for every gun, flying brass, barrel smoke, reflections." },
     { "file": "aggressive-reloads.sfmod.json", "id": "aggressive-reloads", "name": "Aggressive Reloads", "description": "35% faster reloads that slam, flick and kick." },
     { "file": "mode-gun-game.sfmod.json", "id": "mode-gun-game", "name": "Mode: Gun Game", "description": "Every kill upgrades your gun. First pistol kill wins. Restarts the game." },
-    { "file": "mode-hardpoint.sfmod.json", "id": "mode-hardpoint", "name": "Mode: Hardpoint", "description": "One capture point that moves every 60 seconds. Restarts the game." },
+    { "file": "mode-hardpoint.sfmod.json", "id": "mode-hardpoint", "name": "Mode: Hardpoint", "description": "One capture point that moves every 60 seconds, on any map. Restarts the game." },
     { "file": "mode-last-stand.sfmod.json", "id": "mode-last-stand", "name": "Mode: Last Stand", "description": "Survive 10 waves of raiders. Restarts the game." },
     { "file": "map-dust-ridge.sfmod.json", "id": "map-dust-ridge", "name": "Map: Dust Ridge", "description": "Desert bazaar, walled compounds, dunes. Restarts the game." },
     { "file": "map-iron-forest.sfmod.json", "id": "map-iron-forest", "name": "Map: Iron Forest", "description": "Dense misty woods, sawmill, ranger tower. Restarts the game." },

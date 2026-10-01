@@ -19,6 +19,9 @@ The example mods ship with the game (add them from the MODS screen in one tap) a
 
 | File | What it shows |
 | --- | --- |
+| `random-wheel.sfmod.json` | A wheel before every match that picks a map and a game mode: replaces DEPLOY through `api.game`, switches other mods on and off, and carries the mods it needs in a `_pack` field |
+| `mode-capture-the-flag.sfmod.json` | Capture the Flag: flag models, carrying, returns and scoring, plus bot roles (attack, defend, hunt) by extending the bot code through `api.game` |
+| `mode-king-of-the-hill.sfmod.json` | King of the Hill: a single central point that follows whatever map is loaded |
 | `hd-weapons.sfmod.json` | Detailed custom models for every base gun (with moving mags, bolts, slides and a feed cover), plus a script for brass, barrel smoke and reflections |
 | `aggressive-reloads.sfmod.json` | Changing every weapon from a script, extending the viewmodel animation through `api.game`, and undoing it with `api.onDisable` |
 | `mode-gun-game.sfmod.json` | A new game mode: loadouts from a script, kill tracking, a HUD, ending the match |
