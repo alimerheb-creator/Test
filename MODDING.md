@@ -24,6 +24,7 @@ The example mods ship with the game (add them from the MODS screen in one tap) a
 | `mode-king-of-the-hill.sfmod.json` | King of the Hill: a single central point that follows whatever map is loaded |
 | `hd-weapons.sfmod.json` | Detailed custom models for every base gun (with moving mags, bolts, slides and a feed cover), plus a script for brass, barrel smoke and reflections |
 | `aggressive-reloads.sfmod.json` | Changing every weapon from a script, extending the viewmodel animation through `api.game`, and undoing it with `api.onDisable` |
+| `hd-knife.sfmod.json` | A first-person model built in a script with three.js (a gloved hand and a detailed knife), keyframed melee animations, a motion trail, and chaining a viewmodel patch so other mods can patch it too |
 | `mode-gun-game.sfmod.json` | A new game mode: loadouts from a script, kill tracking, a HUD, ending the match |
 | `mode-hardpoint.sfmod.json` | A new game mode: moving the single flag around the map |
 | `mode-last-stand.sfmod.json` | A new game mode: waves of bots spawned and removed by the script |
