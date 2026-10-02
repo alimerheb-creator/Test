@@ -76,6 +76,17 @@ Any static file server works (`npx serve`, GitHub Pages, etc.). three.js is load
   vibration, and adjustable look sensitivity and button size. When you're down, a button lets you give up
   and redeploy.
 
+## Multiplayer
+
+Add the **Multiplayer** mod (MODS screen), then press **MULTIPLAYER** on the main menu. One player hosts a game and
+gets a 4-letter code; friends join with the code or from the list of open games and pick a side. The host's game
+runs the bots, the flags, the tickets and the buildings, everyone plays their own soldier, and tanks, jets and
+bombers are driven by whoever gets in. Up to 8 players.
+
+Online play works on the game's claude.ai page: share that page with your friends (they need to be signed in to
+claude.ai). The Android app and saved copies of the page have no room to meet in. To try it on one computer, open
+the page with `?mplocal` in two tabs of the same browser.
+
 ## Mods
 
 Open **MODS** on the main menu to import a mod file, paste mod text, or add one of the bundled examples. Mods have
@@ -89,7 +100,7 @@ full control of the game:
   can spawn explosions and bots, move soldiers, build 3D objects with collision, add HUD elements, bind keys
   (with touch buttons on phones), run timers, save data and slow down time.
 
-Bundled examples: Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25), Bombers (B-17 and Lancaster), Armory (earn
+Bundled examples: Multiplayer (online play with friends), Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25), Bombers (B-17 and Lancaster), Armory (earn
 credits from kills and upgrade your guns with suppressors and more), Vehicle Interiors (sit inside tanks and
 cockpits), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
 HD Knife (a real hand holding a detailed knife), Aggressive Reloads, five game modes (Capture the Flag, King of the
