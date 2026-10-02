@@ -41,6 +41,10 @@ python3 -m http.server 8000
 
 Any static file server works (`npx serve`, GitHub Pages, etc.). three.js is loaded from the jsDelivr CDN.
 
+To put the game online for anyone: in the repository on GitHub, open **Settings → Pages**, choose **Deploy from a
+branch**, pick this branch and the **/ (root)** folder, and save. The game then plays at
+`https://<user>.github.io/<repository>/` (the repository has to be public, or on a paid plan).
+
 ## What's in it
 
 - **Conquest on Karsa Valley**: 5 capture points (A–E), two team HQs, tickets that drain on deaths and
@@ -79,13 +83,17 @@ Any static file server works (`npx serve`, GitHub Pages, etc.). three.js is load
 ## Multiplayer
 
 Add the **Multiplayer** mod (MODS screen), then press **MULTIPLAYER** on the main menu. One player hosts a game and
-gets a 4-letter code; friends join with the code or from the list of open games and pick a side. The host's game
-runs the bots, the flags, the tickets and the buildings, everyone plays their own soldier, and tanks, jets and
-bombers are driven by whoever gets in. Up to 8 players.
+gets a 4-letter code; anyone else joins with the code and picks a side. The host's game runs the bots, the flags,
+the tickets and the buildings, everyone plays their own soldier, and tanks, jets and bombers are driven by whoever
+gets in. Up to 8 players.
 
-Online play works on the game's claude.ai page: share that page with your friends (they need to be signed in to
-claude.ai). The Android app and saved copies of the page have no room to meet in. To try it on one computer, open
-the page with `?mplocal` in two tabs of the same browser.
+Games are public: anyone with the game and the code can join, from the Android app, a browser copy of the game
+(for example on GitHub Pages) or the game's claude.ai page. Players find each other through the free public
+PeerJS server (it only passes connection offers along) and then connect directly over WebRTC; every player connects
+to the host. Some strict networks (certain mobile carriers and company networks) block direct connections, and
+there is no relay server, so a player on such a network can't join. On the claude.ai page, if the PeerJS server
+can't be reached, the game falls back to the page's own room, which only people the page is shared with can use.
+To try it on one computer, open the page with `?mplocal` in two tabs of the same browser.
 
 ## Mods
 

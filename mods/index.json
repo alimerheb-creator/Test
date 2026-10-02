@@ -1,6 +1,6 @@
 {
   "mods": [
-    { "file": "multiplayer.sfmod.json", "id": "multiplayer", "name": "Multiplayer", "description": "Play online with friends on the game's claude.ai page: host a game, share the 4-letter code, pick sides." },
+    { "file": "multiplayer.sfmod.json", "id": "multiplayer", "name": "Multiplayer", "description": "Public online play: host a game, share the 4-letter code, and anyone with the game can join and pick a side." },
     { "file": "jets.sfmod.json", "id": "jets", "name": "Jets", "description": "F/A-18E, F-16C and A-10C against Su-27, MiG-29 and Su-25. Cannon, lock-on missiles, bombs, flares, eject." },
     { "file": "bombers.sfmod.json", "id": "bombers", "name": "Bombers", "description": "B-17 and Lancaster with bomb bays, a bomb sight and gun turrets you can man." },
     { "file": "armory.sfmod.json", "id": "armory", "name": "Armory", "description": "Earn credits from kills and buy gun upgrades: suppressors, barrels, grips, mags, lasers, ammo, gold." },
