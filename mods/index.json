@@ -1,5 +1,9 @@
 {
   "mods": [
+    { "file": "jets.sfmod.json", "id": "jets", "name": "Jets", "description": "F/A-18E, F-16C and A-10C against Su-27, MiG-29 and Su-25. Cannon, lock-on missiles, bombs, flares, eject." },
+    { "file": "bombers.sfmod.json", "id": "bombers", "name": "Bombers", "description": "B-17 and Lancaster with bomb bays, a bomb sight and gun turrets you can man." },
+    { "file": "armory.sfmod.json", "id": "armory", "name": "Armory", "description": "Earn credits from kills and buy gun upgrades: suppressors, barrels, grips, mags, lasers, ammo, gold." },
+    { "file": "vehicle-interiors.sfmod.json", "id": "vehicle-interiors", "name": "Vehicle Interiors", "description": "Press C to sit inside tanks, jet cockpits and bomber flight decks." },
     { "file": "random-wheel.sfmod.json", "id": "random-wheel", "name": "Random Wheel", "description": "Spins a random map and a random game mode before every match." },
     { "file": "mode-capture-the-flag.sfmod.json", "id": "mode-capture-the-flag", "name": "Mode: Capture the Flag", "description": "Steal the enemy flag and bring it home. First to 3. Restarts the game." },
     { "file": "mode-king-of-the-hill.sfmod.json", "id": "mode-king-of-the-hill", "name": "Mode: King of the Hill", "description": "One big point in the middle. Hold it to win. Restarts the game." },

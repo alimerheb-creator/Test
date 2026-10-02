@@ -89,7 +89,9 @@ full control of the game:
   can spawn explosions and bots, move soldiers, build 3D objects with collision, add HUD elements, bind keys
   (with touch buttons on phones), run timers, save data and slow down time.
 
-Bundled examples: Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
+Bundled examples: Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25), Bombers (B-17 and Lancaster), Armory (earn
+credits from kills and upgrade your guns with suppressors and more), Vehicle Interiors (sit inside tanks and
+cockpits), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
 HD Knife (a real hand holding a detailed knife), Aggressive Reloads, five game modes (Capture the Flag, King of the
 Hill, Gun Game, Hardpoint, Last Stand) plus Team Deathmatch, four extra maps (Dust Ridge, Iron Forest, Old Town,
 Karsa Outskirts), Heavy Arsenal, Commander Call-ins (airstrikes and reinforcements), Jetpack, Explosive Rounds,
@@ -117,6 +119,9 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 | Esc or P | Pause |
 
 In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, right mouse to zoom.
+In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, 1/2/3 weapons, Space flares,
+E ejects. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
+commander's seat).
 With C-4 selected, right mouse detonates.
 
 ## Code layout
