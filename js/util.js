@@ -188,16 +188,40 @@ export class Emitter {
   }
 }
 
+// Settings live in localStorage, and in the Android app also in a file on the phone (window.SixthFrontStore),
+// which survives the app being closed straight after a change. The newer of the two copies wins.
+const SETTINGS_KEY = 'sixthfront.settings';
+const nativeStore = () => (typeof window !== 'undefined' && window.SixthFrontStore) || null;
 export function loadSettings(defaults) {
-  try {
-    const raw = localStorage.getItem('sixthfront.settings');
-    if (raw) return { ...defaults, ...JSON.parse(raw) };
-  } catch (e) { /* storage unavailable */ }
-  return { ...defaults };
+  const read = (fn) => { try { const v = fn(); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
+  const n = nativeStore();
+  const nat = n ? read(() => n.get(SETTINGS_KEY)) : null;
+  const loc = read(() => localStorage.getItem(SETTINGS_KEY));
+  const best = nat && (!loc || (nat._t || 0) > (loc._t || 0)) ? nat : loc;
+  return { ...defaults, ...(best || {}) };
 }
 
-export function saveSettings(s) {
-  try { localStorage.setItem('sixthfront.settings', JSON.stringify(s)); } catch (e) { /* ignore */ }
+let nativeTimer = 0, pending = null;
+export function flushSettings() {
+  clearTimeout(nativeTimer);
+  const n = nativeStore();
+  if (n && pending) { try { n.put(SETTINGS_KEY, pending); } catch (e) { /* ignore */ } }
+  pending = null;
+}
+// now: write the phone's copy straight away (before a restart); otherwise sliders, which save on every
+// movement, write it once they settle
+export function saveSettings(s, now = false) {
+  s._t = Date.now();
+  const json = JSON.stringify(s);
+  try { localStorage.setItem(SETTINGS_KEY, json); } catch (e) { /* ignore */ }
+  if (!nativeStore()) return;
+  pending = json;
+  clearTimeout(nativeTimer);
+  if (now) flushSettings(); else nativeTimer = setTimeout(flushSettings, 250);
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushSettings);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flushSettings(); });
 }
 
 // Escape text before it goes into innerHTML (names and labels can come from mods)

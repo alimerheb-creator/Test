@@ -56,6 +56,7 @@ export class Game extends Emitter {
 
     // Snapshot the untouched config before anything reads it, so mods can always be undone
     this.mods = new ModManager(this);
+    await this.mods.recoverMissing();
     // Map mods change the battlefield itself, so they go in before the world is built
     this.mods.applyMap();
     const step = () => new Promise((r) => setTimeout(r, 0));
@@ -204,7 +205,7 @@ export class Game extends Emitter {
   // The main menu's battle picker: 'normal' or a battle mod's id. A different battlefield restarts the page.
   setBattle(id) {
     this.settings.battleType = id || 'normal';
-    saveSettings(this.settings);
+    saveSettings(this.settings, true);
     this.reloadMods();
   }
 

@@ -70,8 +70,11 @@ Start your own from [`mods/TEMPLATE.sfmod.json`](mods/TEMPLATE.sfmod.json).
   switched on but doesn't run in the current battle shows **ON · NOT IN THIS BATTLE** and does nothing.
 - The examples that ship with the game update themselves: when the game has a newer version of one you
   installed, the new one replaces it (switched on or off as before).
-- Another copy of the game open at the same time (a second tab) can't overwrite your mod list: each copy picks
-  up the other's changes as they happen.
+- Your mod list is saved as a small list of which mods are on (rewritten on every switch) plus one saved copy of
+  each mod file (written only when the file changes), so it stays reliable with lots of mods installed. The
+  Android app also keeps it in files on the phone. If a mod file that ships with the game can't be read back,
+  it is fetched again from the game's mods folder. Another copy of the game open at the same time (a second
+  tab) can't overwrite your list: every change starts from the newest saved list.
 - Keys starting with `_` are ignored, so you can use `"_comment"` fields for notes.
 
 ## File layout

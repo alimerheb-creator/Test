@@ -19,6 +19,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
@@ -101,6 +102,9 @@ public class MainActivity extends Activity {
                 return url == null || !url.startsWith("https://" + HOST + "/");
             }
         });
+
+        // durable storage for the mod list (window.SixthFrontStore)
+        web.addJavascriptInterface(new Store(new File(getFilesDir(), "store")), "SixthFrontStore");
 
         setContentView(web);
         hideSystemUi();

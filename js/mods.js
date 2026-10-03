@@ -19,7 +19,9 @@ import { Gun } from './weapons.js';
 
 export const MOD_FORMAT = 'sixthfront-mod';
 export const API_VERSION = 2;
-const STORAGE_KEY = 'sixthfront.mods';
+const STORAGE_KEY = 'sixthfront.mods';      // before 1.9.1: one big entry holding every mod's text
+const INDEX_KEY = 'sixthfront.modlist';     // which mods are installed, on or off, and their order (small)
+const TEXT_PREFIX = 'sixthfront.modtext.';  // one entry per mod file, written only when the file changes
 const STORE_PREFIX = 'sixthfront.moddata.';
 const MAX_MOD_BYTES = 512 * 1024;
 const MAX_CLASSES = 8;
@@ -27,6 +29,32 @@ const GUN_MODELS = ['ar', 'smg', 'lmg', 'sniper', 'pistol', 'shotgun'];
 // How far from the centre map objects may go: the map's size can change, so these are read when used
 const mapLimit = () => PLAY_HALF - 10;
 const worldEdge = () => WORLD_HALF - 20;
+
+// Where the mod list is kept. Switching a mod on or off only rewrites the small list, never the mod files:
+// writing a couple of megabytes on every switch is what made browsers (and the Android app in particular)
+// delay or drop saves, so mods came back switched off. The Android app also keeps everything in files on the
+// phone (window.SixthFrontStore), which survive the app being closed straight after a change.
+const KV = {
+  nat: () => (typeof window !== 'undefined' && window.SixthFrontStore) || null,
+  get(k) {
+    const n = this.nat();
+    if (n) { try { const v = n.get(k); if (typeof v === 'string') return v; } catch (e) { /* fall back */ } }
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  },
+  set(k, v) {
+    let ok = false;
+    const n = this.nat();
+    if (n) { try { ok = !!n.put(k, v); } catch (e) { /* fall back */ } }
+    try { localStorage.setItem(k, v); ok = true; } catch (e) { /* storage full or blocked */ }
+    return ok;
+  },
+  remove(k) {
+    const n = this.nat();
+    if (n) { try { n.remove(k); } catch (e) { /* gone */ } }
+    try { localStorage.removeItem(k); } catch (e) { /* blocked */ }
+  },
+};
+const parseJSON = (s) => { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } };
 
 // ---------------------------------------------------------------- field schemas
 const num = (min, max, int = false) => ({ t: 'num', min, max, int });
@@ -253,7 +281,14 @@ export class ModManager {
       MAP: clone(MAP_TABLES()),
     };
     this._resetResources();
+    this.rev = 0;
+    this.missing = [];
     this.list = this._load();
+    // a list saved by an older version moves to the new layout once
+    if (this.migrated) {
+      this._save();
+      if (this.storageOk) KV.remove(STORAGE_KEY);
+    }
     this.appliedMapSig = null;
     // Mod timers and held keys run on game time
     game.on('tick', (dt) => this._tick(dt));
@@ -262,12 +297,16 @@ export class ModManager {
     window.addEventListener('blur', () => { for (const k of this.keys) if (k.down) { k.down = false; k.call(false); } });
     // Another copy of the game (a second tab, the same page opened twice) changed the mod list: take its
     // version, so this copy doesn't write its older list back over it the next time it saves
-    window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY) this._syncFromStorage(); });
+    window.addEventListener('storage', (e) => {
+      if (e.key !== INDEX_KEY) return;
+      const idx = parseJSON(e.newValue);
+      if (idx && (idx.rev | 0) !== this.rev) this._syncFromStorage();
+    });
   }
 
   _syncFromStorage() {
-    const fresh = this._load();
     const old = new Map(this.list.map((m) => [m.id, m]));
+    const fresh = this._load(old);
     this.list = fresh.map((e) => {
       const o = old.get(e.id);
       if (o && o.text === e.text) { o.enabled = e.enabled; return o; }
@@ -281,25 +320,78 @@ export class ModManager {
     }
   }
 
-  get activeCount() { return this.list.filter((m) => m.enabled && m.status !== 'error' && m.status !== 'standby').length; }
+  // switched-on mods (counting the ones waiting for another battle type)
+  get activeCount() { return this.list.filter((m) => m.enabled && m.status !== 'error').length; }
 
-  _load() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      return Array.isArray(arr) ? arr.filter((e) => e && typeof e.text === 'string').map((e) => this._entry(e.text, !!e.enabled)).filter(Boolean) : [];
-    } catch (e) {
-      return [];
+  // known: mods already loaded (their text isn't read again unless it changed)
+  _load(known) {
+    this.missing = [];
+    const idx = parseJSON(KV.get(INDEX_KEY));
+    if (idx && Array.isArray(idx.mods)) {
+      this.rev = idx.rev | 0;
+      const out = [];
+      let prev = null;
+      for (const e of idx.mods) {
+        if (!e || typeof e.id !== 'string') continue;
+        const text = KV.get(TEXT_PREFIX + e.id);
+        const after = prev;
+        prev = e.id;
+        if (typeof text !== 'string') { this.missing.push({ id: e.id, enabled: !!e.on, after }); continue; }
+        const k = known && known.get(e.id);
+        const entry = k && k.text === text ? { ...k, enabled: !!e.on } : this._entry(text, !!e.on);
+        if (!entry) continue;
+        entry.savedText = text;
+        out.push(entry);
+      }
+      return out;
     }
+    const arr = parseJSON(KV.get(STORAGE_KEY));
+    if (!Array.isArray(arr)) return [];
+    this.migrated = true;
+    return arr.filter((e) => e && typeof e.text === 'string').map((e) => this._entry(e.text, !!e.enabled)).filter(Boolean);
   }
 
   _save() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.list.map((m) => ({ id: m.id, enabled: m.enabled, text: m.text }))));
-      this.storageOk = true;
-    } catch (e) {
-      this.storageOk = false;
+    let ok = true;
+    for (const m of this.list) {
+      if (m.savedText === m.text) continue;
+      if (KV.set(TEXT_PREFIX + m.id, m.text)) m.savedText = m.text; else ok = false;
     }
+    // mods whose file couldn't be read back stay listed, so a later start can still recover them
+    const mods = this.list.map((m) => ({ id: m.id, on: !!m.enabled }));
+    for (const x of this.missing) if (!mods.some((m) => m.id === x.id)) mods.splice(this._slot(mods, x.after), 0, { id: x.id, on: x.enabled });
+    this.rev = (this.rev | 0) + 1;
+    if (!KV.set(INDEX_KEY, JSON.stringify({ v: 2, rev: this.rev, mods }))) ok = false;
+    this.storageOk = ok;
+  }
+
+  // where a mod goes back into a list: right after the one it followed
+  _slot(list, after) {
+    if (!after) return 0;
+    const i = list.findIndex((m) => m.id === after);
+    return i < 0 ? list.length : i + 1;
+  }
+
+  // A mod file that couldn't be read back (storage was full when it was saved): mods that ship with the game
+  // are fetched again from the game's mods folder. Runs once at startup, before the battlefield is built.
+  async recoverMissing() {
+    if (!this.missing.length) return;
+    let idx = null;
+    try { const r = await fetch('mods/index.json'); if (r.ok) idx = await r.json(); } catch (e) { idx = null; }
+    const files = idx && Array.isArray(idx.mods) ? idx.mods : [];
+    for (const x of this.missing.slice()) {
+      const f = files.find((m) => m && slugify(m.id || m.name) === x.id && typeof m.file === 'string' && /^[\w.-]+$/.test(m.file));
+      if (!f) continue;
+      try {
+        const r = await fetch(`mods/${f.file}`);
+        if (!r.ok) continue;
+        const entry = this._entry(await r.text(), x.enabled);
+        if (!entry || entry.id !== x.id) continue;
+        this.list.splice(this._slot(this.list, x.after), 0, entry);
+        this.missing = this.missing.filter((m) => m !== x);
+      } catch (e) { /* offline: stays listed for next time */ }
+    }
+    this._save();
   }
 
   _entry(text, enabled) {
@@ -361,9 +453,17 @@ export class ModManager {
     return `Waiting: this mod only runs in ${names.join(' / ')} battles.`;
   }
 
+  // Every change starts from the newest saved list, so a copy of the game that hasn't caught up with another
+  // copy's changes can't save its older list over them
+  _fresh() {
+    const idx = parseJSON(KV.get(INDEX_KEY));
+    if (idx && (idx.rev | 0) !== this.rev) this._syncFromStorage();
+  }
+
   // Add (or replace) a mod from file text. Returns the entry; throws on invalid files.
   add(text) {
     parseMod(text);
+    this._fresh();
     const entry = this._entry(text, true);
     const i = this.list.findIndex((m) => m.id === entry.id);
     if (i >= 0) { entry.enabled = this.list[i].enabled; this.list[i] = entry; }
@@ -373,16 +473,21 @@ export class ModManager {
   }
 
   remove(id) {
+    this._fresh();
     this.list = this.list.filter((m) => m.id !== id);
+    this.missing = this.missing.filter((m) => m.id !== id);
     this._save();
+    KV.remove(TEXT_PREFIX + id);
   }
 
   setEnabled(id, on) {
+    this._fresh();
     const m = this.list.find((x) => x.id === id);
     if (m) { m.enabled = on; this._save(); }
   }
 
   move(id, delta) {
+    this._fresh();
     const i = this.list.findIndex((m) => m.id === id);
     const j = i + delta;
     if (i < 0 || j < 0 || j >= this.list.length) return;
