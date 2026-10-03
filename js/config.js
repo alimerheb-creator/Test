@@ -4,8 +4,23 @@ export const GAME_TITLE = 'SIXTH FRONT';
 // The battlefield. Map mods replace these tables before the world is built (see MODDING.md).
 export const MAP = { name: 'KARSA VALLEY', randomProps: true };
 
-export const PLAY_HALF = 240;   // half-size of the playable square (m)
-export const WORLD_HALF = 560;  // half-size of the rendered terrain (m)
+// Map size. A map can change these (its "size" setting) before the world is built; the other modules read
+// them live. GRID holds the terrain mesh layout: fine spacing in the middle, coarse out to the horizon.
+export let PLAY_HALF = 240;   // half-size of the playable square (m)
+export let WORLD_HALF = 560;  // half-size of the rendered terrain (m)
+export const GRID = { inner: 280, fine: 2.5, coarse: 14 };
+export function applyMapSize(size) {
+  const s = size || {};
+  const cl = (v, a, b) => (v < a ? a : v > b ? b : v);
+  PLAY_HALF = cl(Number(s.play) || 240, 100, 3000);
+  WORLD_HALF = cl(Number(s.world) || Math.max(560, PLAY_HALF + 320), PLAY_HALF + 200, 4000);
+  GRID.fine = cl(Number(s.fine) || 2.5, 1.5, 12);
+  GRID.inner = cl(Number(s.inner) || Math.min(280, PLAY_HALF + 40), 60, WORLD_HALF - 100);
+  GRID.coarse = cl((WORLD_HALF - GRID.inner) / 150, 14, 40);
+  // keep the terrain mesh under ~620 rows each way
+  const rows = () => 2 * Math.round((WORLD_HALF - GRID.inner) / GRID.coarse) + Math.round((2 * GRID.inner) / GRID.fine);
+  while (rows() > 620) GRID.fine *= 1.15;
+}
 
 // Match rules. Everything in this file is moddable (see MODDING.md); mods edit these objects in place.
 export const RULES = {
@@ -91,7 +106,9 @@ export const ROADS = [
 ];
 
 // Terrain shape multipliers and seed, vegetation density multipliers, and hand-placed props
-export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1 };
+// level raises or lowers the whole terrain (below a sea, for example); water is the sea level (null: no water);
+// islands are [x, z, radius, height] mounds added on top
+export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1, level: 0, water: null, islands: [] };
 export const VEGETATION = { trees: 1, bushes: 1, rocks: 1, grass: 1 };
 export const MAP_PROPS = [];
 
@@ -185,6 +202,7 @@ export const DIFFICULTY = {
 
 export const DEFAULT_SETTINGS = {
   playerName: 'Recruit',
+  battleType: 'normal',   // which battle the main menu starts: 'normal' or a battle mod's id
   botsPerTeam: 12,
   difficulty: 'normal',
   tickets: 250,

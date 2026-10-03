@@ -7,7 +7,8 @@
 import * as THREE from 'three';
 import {
   WEAPONS, GADGETS, PROJECTILES, CLASSES, CLASS_ORDER, MOVE, SCORE, DIFFICULTY, TEAMS,
-  RULES, VEHICLES, ATMOSPHERE, BOT_NAMES, MAP, FLAGS, HQS, BUILDINGS, ROADS, TERRAIN, VEGETATION, MAP_PROPS, PLAY_HALF,
+  RULES, VEHICLES, ATMOSPHERE, BOT_NAMES, MAP, FLAGS, HQS, BUILDINGS, ROADS, TERRAIN, VEGETATION, MAP_PROPS, PLAY_HALF, WORLD_HALF,
+  applyMapSize,
 } from './config.js';
 import { SHOT_SOUNDS } from './audio.js';
 import { ATMOSPHERE_PRESETS } from './world.js';
@@ -23,8 +24,9 @@ const STORE_PREFIX = 'sixthfront.moddata.';
 const MAX_MOD_BYTES = 512 * 1024;
 const MAX_CLASSES = 8;
 const GUN_MODELS = ['ar', 'smg', 'lmg', 'sniper', 'pistol', 'shotgun'];
-const MAP_LIMIT = PLAY_HALF - 10;
-const WORLD_EDGE = 540;
+// How far from the centre map objects may go: the map's size can change, so these are read when used
+const mapLimit = () => PLAY_HALF - 10;
+const worldEdge = () => WORLD_HALF - 20;
 
 // ---------------------------------------------------------------- field schemas
 const num = (min, max, int = false) => ({ t: 'num', min, max, int });
@@ -35,6 +37,7 @@ const colorStr = { t: 'colorStr' };    // stored as '#rrggbb'
 const oneOf = (list) => ({ t: 'enum', list });
 const pair = (min, max) => ({ t: 'pair', min, max });
 const ref = (table) => ({ t: 'ref', table });
+const coord = { t: 'coord' };          // a map position, kept inside the play area
 
 const SCHEMA = {
   weapons: {
@@ -81,12 +84,12 @@ const SCHEMA = {
     sunIntensity: num(0, 10), hemiIntensity: num(0, 5), fogNear: num(0, 2000), fogFar: num(10, 4000), clouds: num(0, 1),
     stars: num(0, 2), sunElevation: num(3, 89), sunAzimuth: num(-360, 360), exposure: num(0.2, 4), envIntensity: num(0, 3),
   },
-  terrain: { seed: num(0, 1000000), hills: num(0, 4), bumps: num(0, 4), mountains: num(0, 3), valley: num(-5, 5) },
+  terrain: { seed: num(0, 1000000), hills: num(0, 4), bumps: num(0, 4), mountains: num(0, 3), valley: num(-5, 5), level: num(-80, 80) },
   vegetation: { trees: num(0, 3), bushes: num(0, 3), rocks: num(0, 3), grass: num(0, 2) },
-  flag: { id: str(2), name: str(20), x: num(-MAP_LIMIT, MAP_LIMIT), z: num(-MAP_LIMIT, MAP_LIMIT), radius: num(5, 40), flat: num(10, 120), town: bool },
-  hq: { x: num(-MAP_LIMIT, MAP_LIMIT), z: num(-MAP_LIMIT, MAP_LIMIT), yaw: num(-360, 360) },
+  flag: { id: str(2), name: str(20), x: coord, z: coord, radius: num(5, 400), flat: num(10, 200), town: bool, height: num(4, 3000) },
+  hq: { x: coord, z: coord, yaw: num(-360, 360) },
   prop: {
-    type: oneOf(['container', 'barrier', 'sandbags', 'crate', 'wreck', 'ruin', 'block']), x: num(-MAP_LIMIT, MAP_LIMIT), z: num(-MAP_LIMIT, MAP_LIMIT),
+    type: oneOf(['container', 'barrier', 'sandbags', 'crate', 'wreck', 'ruin', 'block']), x: coord, z: coord,
     rot: num(-360, 360), color, y: num(-5, 40), size: { t: 'vec', n: 3, min: 0.2, max: 40 },
   },
 };
@@ -127,6 +130,12 @@ function coerce(spec, value, path, tables, key) {
       let v = Math.min(spec.max, Math.max(spec.min, n));
       if (spec.int) v = Math.round(v);
       return [true, v, v !== n ? `${path}: ${n} is outside ${spec.min}–${spec.max}, using ${v}` : null];
+    }
+    case 'coord': {
+      const n = Number(value), lim = mapLimit();
+      if (typeof value === 'boolean' || value === null || value === '' || !Number.isFinite(n)) return bad('expected a number');
+      const v = Math.min(lim, Math.max(-lim, n));
+      return [true, v, v !== n ? `${path}: ${n} is outside the map (±${lim}), using ${v}` : null];
     }
     case 'bool':
       if (typeof value !== 'boolean') return bad('expected true or false');
@@ -228,7 +237,9 @@ export function parseMod(text) {
 
 const MAP_TABLES = () => ({ MAP, FLAGS, HQS, BUILDINGS, ROADS, TERRAIN, VEGETATION, MAP_PROPS });
 const KNOWN_SECTIONS = new Set(['format', 'id', 'name', 'version', 'author', 'description', 'weapons', 'gadgets', 'projectiles', 'classes',
-  'movement', 'rules', 'scoring', 'vehicles', 'teams', 'difficulty', 'atmosphere', 'botNames', 'map', 'script']);
+  'movement', 'rules', 'scoring', 'vehicles', 'teams', 'difficulty', 'atmosphere', 'botNames', 'map', 'script', 'battle', 'battles']);
+// The base game's battle: infantry and tanks on the normal maps
+export const NORMAL_BATTLE = 'normal';
 
 // ---------------------------------------------------------------- manager
 export class ModManager {
@@ -249,9 +260,28 @@ export class ModManager {
     window.addEventListener('keydown', (e) => this._key(e, true));
     window.addEventListener('keyup', (e) => this._key(e, false));
     window.addEventListener('blur', () => { for (const k of this.keys) if (k.down) { k.down = false; k.call(false); } });
+    // Another copy of the game (a second tab, the same page opened twice) changed the mod list: take its
+    // version, so this copy doesn't write its older list back over it the next time it saves
+    window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY) this._syncFromStorage(); });
   }
 
-  get activeCount() { return this.list.filter((m) => m.enabled && m.status !== 'error').length; }
+  _syncFromStorage() {
+    const fresh = this._load();
+    const old = new Map(this.list.map((m) => [m.id, m]));
+    this.list = fresh.map((e) => {
+      const o = old.get(e.id);
+      if (o && o.text === e.text) { o.enabled = e.enabled; return o; }
+      return e;
+    });
+    const ui = this.game.ui;
+    if (ui) {
+      if (ui.screens && ui.screens.mods && !ui.screens.mods.hidden) ui.renderModList();
+      if (ui.updateModsButton) ui.updateModsButton();
+      if (ui.renderBattles) ui.renderBattles();
+    }
+  }
+
+  get activeCount() { return this.list.filter((m) => m.enabled && m.status !== 'error' && m.status !== 'standby').length; }
 
   _load() {
     try {
@@ -279,10 +309,56 @@ export class ModManager {
         id: slugify(mod.id || mod.name), name: String(mod.name).slice(0, 48), version: String(mod.version || ''),
         author: String(mod.author || ''), description: String(mod.description || '').slice(0, 300),
         hasScript: !!mod.script, hasMap: mod.map !== undefined, enabled, text, mod, status: 'ok', messages: [], mapMessages: [],
+        battle: this._battleInfo(mod), battles: Array.isArray(mod.battles) ? mod.battles.filter((b) => typeof b === 'string').map(slugify).slice(0, 8) : null,
       };
     } catch (e) {
       return null;
     }
+  }
+
+  // A "battle" section makes the mod a battle type of its own, picked on the main menu (see MODDING.md)
+  _battleInfo(mod) {
+    const b = mod.battle;
+    if (!isObj(b)) return null;
+    const txt = (v, n, d = '') => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : d);
+    return {
+      name: txt(b.name, 16, String(mod.name).slice(0, 16)).toUpperCase(), tagline: txt(b.tagline, 240), blurb: txt(b.blurb, 60),
+      order: Number.isFinite(+b.order) ? +b.order : 50,
+      needs: Array.isArray(b.needs) ? b.needs.filter((x) => typeof x === 'string').map(slugify).slice(0, 8) : [],
+    };
+  }
+
+  // The battle being played: the one picked on the main menu, if its mod is installed and switched on
+  currentBattle() {
+    const id = this.game.settings.battleType;
+    if (!id || id === NORMAL_BATTLE) return NORMAL_BATTLE;
+    const m = this.list.find((x) => x.id === id && x.battle);
+    return m && m.enabled ? id : NORMAL_BATTLE;
+  }
+
+  battleEntry(id = this.currentBattle()) { return this.list.find((m) => m.id === id && m.battle) || null; }
+
+  // Whether a switched-on mod takes part in this battle. A battle mod only runs in its own battle; a mod with
+  // "battles" only in those (or when a battle needs it); map mods replace the normal battlefield, so they only
+  // run in the normal battle; every other mod runs everywhere.
+  _activeIn(m, battle) {
+    if (!m.enabled) return false;
+    if (m.battle) return m.id === battle;
+    const b = this.battleEntry(battle);
+    if (b && b.battle.needs.includes(m.id)) return true;
+    if (m.battles) return m.battles.includes(battle);
+    if (m.hasMap) return battle === NORMAL_BATTLE;
+    return true;
+  }
+
+  // The order mods are applied in: the list order, except that battle mods come last
+  _ordered() { return [...this.list.filter((m) => !m.battle), ...this.list.filter((m) => m.battle)]; }
+
+  // Why a switched-on mod isn't running right now (shown on the MODS screen)
+  _standbyText(m) {
+    if (m.battle) return 'Waiting: pick this battle on the main menu to play it.';
+    const names = (m.battles || [NORMAL_BATTLE]).map((id) => (id === NORMAL_BATTLE ? 'NORMAL' : (this.battleEntry(id) || { battle: { name: id.toUpperCase() } }).battle.name));
+    return `Waiting: this mod only runs in ${names.join(' / ')} battles.`;
   }
 
   // Add (or replace) a mod from file text. Returns the entry; throws on invalid files.
@@ -316,7 +392,8 @@ export class ModManager {
 
   // ---------------------------------------------------------------- maps
   _mapSig() {
-    return JSON.stringify(this.list.filter((m) => m.enabled && m.hasMap).map((m) => m.mod.map));
+    const battle = this.currentBattle();
+    return JSON.stringify([battle, this.list.filter((m) => m.hasMap && this._activeIn(m, battle)).map((m) => m.mod.map)]);
   }
 
   // True when the enabled map mods differ from the map the world was built with
@@ -325,6 +402,12 @@ export class ModManager {
   // Map sections are applied once, before the world is built
   applyMap() {
     const P = this.pristine.MAP;
+    const battle = this.currentBattle();
+    this.mapBattle = battle;
+    const maps = this.list.filter((m) => m.hasMap && this._activeIn(m, battle));
+    // the size goes first: everything else on the map is placed (and clamped) inside it
+    applyMapSize(undefined);
+    for (const m of maps) if (isObj(m.mod.map) && m.mod.map.size !== undefined) this._applySize(m.mod.map.size, []);
     Object.keys(MAP).forEach((k) => delete MAP[k]);
     Object.assign(MAP, clone(P.MAP));
     Object.assign(TERRAIN, clone(P.TERRAIN));
@@ -334,17 +417,44 @@ export class ModManager {
     BUILDINGS.splice(0, BUILDINGS.length, ...clone(P.BUILDINGS));
     ROADS.splice(0, ROADS.length, ...clone(P.ROADS));
     MAP_PROPS.splice(0, MAP_PROPS.length, ...clone(P.MAP_PROPS));
-    for (const m of this.list) {
+    for (const m of this._ordered()) {
       m.mapMessages = [];
-      if (!m.enabled || !m.hasMap) continue;
+      if (!maps.includes(m)) continue;
       try { this._applyMap(m.mod.map, m.mapMessages); } catch (e) { m.mapMessages.push(`map: ${e.message}`); }
     }
     this.appliedMapSig = this._mapSig();
   }
 
+  // map.size: { play, world, fine, inner } in metres (see MODDING.md)
+  _applySize(size, log) {
+    if (!isObj(size)) { log.push('map.size: expected an object like { "play": 600 }'); return; }
+    for (const k of Object.keys(size)) if (!['play', 'world', 'fine', 'inner'].includes(k)) log.push(`map.size.${k}: unknown setting (ignored)`);
+    applyMapSize(size);
+  }
+
   _applyMap(map, log) {
     if (!isObj(map)) { log.push('map: expected an object'); return; }
-    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation'];
+    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands'];
+    if (map.size !== undefined && !isObj(map.size)) log.push('map.size: expected an object like { "play": 600 }');
+    if (map.water !== undefined) {
+      if (map.water === null) TERRAIN.water = null;
+      else {
+        const [ok, v, msg] = coerce(num(-60, 60), map.water, 'map.water');
+        if (msg) log.push(msg);
+        if (ok) TERRAIN.water = v;
+      }
+    }
+    if (map.islands !== undefined) {
+      if (!Array.isArray(map.islands)) log.push('map.islands: expected a list of [x, z, radius, height]');
+      else {
+        const lim = worldEdge();
+        TERRAIN.islands = map.islands.slice(0, 40).filter((s, i) => {
+          const ok = Array.isArray(s) && s.length === 4 && s.every((x) => Number.isFinite(Number(x)));
+          if (!ok) log.push(`map.islands[${i}]: expected [x, z, radius, height]`);
+          return ok;
+        }).map(([x, z, r, h]) => [clamp(+x, -lim, lim), clamp(+z, -lim, lim), clamp(+r, 10, 1500), clamp(+h, -60, 120)]);
+      }
+    }
     for (const k of Object.keys(map)) if (!known.includes(k) && !k.startsWith('_')) log.push(`map.${k}: unknown setting (ignored)`);
     if (map.name !== undefined) {
       const [ok, v, msg] = coerce(str(24), map.name, 'map.name');
@@ -387,7 +497,8 @@ export class ModManager {
         return null;
       }
       const [x, z, w, d, f = 1] = b.map(Number);
-      return [clamp(x, -MAP_LIMIT, MAP_LIMIT), clamp(z, -MAP_LIMIT, MAP_LIMIT), clamp(Math.round(w), 2, 8), clamp(Math.round(d), 2, 8), clamp(Math.round(f), 1, 5)];
+      const lim = mapLimit();
+      return [clamp(x, -lim, lim), clamp(z, -lim, lim), clamp(Math.round(w), 2, 8), clamp(Math.round(d), 2, 8), clamp(Math.round(f), 1, 5)];
     };
     for (const key of ['buildings', 'addBuildings']) {
       if (map[key] === undefined) continue;
@@ -403,7 +514,8 @@ export class ModManager {
         map.roads.slice(0, 16).forEach((r, i) => {
           const pts = Array.isArray(r) ? r.filter((p) => Array.isArray(p) && p.length === 2 && p.every((x) => Number.isFinite(Number(x)))) : [];
           if (pts.length < 2) { log.push(`map.roads[${i}]: a road needs at least two [x, z] points`); return; }
-          roads.push(pts.slice(0, 40).map(([x, z]) => [clamp(+x, -WORLD_EDGE, WORLD_EDGE), clamp(+z, -WORLD_EDGE, WORLD_EDGE)]));
+          const e = worldEdge();
+          roads.push(pts.slice(0, 40).map(([x, z]) => [clamp(+x, -e, e), clamp(+z, -e, e)]));
         });
         ROADS.splice(0, ROADS.length, ...roads);
       }
@@ -462,9 +574,12 @@ export class ModManager {
   // Re-apply all enabled mods in list order (later mods win). Map sections were applied at startup.
   applyAll() {
     this._restore();
-    for (const m of this.list) {
+    const battle = this.currentBattle();
+    this.battle = battle;
+    for (const m of this._ordered()) {
       m.messages = [...(m.mapMessages || [])];
       if (!m.enabled) { m.status = 'off'; continue; }
+      if (!this._activeIn(m, battle)) { m.status = 'standby'; m.messages = [this._standbyText(m)]; continue; }
       try {
         this._apply(m);
         m.status = m.messages.length ? 'warn' : 'ok';
@@ -729,6 +844,9 @@ export class ModManager {
       tickets: () => g.mode.tickets.slice(),
       time: () => g.time,
       state: () => g.state,
+      battle: () => mgr.battle || NORMAL_BATTLE,
+      mapSize: () => ({ play: PLAY_HALF, world: WORLD_HALF }),
+      water: () => g.world.water,
       heightAt: (x, z) => g.world.heightAt(+x, +z),
       vec: V,
       raycast(from, dir, maxDist = 500, opts = {}) {

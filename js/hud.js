@@ -5,7 +5,8 @@ import { TEAMS, SQUAD_COLOR, PLAY_HALF, BUILDINGS, ROADS, HQS, SQUAD_NAMES, VEHI
 import { clamp, wrapAngle, yawTo, formatTime, esc } from './util.js';
 
 const $ = (id) => document.getElementById(id);
-const MAP_HALF = PLAY_HALF + 12;
+// half-size of the drawn map: the play area plus a margin (maps can change their size)
+const mapHalf = () => PLAY_HALF + 12;
 const _p = new THREE.Vector3();
 
 const COL = { friend: '#3fa9f5', enemy: '#ff4b3a', squad: SQUAD_COLOR, neutral: '#c9ccc4', signal: '#f2b33d', white: '#e8eae3' };
@@ -93,8 +94,16 @@ export class HUD {
     if (vt) vt.textContent = VEHICLES.tank.name;
     const eb = document.getElementById('mm-eyebrow');
     if (eb) {
-      const parts = FLAGS.length ? ['CONQUEST', MAP.name, `${FLAGS.length} OBJECTIVE${FLAGS.length === 1 ? '' : 'S'}`] : ['TEAM DEATHMATCH', MAP.name, 'NO OBJECTIVES'];
+      const b = this.game.mods && this.game.mods.battleEntry(this.game.mods.battle);
+      const mode = b ? b.battle.name : FLAGS.length ? 'CONQUEST' : 'TEAM DEATHMATCH';
+      const parts = FLAGS.length ? [mode, MAP.name, `${FLAGS.length} OBJECTIVE${FLAGS.length === 1 ? '' : 'S'}`] : [mode, MAP.name, 'NO OBJECTIVES'];
       eb.innerHTML = parts.map(esc).join(' <span>·</span> ');
+      // the line under the title describes the battle being played
+      const tag = document.querySelector('#menu-main .tag');
+      if (tag) {
+        if (tag.dataset.base === undefined) tag.dataset.base = tag.textContent;
+        tag.textContent = b && b.battle.tagline ? b.battle.tagline : tag.dataset.base;
+      }
     }
     this.last.sb = null;
   }
@@ -114,9 +123,17 @@ export class HUD {
     }
   }
 
+  // How many metres the minimap shows from its centre to its edge (more in vehicles and on big maps)
+  miniRange() {
+    const P = this.game.player;
+    return (P && P.vehicle ? 140 : 105) * clamp(PLAY_HALF / 300, 1, 5);
+  }
+
   // ------------------------------------------------------------ map image
   _buildMapImage() {
-    const S = 512;
+    const S = PLAY_HALF > 500 ? 1024 : 512;
+    const MAP_HALF = mapHalf();
+    const sea = this.game.world.water;
     const c = document.createElement('canvas');
     c.width = c.height = S;
     const g = c.getContext('2d');
@@ -131,6 +148,12 @@ export class HUD {
         const hx = w.heightAt(x + 2, z) - h, hz = w.heightAt(x, z + 2) - h;
         const shade = clamp(0.78 - hx * 0.09 - hz * 0.06 + h * 0.004, 0.4, 1.1);
         const k = (j * S + i) * 4;
+        if (sea !== null && h < sea) {
+          // water: darker the deeper it gets
+          const deep = clamp((sea - h) / 14, 0, 1);
+          d[k] = 34 - deep * 14; d[k + 1] = 70 - deep * 22; d[k + 2] = 92 - deep * 18; d[k + 3] = 255;
+          continue;
+        }
         d[k] = 58 * shade + 20; d[k + 1] = 64 * shade + 20; d[k + 2] = 50 * shade + 18; d[k + 3] = 255;
       }
     }
@@ -486,7 +509,7 @@ export class HUD {
     const mates = g.soldiers.filter((s) => s.team === P.team && s.squad === P.squad);
     this._set('sqn', this.el.squadName, `SQUAD ${SQUAD_NAMES[P.squad] || ''}`);
     const html = mates.map((s) => {
-      const st = s.state === 'alive' ? (s.vehicle ? 'TANK' : s.classId.slice(0, 3).toUpperCase()) : s.state === 'downed' ? 'DOWN' : 'KIA';
+      const st = s.state === 'alive' ? (s.vehicle ? s.vehicle.label || (s.vehicle.isAircraft ? 'AIR' : 'TANK') : s.classId.slice(0, 3).toUpperCase()) : s.state === 'downed' ? 'DOWN' : 'KIA';
       const cls = s === P ? 'me' : s.state !== 'alive' ? 'out' : '';
       return `<li class="${cls}"><span>${esc(s === P ? g.settings.playerName : s.name)}</span><em>${st}</em></li>`;
     }).join('');
@@ -515,7 +538,7 @@ export class HUD {
     const g = this.game, P = g.player, ctx = this.mctx;
     const W = this.mini.width, H = this.mini.height;
     const dpr = this.dpr;
-    const range = P.vehicle ? 140 : 105;
+    const range = this.miniRange();
     const scale = (W / 2) / range;
     const cx = W / 2, cy = H / 2;
     const yaw = P.vehicle && P.state === 'alive' ? g.playerCtl.camYaw : P.yaw;
@@ -537,6 +560,7 @@ export class HUD {
     ctx.scale(scale, scale);
     ctx.translate(-px, -pz);
     ctx.globalAlpha = 0.95;
+    const MAP_HALF = mapHalf();
     ctx.drawImage(this.mapImg, -MAP_HALF, -MAP_HALF, MAP_HALF * 2, MAP_HALF * 2);
     ctx.globalAlpha = 1;
     // flag zones
@@ -649,6 +673,7 @@ export class HUD {
     const size = Math.floor(Math.min(canvas.clientWidth, canvas.clientHeight || canvas.clientWidth) * dpr);
     if (canvas.width !== size) { canvas.width = size; canvas.height = size; }
     const ctx = canvas.getContext('2d');
+    const MAP_HALF = mapHalf();
     const k = size / (MAP_HALF * 2);
     const toS = (x, z) => [(x + MAP_HALF) * k, (z + MAP_HALF) * k];
     ctx.clearRect(0, 0, size, size);
@@ -827,14 +852,14 @@ export class HUD {
       if (!v.alive || v === P.vehicle) continue;
       const friendly = v.team === P.team;
       if (!friendly && !(v.spottedUntil > now)) continue;
-      const pr = this._project(v.pos.x, v.pos.y + 4, v.pos.z);
+      const pr = this._project(v.pos.x, v.pos.y + (v.markerHeight || 4), v.pos.z);
       if (pr.behind) continue;
       ctx.strokeStyle = friendly ? COL.friend : COL.enemy;
       ctx.lineWidth = 2 * dpr;
       ctx.strokeRect(pr.x - 9 * dpr, pr.y - 6 * dpr, 18 * dpr, 12 * dpr);
       ctx.fillStyle = friendly ? COL.friend : COL.enemy;
       ctx.font = `700 ${9 * dpr}px "IBM Plex Mono", monospace`;
-      ctx.fillText(friendly && !v.driver ? 'EMPTY' : 'TANK', pr.x, pr.y + 16 * dpr);
+      ctx.fillText(friendly && !v.driver ? 'EMPTY' : v.label || 'TANK', pr.x, pr.y + 16 * dpr);
     }
 
     // Damage direction
@@ -856,7 +881,9 @@ export class HUD {
     if (P.state !== 'alive') return;
 
     // Crosshair
-    if (P.vehicle) {
+    if (P.vehicle && P.vehicle.ownHud) {
+      // the vehicle draws its own sight
+    } else if (P.vehicle) {
       const v = P.vehicle;
       ctx.strokeStyle = 'rgba(232,234,227,0.9)';
       ctx.lineWidth = 1.5 * dpr;

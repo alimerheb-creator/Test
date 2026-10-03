@@ -10,7 +10,7 @@ export class Conquest {
   constructor(game) {
     this.game = game;
     this.flags = FLAGS.map((f, i) => ({
-      ...f, idx: i, y: game.world.heightAt(f.x, f.z), owner: -1, progress: 0,
+      ...f, idx: i, y: game.surfaceAt(f.x, f.z), owner: -1, progress: 0,
       counts: [0, 0], members: [[], []], contested: false, capturing: -1,
     }));
     this.tickets = [250, 250];
@@ -58,7 +58,7 @@ export class Conquest {
     // HQ banners
     HQS.forEach((q, t) => {
       const g = new THREE.Group();
-      g.position.set(q.x, this.game.world.heightAt(q.x, q.z), q.z);
+      g.position.set(q.x, this.game.surfaceAt(q.x, q.z), q.z);
       const pole = new THREE.Mesh(poleGeo, poleMat);
       const cloth = new THREE.Mesh(clothGeo, new THREE.MeshStandardMaterial({ color: TEAMS[t].hex, side: THREE.DoubleSide, emissive: TEAMS[t].hex, emissiveIntensity: 0.2 }));
       cloth.position.set(0.08, 8, 0);
@@ -153,7 +153,8 @@ export class Conquest {
         if (s.state !== 'alive') continue;
         const p = s.pos;
         const dx = p.x - f.x, dz = p.z - f.z;
-        if (dx * dx + dz * dz > r2 || Math.abs(p.y - f.y) > 12) continue;
+        // a flag's zone reaches 12 m up, or f.height for sky zones that aircraft capture
+        if (dx * dx + dz * dz > r2 || p.y - f.y < -12 || p.y - f.y > (f.height || 12)) continue;
         f.counts[s.team]++;
         f.members[s.team].push(s);
       }

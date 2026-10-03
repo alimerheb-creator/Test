@@ -9,7 +9,7 @@ and uses none of their assets.
 
 ## Android app
 
-A ready-to-install APK is in [`apk/SixthFront.apk`](apk/SixthFront.apk) (about 0.5 MB, works offline).
+A ready-to-install APK is in [`apk/SixthFront.apk`](apk/SixthFront.apk) (about 0.8 MB, works offline).
 
 1. Download the APK on your phone.
 2. Open it and allow "Install unknown apps" for your browser or file manager when Android asks.
@@ -80,12 +80,30 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   vibration, and adjustable look sensitivity and button size. When you're down, a button lets you give up
   and redeploy.
 
+## Battle types
+
+The **BATTLE** picker on the main menu chooses what kind of battle you fight. Each one is a mod with its own map;
+picking a card installs and switches it on for you and restarts on its map.
+
+- **NORMAL**: the base game, infantry and tanks on Karsa Valley (or a map mod you switched on).
+- **TANKS** (Tank Warfare): everyone commands a tank, up to 10 a side, on Iron Steppe, a wide open map of farms,
+  a rail depot and the crossroads town of Karsk. Deploy at your HQ or a flag you hold and you start in a tank.
+- **AVIATION**: an air war over Highlands, a 3 km map (about six times the normal one). Everyone flies the jets
+  and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side. The objectives are sky zones:
+  fly through one to take it, bomb one the enemy holds to knock it back.
+- **NAVAL**: destroyers, frigates and patrol boats in Sapphire Strait, open sea between rocky islands, with the
+  flags on buoys. Pick your ship class on the deploy screen. W/S set the engine telegraph and A/D the rudder, you
+  aim with the mouse (or a drag) and the guns elevate themselves to land where you aim. 1/2/3 switch between guns,
+  torpedoes (a dashed line shows where they will run) and anti-ship missiles (hold the sight on a ship to lock).
+  Right mouse (AIM on phones) gives binoculars. Destroyers and frigates shoot incoming missiles down.
+
 ## Multiplayer
 
 Add the **Multiplayer** mod (MODS screen), then press **MULTIPLAYER** on the main menu. One player hosts a game and
 gets a 4-letter code; anyone else joins with the code and picks a side. The host's game runs the bots, the flags,
-the tickets and the buildings, everyone plays their own soldier, and tanks, jets and bombers are driven by whoever
-gets in. Up to 8 players.
+the tickets and the buildings, everyone plays their own soldier, and tanks, jets, bombers and ships are driven by
+whoever gets in. Up to 8 players. It works in every battle type: the host's battle decides, and if you have a
+different one picked, the game room shows a button that switches over and joins again by itself.
 
 Games are public: anyone with the game and the code can join, from the Android app, a browser copy of the game
 (for example on GitHub Pages) or the game's claude.ai page. Players find each other through the free public
@@ -102,13 +120,14 @@ full control of the game:
 
 - Change or add weapons (with their own 3D models and reload styles), gadgets, projectiles and classes, and
   change movement, rules, scoring, tanks, team names and uniforms, bot skill, time of day and weather.
-- Build whole new maps: flags, HQs, destructible buildings, roads, props, terrain and vegetation, or no flags at
-  all for Team Deathmatch.
+- Build whole new maps up to 6 km across: flags, HQs, destructible buildings, roads, props, terrain, seas with
+  islands and vegetation, or no flags at all for Team Deathmatch.
+- Add whole battle types with their own card on the main menu.
 - Run scripts that hook into damage, firing, explosions, projectiles, movement, reloading and scoring, and that
   can spawn explosions and bots, move soldiers, build 3D objects with collision, add HUD elements, bind keys
   (with touch buttons on phones), run timers, save data and slow down time.
 
-Bundled examples: Multiplayer (online play with friends), Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25), Bombers (B-17 and Lancaster), Armory (earn
+Bundled examples: the three battle types (Tank Warfare, Aviation, Naval), Multiplayer (online play with friends), Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25) and Bombers (B-17 and Lancaster) for Aviation battles, Armory (earn
 credits from kills and upgrade your guns with suppressors and more), Vehicle Interiors (sit inside tanks and
 cockpits), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
 HD Knife (a real hand holding a detailed knife), Aggressive Reloads, five game modes (Capture the Flag, King of the

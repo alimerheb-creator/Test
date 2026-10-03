@@ -1,0 +1,1274 @@
+{
+  "format": "sixthfront-mod",
+  "id": "tank-warfare",
+  "name": "Tank Warfare",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "A battle type: pick TANKS on the main menu. Everyone commands a tank, you and every bot, on Iron Steppe, a wide open map of farms, a rail depot and the crossroads town of Karsk. Each side gets one tank per soldier (up to 10). Deploy at your HQ or at a flag you hold and you start in a tank; a destroyed tank comes back at the HQ a few seconds later.",
+  "battle": {
+    "name": "TANKS",
+    "blurb": "Armour only, wide open map",
+    "tagline": "Iron Steppe. Every soldier commands a tank: ten a side across farms, a rail depot and the crossroads town of Karsk. Take the flags and keep your armour alive.",
+    "order": 1
+  },
+  "rules": {
+    "respawnTime": 4,
+    "captureSpeed": 1.6
+  },
+  "vehicles": {
+    "tank": {
+      "respawn": 6,
+      "perTeam": 2,
+      "health": 1100,
+      "speed": 12.5,
+      "reload": 3,
+      "botReload": 4.2,
+      "turretSpeed": 1.3
+    }
+  },
+  "atmosphere": {
+    "preset": "overcast",
+    "fogNear": 120,
+    "fogFar": 1100,
+    "clouds": 0.75
+  },
+  "map": {
+    "name": "IRON STEPPE",
+    "size": {
+      "play": 520,
+      "inner": 560,
+      "fine": 3.5
+    },
+    "terrain": {
+      "seed": 4119,
+      "hills": 1.45,
+      "bumps": 0.55,
+      "mountains": 1,
+      "valley": 0.4
+    },
+    "vegetation": {
+      "trees": 0.45,
+      "bushes": 0.7,
+      "rocks": 0.9,
+      "grass": 1.2
+    },
+    "hq": [
+      {
+        "x": 0,
+        "z": 470
+      },
+      {
+        "x": 0,
+        "z": -470
+      }
+    ],
+    "flags": [
+      {
+        "id": "A",
+        "name": "WINDMILL FARM",
+        "x": -320,
+        "z": 210,
+        "radius": 24
+      },
+      {
+        "id": "B",
+        "name": "RAIL DEPOT",
+        "x": 280,
+        "z": 190,
+        "radius": 26,
+        "town": true
+      },
+      {
+        "id": "C",
+        "name": "KARSK",
+        "x": 0,
+        "z": 0,
+        "radius": 28,
+        "town": true
+      },
+      {
+        "id": "D",
+        "name": "OLD QUARRY",
+        "x": -280,
+        "z": -200,
+        "radius": 26
+      },
+      {
+        "id": "E",
+        "name": "COLLECTIVE FARM",
+        "x": 320,
+        "z": -210,
+        "radius": 24
+      }
+    ],
+    "roads": [
+      [
+        [0, 500],
+        [10, 330],
+        [-15, 160],
+        [0, 0],
+        [15, -160],
+        [-10, -330],
+        [0, -500]
+      ],
+      [
+        [-500, 260],
+        [-320, 210],
+        [-160, 120],
+        [0, 0],
+        [160, -110],
+        [320, -210],
+        [500, -250]
+      ],
+      [
+        [-280, -200],
+        [-130, -90],
+        [0, 0],
+        [140, 90],
+        [280, 190],
+        [500, 230]
+      ],
+      [
+        [-320, 210],
+        [-300, 40],
+        [-280, -200]
+      ],
+      [
+        [280, 190],
+        [300, 0],
+        [320, -210]
+      ]
+    ],
+    "buildings": [
+      [
+        -34.5,
+        68.9,
+        5,
+        3,
+        3
+      ],
+      [
+        28,
+        89.6,
+        4,
+        6,
+        3
+      ],
+      [
+        -86.6,
+        -0.8,
+        5,
+        5,
+        2
+      ],
+      [
+        -56,
+        0.4,
+        4,
+        6,
+        1
+      ],
+      [
+        80.3,
+        14.2,
+        3,
+        4,
+        2
+      ],
+      [
+        -70.5,
+        15.5,
+        3,
+        6,
+        1
+      ],
+      [
+        7.3,
+        65.7,
+        3,
+        5,
+        1
+      ],
+      [
+        47.9,
+        -50.1,
+        4,
+        6,
+        2
+      ],
+      [
+        -71,
+        -29.9,
+        3,
+        6,
+        1
+      ],
+      [
+        63.3,
+        -66.2,
+        3,
+        3,
+        1
+      ],
+      [
+        85.6,
+        -3.5,
+        6,
+        4,
+        1
+      ],
+      [
+        -7.5,
+        -79.7,
+        4,
+        4,
+        1
+      ],
+      [
+        -54.3,
+        74.9,
+        4,
+        6,
+        2
+      ],
+      [
+        59.8,
+        10.7,
+        6,
+        4,
+        1
+      ],
+      [
+        34.7,
+        -45.6,
+        4,
+        5,
+        2
+      ],
+      [
+        46.9,
+        58.1,
+        5,
+        4,
+        2
+      ],
+      [
+        220.2,
+        190.4,
+        4,
+        3,
+        2
+      ],
+      [
+        332.4,
+        187.3,
+        4,
+        5,
+        2
+      ],
+      [
+        308.8,
+        227.1,
+        6,
+        4,
+        1
+      ],
+      [
+        247.7,
+        230.4,
+        5,
+        3,
+        1
+      ],
+      [
+        299.4,
+        124.1,
+        5,
+        3,
+        2
+      ],
+      [
+        216.2,
+        172.9,
+        4,
+        3,
+        2
+      ],
+      [
+        238.3,
+        215.8,
+        4,
+        3,
+        2
+      ],
+      [
+        -274,
+        205.7,
+        5,
+        5,
+        1
+      ],
+      [
+        -322.7,
+        250.7,
+        4,
+        4,
+        1
+      ],
+      [
+        -299,
+        259.7,
+        5,
+        6,
+        1
+      ],
+      [
+        -289.6,
+        169.1,
+        6,
+        6,
+        1
+      ],
+      [
+        -338.4,
+        158,
+        4,
+        3,
+        1
+      ],
+      [
+        350.3,
+        -250.9,
+        6,
+        4,
+        1
+      ],
+      [
+        373.5,
+        -176.2,
+        3,
+        4,
+        1
+      ],
+      [
+        299.2,
+        -154.3,
+        6,
+        5,
+        1
+      ],
+      [
+        287.9,
+        -250.1,
+        6,
+        3,
+        1
+      ],
+      [
+        288.8,
+        -266.6,
+        4,
+        3,
+        1
+      ],
+      [
+        307.7,
+        -258.2,
+        5,
+        6,
+        1
+      ],
+      [
+        -264.1,
+        -241,
+        5,
+        4,
+        1
+      ],
+      [
+        -268.4,
+        -158.1,
+        6,
+        3,
+        1
+      ],
+      [
+        -318.2,
+        -236.7,
+        4,
+        5,
+        1
+      ],
+      [
+        -84.8,
+        343.6,
+        6,
+        5,
+        1
+      ],
+      [
+        -118.2,
+        386.2,
+        4,
+        3,
+        1
+      ],
+      [
+        -121.3,
+        343.5,
+        3,
+        4,
+        1
+      ],
+      [
+        141.2,
+        -325.4,
+        5,
+        3,
+        1
+      ],
+      [
+        123.4,
+        -372.2,
+        3,
+        5,
+        1
+      ],
+      [
+        133.3,
+        -391.1,
+        4,
+        6,
+        1
+      ]
+    ],
+    "props": [
+      {
+        "type": "container",
+        "x": 250.2,
+        "z": 149.3,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 294.4,
+        "z": 153.8,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 304.7,
+        "z": 159.4,
+        "rot": 90,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 311.3,
+        "z": 242.6,
+        "rot": 90,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 270,
+        "z": 244.7,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 242.4,
+        "z": 173.9,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 296.4,
+        "z": 237.7,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 229.9,
+        "z": 181,
+        "rot": 90,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 285.8,
+        "z": 230.6,
+        "rot": 90,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 331.9,
+        "z": 209.6,
+        "rot": 90,
+        "color": "#7b4a32"
+      },
+      {
+        "type": "container",
+        "x": 261.4,
+        "z": 137.1,
+        "rot": 90,
+        "color": "#45607a"
+      },
+      {
+        "type": "container",
+        "x": 264.1,
+        "z": 155,
+        "rot": 90,
+        "color": "#45607a"
+      },
+      {
+        "type": "container",
+        "x": 232.3,
+        "z": 168.8,
+        "color": "#45607a"
+      },
+      {
+        "type": "container",
+        "x": 279.6,
+        "z": 136,
+        "rot": 90,
+        "color": "#45607a"
+      },
+      {
+        "type": "ruin",
+        "x": -310.6,
+        "z": -165,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -324.8,
+        "z": -214.4
+      },
+      {
+        "type": "ruin",
+        "x": -243.6,
+        "z": -210.7
+      },
+      {
+        "type": "ruin",
+        "x": -247.1,
+        "z": -229.8
+      },
+      {
+        "type": "ruin",
+        "x": -221.4,
+        "z": -236.3
+      },
+      {
+        "type": "ruin",
+        "x": -312.2,
+        "z": -247.3
+      },
+      {
+        "type": "ruin",
+        "x": -326,
+        "z": -229.1,
+        "rot": 90
+      },
+      {
+        "type": "ruin",
+        "x": -266.5,
+        "z": -267.3,
+        "rot": 90
+      },
+      {
+        "type": "crate",
+        "x": -355.8,
+        "z": 200.7,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -362.7,
+        "z": 205.8,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -351.8,
+        "z": 171.7,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -331.7,
+        "z": 257.8,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -345.3,
+        "z": 245,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -304.6,
+        "z": 240.6,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -347.8,
+        "z": 183.2,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -353.9,
+        "z": 243.1,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -352.8,
+        "z": 214.1,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": -337.8,
+        "z": 249.3,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 347.2,
+        "z": -227.8,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 334.9,
+        "z": -173.7,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 289.6,
+        "z": -176.9,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 295.6,
+        "z": -241.1,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 324,
+        "z": -247,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 299.5,
+        "z": -181.7,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 358.2,
+        "z": -198.1,
+        "rot": 90,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 318.1,
+        "z": -258.9,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 301.1,
+        "z": -246,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "crate",
+        "x": 360.5,
+        "z": -208.8,
+        "color": "#b49a5c"
+      },
+      {
+        "type": "wreck",
+        "x": 171,
+        "z": 32.2
+      },
+      {
+        "type": "wreck",
+        "x": 100.7,
+        "z": -41.4,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": -12.4,
+        "z": -107.1
+      },
+      {
+        "type": "wreck",
+        "x": -145.5,
+        "z": -19.6
+      },
+      {
+        "type": "wreck",
+        "x": -18.9,
+        "z": 56.1
+      },
+      {
+        "type": "wreck",
+        "x": -180.5,
+        "z": -26.9
+      },
+      {
+        "type": "wreck",
+        "x": -52.7,
+        "z": -214.8
+      },
+      {
+        "type": "wreck",
+        "x": -216.5,
+        "z": -309.2,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": -13,
+        "z": -43.7
+      },
+      {
+        "type": "wreck",
+        "x": -175.4,
+        "z": 199,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": 255.7,
+        "z": -60.7,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": 92.4,
+        "z": -23.1
+      },
+      {
+        "type": "wreck",
+        "x": 115.2,
+        "z": -161.9
+      },
+      {
+        "type": "wreck",
+        "x": 358.4,
+        "z": -108.2
+      },
+      {
+        "type": "wreck",
+        "x": -184.7,
+        "z": 168.1,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": -347.2,
+        "z": -80.2,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": -350.7,
+        "z": -45.1
+      },
+      {
+        "type": "wreck",
+        "x": -34.9,
+        "z": -47.7
+      },
+      {
+        "type": "wreck",
+        "x": 18,
+        "z": 338.2,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": -50.9,
+        "z": -309.5,
+        "rot": 90
+      },
+      {
+        "type": "wreck",
+        "x": 73,
+        "z": -113
+      },
+      {
+        "type": "wreck",
+        "x": -43.6,
+        "z": -47.1,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 28,
+        "z": 233.1
+      },
+      {
+        "type": "sandbags",
+        "x": -143.1,
+        "z": 9.8,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -104.2,
+        "z": -183.9,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -326.6,
+        "z": -34.8
+      },
+      {
+        "type": "sandbags",
+        "x": -13.1,
+        "z": -34,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 120.2,
+        "z": 304.8,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 21.9,
+        "z": -357.4
+      },
+      {
+        "type": "sandbags",
+        "x": -71.5,
+        "z": 31.2,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -33.4,
+        "z": 368,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -263.5,
+        "z": 214.1,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": -115.3,
+        "z": -149.3,
+        "rot": 90
+      },
+      {
+        "type": "sandbags",
+        "x": 11.4,
+        "z": 288.6
+      },
+      {
+        "type": "sandbags",
+        "x": 13.3,
+        "z": 228
+      },
+      {
+        "type": "sandbags",
+        "x": -5.8,
+        "z": 311.8
+      },
+      {
+        "type": "barrier",
+        "x": -115.8,
+        "z": -72,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -54.7,
+        "z": -69,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 26.3,
+        "z": 154.5
+      },
+      {
+        "type": "barrier",
+        "x": -79.4,
+        "z": -149.9,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 38.4,
+        "z": 126.4,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 95.4,
+        "z": 229.7
+      },
+      {
+        "type": "barrier",
+        "x": 60.9,
+        "z": -139.7,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 122,
+        "z": 111.8,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -77.5,
+        "z": -100.2
+      },
+      {
+        "type": "barrier",
+        "x": 178.1,
+        "z": -18.4,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -174.5,
+        "z": -38.3
+      },
+      {
+        "type": "barrier",
+        "x": 15,
+        "z": 157.3
+      },
+      {
+        "type": "barrier",
+        "x": 45.7,
+        "z": -278,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": 18.4,
+        "z": 235.4
+      },
+      {
+        "type": "barrier",
+        "x": -35.7,
+        "z": 6.5,
+        "rot": 90
+      },
+      {
+        "type": "barrier",
+        "x": -22.6,
+        "z": 44.4
+      }
+    ],
+    "randomProps": false
+  },
+  "script": [
+    "// ================================================================ battle kit (shared by the battle mods)",
+    "// A battle mod turns the match into a vehicle battle: every soldier (you and the bots) deploys straight into",
+    "// a vehicle, and the deploy screen only offers places where vehicles can join the fight.",
+    "const g = api.game, pc = g.playerCtl, hud = g.hud, ui = g.ui, world = g.world;",
+    "const { HQS, TEAMS, RULES, VEHICLES } = api.config;",
+    "const V3 = THREE.Vector3;",
+    "const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);",
+    "const rand = (a, b) => a + Math.random() * (b - a);",
+    "const lerp = (a, b, t) => a + (b - a) * t;",
+    "const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));",
+    "const yawTo = (dx, dz) => Math.atan2(-dx, -dz);",
+    "const $ = (id) => document.getElementById(id);",
+    "const onOff = (fn) => {",
+    "  if (api.onDisable) return api.onDisable(fn);",
+    "  const h = api.addModel([{ shape: 'box', size: [0.01, 0.01, 0.01] }], { x: 0, y: -500, z: 0 });",
+    "  h.setVisible(false);",
+    "  const remove = h.remove;",
+    "  h.remove = () => { remove(); fn(); };",
+    "};",
+    "// Replaces a method and remembers how to put the old one back",
+    "const undo = [];",
+    "const patch = (obj, name, make) => {",
+    "  const own = Object.prototype.hasOwnProperty.call(obj, name);",
+    "  const prev = obj[name];",
+    "  const fn = make(prev);",
+    "  obj[name] = fn;",
+    "  undo.push(() => { if (obj[name] === fn) { if (own) obj[name] = prev; else delete obj[name]; } });",
+    "  return prev;",
+    "};",
+    "onOff(() => { for (const u of undo.splice(0).reverse()) { try { u(); } catch (e) { console.error(e); } } });",
+    "const MAPSIZE = api.mapSize ? api.mapSize() : { play: 240, world: 560 };",
+    "const SEA = api.water ? api.water() : null;",
+    "const surface = (x, z) => { const h = world.heightAt(x, z); return SEA !== null && SEA > h ? SEA : h; };",
+    "// how many vehicles each side gets: one per soldier, up to a cap",
+    "// (the same on every page, so online games agree on the list of vehicles)",
+    "const perSide = (cap) => cap;",
+    "",
+    "// The place a bot rejoins the fight: usually the held flag closest to the enemy, otherwise its HQ",
+    "function botPoint(team) {",
+    "  const pts = g.mode.spawnPoints(team).filter((p) => p.type === 'hq' || p.type === 'flag');",
+    "  let pt = pts[0];",
+    "  const flags = pts.filter((p) => p.type === 'flag');",
+    "  if (flags.length && Math.random() < 0.7) {",
+    "    let bd = Infinity;",
+    "    for (const p of flags) {",
+    "      let d = Infinity;",
+    "      for (const f of g.mode.flags) if (f.owner !== team) d = Math.min(d, Math.hypot(f.x - p.x, f.z - p.z));",
+    "      d += rand(0, 80);",
+    "      if (d < bd) { bd = d; pt = p; }",
+    "    }",
+    "  }",
+    "  return pt;",
+    "}",
+    "",
+    "// B: { noun, plural, free(team) -> vehicles ready to take, keep(point) -> deploy points shown,",
+    "//      board(soldier, vehicle, point) -> put the soldier in the vehicle at that point, pickFor(point) -> the player's vehicle }",
+    "// People (you, and other players in an online game) on a side who are waiting to deploy",
+    "const humansWaiting = (team) => (g.state === 'menu' ? 0 : g.soldiers.filter((s) => (s.isPlayer || (s.mp && s.mp.player)) && s.team === team && s.state !== 'alive' && s.state !== 'downed').length);",
+    "",
+    "function vehicleBattle(B) {",
+    "  const readyFor = (team, bot, skip) => {",
+    "    let list = B.free(team);",
+    "    if (skip) list = list.filter((v) => !skip.has(v));",
+    "    // the bots leave a vehicle for each person on their side who is choosing where to deploy",
+    "    if (bot && list.length <= humansWaiting(team)) return [];",
+    "    return list;",
+    "  };",
+    "  B.readyFor = readyFor;",
+    "  const keep = B.keep || ((p) => p.type === 'hq' || p.type === 'flag');",
+    "  patch(g.mode, 'spawnPoints', (prev) => function (team, forPlayer = false) {",
+    "    const pts = prev.call(this, team, forPlayer).filter(keep);",
+    "    if (forPlayer && B.label) for (const p of pts) B.label(p, team);",
+    "    return pts;",
+    "  });",
+    "  // bots respawn straight into a free vehicle, or wait for one",
+    "  patch(g.mode, 'respawnBot', (prev) => function (s) {",
+    "    if (B.botRespawn) return B.botRespawn(s, prev.bind(this));",
+    "    const v = readyFor(s.team, true)[0];",
+    "    if (!v) { s.respawnT = rand(1, 2.5); return; }",
+    "    B.board(s, v, botPoint(s.team));",
+    "  });",
+    "  // the Multiplayer mod asks which vehicle you'd get (to claim it from the host first), then deploys with it",
+    "  const pick = (point, skip) => (B.pickFor ? B.pickFor(point, skip) : readyFor(g.player.team, false, skip)[0]) || null;",
+    "  const vb = { pick };",
+    "  g.__vb = vb;",
+    "  onOff(() => { if (g.__vb === vb) delete g.__vb; });",
+    "  patch(g, 'deployPlayer', (prev) => function (classId, point) {",
+    "    const P = this.player;",
+    "    if (P.state === 'alive' || P.state === 'downed') return;",
+    "    const v = g.__vbForce || pick(point);",
+    "    if (!v) { hud.toast(`NO ${B.noun} READY`); return; }",
+    "    prev.call(this, classId, point);",
+    "    if (P.state === 'alive' && P.vehicle !== v) B.board(P, v, point);",
+    "    if (B.afterDeploy) B.afterDeploy(P, v);",
+    "  });",
+    "  // the deploy button waits while no vehicle is ready",
+    "  patch(ui, 'updateDeploy', (prev) => function (dt) {",
+    "    prev.call(this, dt);",
+    "    if (g.redeployT > 0) return;",
+    "    const btn = $('btn-deploy');",
+    "    const ok = B.pickFor ? !!B.pickFor(this.selectedPoint()) : readyFor(g.player.team, false).length > 0;",
+    "    btn.disabled = !ok;",
+    "    btn.textContent = ok ? `DEPLOY · ${B.noun}` : `WAITING FOR A ${B.noun}`;",
+    "  });",
+    "  patch(ui, '_deploy', (prev) => function () {",
+    "    if ($('btn-deploy').disabled) return;",
+    "    return prev.call(this);",
+    "  });",
+    "}",
+    "",
+    "// ================================================================ Tank Warfare",
+    "// Every soldier commands a tank. Each side gets one tank per soldier (up to 10); a destroyed tank comes back",
+    "// at its HQ after a few seconds, and that's the next tank someone deploys in, at the HQ or at a held flag.",
+    "const TankClass = (g.vehicles.find((v) => typeof v.fireCannon === 'function' && !v.isAircraft) || {}).constructor;",
+    "const MAX_TANKS = 10;",
+    "const tanks = () => g.vehicles.filter((v) => v.isBattleTank);",
+    "const added = [];",
+    "",
+    "// parking rows behind each HQ, facing the enemy",
+    "function parkSpot(v) {",
+    "  const hq = HQS[v.team];",
+    "  const mine = tanks().filter((t) => t.team === v.team);",
+    "  const k = Math.max(0, mine.indexOf(v));",
+    "  const fx = -Math.sin(hq.yaw), fz = -Math.cos(hq.yaw), rx = Math.cos(hq.yaw), rz = -Math.sin(hq.yaw);",
+    "  const col = (k % 5) - 2, row = Math.floor(k / 5);",
+    "  return { x: hq.x + rx * col * 10 - fx * (14 + row * 13), z: hq.z + rz * col * 10 - fz * (14 + row * 13), yaw: hq.yaw };",
+    "}",
+    "function setPose(v, x, z, yaw) {",
+    "  v.pos.set(x, world.heightAt(x, z), z);",
+    "  v.yaw = yaw; v.turretYaw = yaw; v.gunPitch = 0; v.speed = 0;",
+    "  v.input.aimYaw = yaw; v.input.aimPitch = 0;",
+    "  v._ground(1); v._ground(1); v._ground(1);",
+    "  v._sync();",
+    "}",
+    "const clearAt = (v, x, z) => {",
+    "  const y = world.heightAt(x, z);",
+    "  if (Math.abs(world.heightAt(x + 3, z) - y) > 1.6 || Math.abs(world.heightAt(x, z + 3) - y) > 1.6) return false;",
+    "  if (SEA !== null && y < SEA + 0.5) return false;",
+    "  for (const o of g.vehicles) if (o !== v && o.exists && Math.hypot(o.pos.x - x, o.pos.z - z) < 9) return false;",
+    "  const oy = v.pos.y, ox = v.pos.x, oz = v.pos.z;",
+    "  v.pos.set(x, y, z);",
+    "  const free = !v._blockers(x, z, false).length;",
+    "  v.pos.set(ox, oy, oz);",
+    "  return free;",
+    "};",
+    "// Moves a waiting tank to where someone deploys: its parking spot at the HQ, or beside a held flag",
+    "function placeAt(v, pt) {",
+    "  const hq = HQS[v.team], enemy = HQS[1 - v.team];",
+    "  if (!pt || pt.type !== 'flag' || !pt.flag) {",
+    "    const p = parkSpot(v);",
+    "    if (clearAt(v, p.x, p.z) || Math.hypot(v.pos.x - p.x, v.pos.z - p.z) > 1) setPose(v, p.x, p.z, p.yaw);",
+    "    return;",
+    "  }",
+    "  const f = pt.flag;",
+    "  const face = yawTo(enemy.x - f.x, enemy.z - f.z);",
+    "  const back = Math.atan2(hq.x - f.x, hq.z - f.z); // direction from the flag toward our HQ",
+    "  for (let i = 0; i < 40; i++) {",
+    "    const a = back + rand(-1.3, 1.3) * (0.5 + i / 40), r = f.radius + rand(6, 26) + i * 0.6;",
+    "    const x = f.x + Math.sin(a) * r, z = f.z + Math.cos(a) * r;",
+    "    if (clearAt(v, x, z)) { setPose(v, x, z, face); return; }",
+    "  }",
+    "  const p = parkSpot(v);",
+    "  setPose(v, p.x, p.z, p.yaw);",
+    "}",
+    "",
+    "function board(s, v, pt) {",
+    "  placeAt(v, pt);",
+    "  if (s.state !== 'alive') s.spawn(v.pos.x, v.pos.y + 0.1, v.pos.z, v.yaw);",
+    "  else { s.pos.copy(v.pos); s.vel.set(0, 0, 0); }",
+    "  if (s.vehicle && s.vehicle !== v) s.vehicle.removeDriver(s, false);",
+    "  v.claimedBy = null;",
+    "  v.enter(s);",
+    "  if (s.brain) { s.brain.wantTank = null; s.brain.target = null; s.brain.tankTarget = null; }",
+    "  if (s === g.player) { pc.camYaw = v.turretYaw; pc.camPitch = -0.08; pc.tankWeapon = 0; }",
+    "}",
+    "",
+    "// one tank per soldier: the engine's four plus as many more as the match needs",
+    "function fillTanks() {",
+    "  if (!TankClass) return;",
+    "  const want = perSide(MAX_TANKS);",
+    "  for (const team of [0, 1]) {",
+    "    let have = g.vehicles.filter((v) => v instanceof TankClass && v.team === team);",
+    "    for (let slot = have.length; slot < want; slot++) {",
+    "      const t = new TankClass(g, team, 10 + slot);",
+    "      g.vehicles.push(t);",
+    "      added.push(t);",
+    "    }",
+    "    have = g.vehicles.filter((v) => v instanceof TankClass && v.team === team);",
+    "    have.forEach((t, i) => { t.isBattleTank = i < want; if (!t.isBattleTank) { t.exists = false; t.alive = false; t.hull.visible = false; } });",
+    "  }",
+    "  for (const t of tanks()) {",
+    "    if (!Object.prototype.hasOwnProperty.call(t, 'spawn')) {",
+    "      // a respawned tank waits in the HQ's parking rows",
+    "      t.spawn = function () { TankClass.prototype.spawn.call(this); const p = parkSpot(this); setPose(this, p.x, p.z, p.yaw); };",
+    "    }",
+    "  }",
+    "}",
+    "onOff(() => {",
+    "  for (const t of g.vehicles) { if (t.isBattleTank) delete t.isBattleTank; if (Object.prototype.hasOwnProperty.call(t, 'spawn')) delete t.spawn; }",
+    "  for (const t of added) {",
+    "    if (t.driver) t.removeDriver(t.driver, false);",
+    "    g.scene.remove(t.hull);",
+    "    const i = g.vehicles.indexOf(t);",
+    "    if (i >= 0) g.vehicles.splice(i, 1);",
+    "  }",
+    "  added.length = 0;",
+    "});",
+    "",
+    "api.on('matchStart', () => {",
+    "  fillTanks();",
+    "  for (const t of tanks()) t.spawn();",
+    "});",
+    "fillTanks();",
+    "",
+    "vehicleBattle({",
+    "  noun: 'TANK',",
+    "  free: (team) => tanks().filter((v) => v.team === team && v.alive && v.exists && !v.driver),",
+    "  board,",
+    "  label(p, team) {",
+    "    if (p.type !== 'hq') return;",
+    "    const n = tanks().filter((v) => v.team === team && v.alive && !v.driver).length;",
+    "    p.label = `HEADQUARTERS · ${n} TANK${n === 1 ? '' : 'S'} READY`;",
+    "  },",
+    "});",
+    "",
+    "// Bots in tanks: armour covers ground fast, so a flag that is already safely held is left to someone else",
+    "// and the tanks push on to the next one (a few stay back as defenders)",
+    "let brainPatched = false;",
+    "const patchBrains = () => {",
+    "  const b = g.soldiers.find((s) => s.brain);",
+    "  if (brainPatched || !b) return;",
+    "  brainPatched = true;",
+    "  patch(Object.getPrototypeOf(b.brain), 'think', (prev) => function () {",
+    "    const s = this.s, v = s.vehicle, flags = g.mode.flags;",
+    "    if (!(v && v.isBattleTank) || !flags.length) return prev.call(this);",
+    "    if (!this.tankPref || this.tankPref.length !== flags.length) { this.tankPref = flags.map(() => rand(0, 45)); this.defender = Math.random() < 0.2; }",
+    "    let best = null, bs = -Infinity;",
+    "    flags.forEach((f, i) => {",
+    "      const d = Math.hypot(f.x - v.pos.x, f.z - v.pos.z);",
+    "      const full = s.team === 0 ? f.progress >= 1 : f.progress <= -1;",
+    "      let sc = this.tankPref[i] - d / 18;",
+    "      if (f.owner !== s.team) sc += 60;",
+    "      else if (f.contested || !full) sc += 58;",
+    "      else sc += this.defender ? 20 : -15;",
+    "      if (f === this.objective) sc += 8;",
+    "      if (sc > bs) { bs = sc; best = f; }",
+    "    });",
+    "    if (best && best !== this.objective) { this.objective = best; this.moveTarget = null; }",
+    "  });",
+    "};",
+    "api.on('matchStart', patchBrains);",
+    "api.on('tick', patchBrains);",
+    "",
+    "// The tank's sight reaches across the bigger map",
+    "patch(pc, 'updateCamera', (prev) => function (dt) {",
+    "  prev.call(this, dt);",
+    "  const s = this.s, v = s && s.vehicle;",
+    "  if (!(s && s.state === 'alive' && v && v.isBattleTank)) return;",
+    "  const cam = this.camera;",
+    "  const dir = new V3(0, 0, -1).applyQuaternion(cam.quaternion);",
+    "  const h = world.raycast(cam.position.x, cam.position.y, cam.position.z, dir.x, dir.y, dir.z, 900, true);",
+    "  if (h.hit && h.t > 440) {",
+    "    const ox = v.pos.x, oy = v.pos.y + 1.9, oz = v.pos.z;",
+    "    v.input.aimYaw = yawTo(h.x - ox, h.z - oz);",
+    "    v.input.aimPitch = Math.atan2(h.y - oy, Math.hypot(h.x - ox, h.z - oz));",
+    "  }",
+    "});",
+    "",
+    "// Leaving your tank in a tank battle: you're a crewman on foot with your class kit until you find another",
+    "api.on('exitVehicle', (e) => {",
+    "  if (e.soldier === g.player && e.vehicle.isBattleTank) api.toast('ON FOOT · FIND A TANK OR REDEPLOY');",
+    "});",
+    ""
+  ]
+}

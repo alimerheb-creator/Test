@@ -1,14 +1,19 @@
 // Terrain, sky, lighting, vegetation, static props and the collision/raycast grid.
 import * as THREE from 'three';
-import { PLAY_HALF, WORLD_HALF, FLAGS, HQS, BUILDINGS, ROADS, MAP, TERRAIN, VEGETATION, MAP_PROPS } from './config.js';
+import { PLAY_HALF, WORLD_HALF, GRID, FLAGS, HQS, BUILDINGS, ROADS, MAP, TERRAIN, VEGETATION, MAP_PROPS } from './config.js';
 import { fbm2, smoothstep, lerp, clamp, mulberry32, segDist2, rayAABB } from './util.js';
 import { makeTextures, worldUVMaterial } from './textures.js';
 
-// Terrain grid: fine spacing in the battle zone, coarse spacing out to the horizon mountains.
-const INNER = 280, FINE = 2.5, COARSE = 14;
-const N_OUT = Math.round((WORLD_HALF - INNER) / COARSE);
-const N_IN = Math.round((2 * INNER) / FINE);
-const N = N_OUT * 2 + N_IN + 1;
+// Terrain grid: fine spacing in the battle zone, coarse spacing out to the horizon mountains. The layout
+// depends on the map's size, so it is worked out when the world is built.
+let INNER = 280, FINE = 2.5, COARSE = 14, N_OUT = 20, N_IN = 224, N = 265;
+function layoutGrid() {
+  INNER = GRID.inner; FINE = (2 * INNER) / Math.round((2 * INNER) / GRID.fine);
+  N_OUT = Math.max(1, Math.round((WORLD_HALF - INNER) / GRID.coarse));
+  COARSE = (WORLD_HALF - INNER) / N_OUT;
+  N_IN = Math.round((2 * INNER) / FINE);
+  N = N_OUT * 2 + N_IN + 1;
+}
 
 function axisCoord(i) {
   if (i < N_OUT) return -WORLD_HALF + i * COARSE;
@@ -21,10 +26,9 @@ function axisU(v) {
   return N_OUT + N_IN + (v - INNER) / COARSE;
 }
 
-// Collision grid
+// Collision grid (it covers the play area)
 const CELL = 8;
-const GRID_HALF = 320;
-const GN = Math.ceil((GRID_HALF * 2) / CELL);
+let GRID_HALF = 320, GN = Math.ceil((GRID_HALF * 2) / CELL);
 
 export const SUN_DIR = new THREE.Vector3(-0.78, 0.42, -0.36).normalize();
 
@@ -59,6 +63,9 @@ export class World {
     this.scene = game.scene;
     this.tex = makeTextures();
     this.boxes = [];
+    layoutGrid();
+    GRID_HALF = Math.max(320, PLAY_HALF + 80);
+    GN = Math.ceil((GRID_HALF * 2) / CELL);
     this.cells = new Array(GN * GN);
     this.stamp = 1;
     this.flatZones = [];
@@ -88,8 +95,22 @@ export class World {
     const e = Math.max(Math.abs(x), Math.abs(z));
     const m = smoothstep(PLAY_HALF - 5, PLAY_HALF + 160, e);
     h += m * (30 + (fbm2(x * 0.008 - 3 + s, z * 0.008 + 9, 5) * 0.5 + 0.5) * 80) * T.mountains;
+    if (T.level) h += T.level;
+    // islands: a raised mound with a ragged coastline and a hilly top
+    for (const isl of T.islands || []) {
+      const dx = x - isl[0], dz = z - isl[1], r = isl[2];
+      const d2 = dx * dx + dz * dz;
+      if (d2 > r * r * 2.2) continue;
+      const d = Math.sqrt(d2) * (1 + 0.28 * fbm2(x * 0.012 + isl[0] * 0.01, z * 0.012 - isl[1] * 0.01, 3));
+      const k = 1 - smoothstep(r * 0.25, r, d);
+      h += k * k * (3 - 2 * k) * isl[3];
+    }
     return h;
   }
+
+  // Sea level, or null for a map without water
+  get water() { return TERRAIN.water === null || TERRAIN.water === undefined ? null : TERRAIN.water; }
+  isWater(x, z) { const w = this.water; return w !== null && this.heightAt(x, z) < w; }
 
   _setupZones() {
     for (const f of FLAGS) {
@@ -177,7 +198,7 @@ export class World {
     const col = new Float32Array(count * 3);
     const grassA = new THREE.Color(0x7a7446), grassB = new THREE.Color(0x5b6538), dirt = new THREE.Color(0x8e7657);
     const rock = new THREE.Color(0x77706a), rockHi = new THREE.Color(0x9a948c), town = new THREE.Color(0x9b8b70);
-    const road = new THREE.Color(0x5f574d);
+    const road = new THREE.Color(0x5f574d), sand = new THREE.Color(0xc2b087), seabed = new THREE.Color(0x3f4a3f);
     const c = new THREE.Color();
     const segs = [];
     for (const r of ROADS) for (let i = 0; i < r.length - 1; i++) segs.push([r[i][0], r[i][1], r[i + 1][0], r[i + 1][1]]);
@@ -197,6 +218,11 @@ export class World {
       }
       c.lerp(rock, smoothstep(0.16, 0.38, slope));
       c.lerp(rockHi, smoothstep(50, 100, y) * 0.55);
+      if (this.water !== null) {
+        // wet sand at the waterline, dark sea floor below it
+        c.lerp(sand, (1 - smoothstep(0.4, 2.6, y - this.water)) * 0.85);
+        c.lerp(seabed, smoothstep(0, 6, this.water - y));
+      }
       col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -205,6 +231,44 @@ export class World {
     this.terrain = new THREE.Mesh(geo, mat);
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
+    if (this.water !== null) this._buildWater();
+  }
+
+  // A sea: one big sheet with moving ripples, a little see-through near the shore
+  _buildWater() {
+    const size = 1024, c = document.createElement('canvas');
+    c.width = c.height = size;
+    const x = c.getContext('2d');
+    x.fillStyle = 'rgb(128,128,255)';
+    x.fillRect(0, 0, size, size);
+    const rng = mulberry32(4242);
+    for (let i = 0; i < 2600; i++) {
+      const px = rng() * size, py = rng() * size, r = 6 + rng() * 26, a = rng() * Math.PI;
+      const nx = Math.cos(a), ny = Math.sin(a);
+      x.fillStyle = `rgba(${Math.round(128 + nx * 60)},${Math.round(128 + ny * 60)},255,0.18)`;
+      x.beginPath(); x.ellipse(px, py, r, r * 0.35, a, 0, Math.PI * 2); x.fill();
+    }
+    const nrm = new THREE.CanvasTexture(c);
+    nrm.wrapS = nrm.wrapT = THREE.RepeatWrapping;
+    nrm.repeat.set(WORLD_HALF / 40, WORLD_HALF / 40);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x1f4e5f, roughness: 0.12, metalness: 0.35, normalMap: nrm, transparent: true, opacity: 0.9, envMapIntensity: 1.2,
+    });
+    mat.normalScale.set(0.55, 0.55);
+    const geo = new THREE.PlaneGeometry(WORLD_HALF * 2.6, WORLD_HALF * 2.6, 1, 1);
+    geo.rotateX(-Math.PI / 2);
+    this.waterMesh = new THREE.Mesh(geo, mat);
+    this.waterMesh.position.y = this.water;
+    this.waterMesh.receiveShadow = true;
+    this.waterMesh.renderOrder = 1;
+    this.scene.add(this.waterMesh);
+    this.waterNormal = nrm;
+  }
+
+  updateWater(dt) {
+    if (!this.waterNormal) return;
+    this.waterNormal.offset.x += dt * 0.012;
+    this.waterNormal.offset.y += dt * 0.007;
   }
 
   // ---------------------------------------------------------------- sky & light
@@ -299,6 +363,9 @@ export class World {
     this.scene.fog.color.set(p.horizon);
     this.scene.fog.near = +p.fogNear;
     this.scene.fog.far = Math.max(+p.fogNear + 10, +p.fogFar);
+    // see as far as the fog does (big maps push it out)
+    const cam = this.game.camera;
+    if (cam) { cam.far = Math.max(1500, this.scene.fog.far + 400); cam.updateProjectionMatrix(); }
     this.scene.background.set(p.horizon);
     this.sun.color.set(p.sunLight);
     this.sun.intensity = +p.sunIntensity;
@@ -331,6 +398,7 @@ export class World {
     }
     if (Math.abs(x) < PLAY_HALF + 40 && Math.abs(z) < PLAY_HALF + 40) d -= 1 - smoothstep(3, 6.5, this._roadDist(x, z));
     if (this._nearBuilding(x, z, 1.5)) return 0;
+    if (this.water !== null && this.heightAt(x, z) < this.water + 0.8) return 0;
     d -= smoothstep(0.14, 0.32, 1 - this.normalAt(x, z, _n).y);
     d *= 0.55 + (fbm2(x * 0.09 + 7, z * 0.09, 2) * 0.5 + 0.5) * 0.9;
     return clamp(d, 0, 1);
@@ -418,7 +486,9 @@ export class World {
 
     const spots = [];
     let tries = 0;
-    const nIn = Math.round(360 * VEGETATION.trees), nAll = nIn + Math.round(280 * VEGETATION.trees);
+    const areaIn = clamp((PLAY_HALF / 240) ** 2, 1, 6), areaOut = clamp((WORLD_HALF / 560) ** 2, 1, 5);
+    const nIn = Math.round(360 * VEGETATION.trees * areaIn), nAll = nIn + Math.round(280 * VEGETATION.trees * areaOut);
+    const wet = (y) => this.water !== null && y < this.water + 1.2;
     while (spots.length < nAll && tries < 20000 + nAll * 20) {
       tries++;
       const inside = spots.length < nIn;
@@ -431,7 +501,7 @@ export class World {
       if (this._nearBuilding(x, z, 6)) continue;
       if (inside && this._roadDist(x, z) < 7) continue;
       const y = this.heightAt(x, z);
-      if (y > 120) continue;
+      if (y > 120 || wet(y)) continue;
       spots.push({ x, z, y, pine: rng() < 0.6, h: 5 + rng() * 6.5, inside });
     }
     const pines = spots.filter((s) => s.pine), leafs = spots.filter((s) => !s.pine);
@@ -477,16 +547,17 @@ export class World {
 
     // Bushes (no collision)
     const bushGeo = new THREE.IcosahedronGeometry(1, 0);
-    const bushCount = Math.round(520 * VEGETATION.bushes);
+    const bushCount = Math.round(520 * VEGETATION.bushes * clamp(areaIn, 1, 4));
     this.bushMesh = new THREE.InstancedMesh(bushGeo, crownMat, Math.max(1, bushCount));
     let placed = 0; tries = 0;
-    while (placed < bushCount && tries < 12000) {
+    while (placed < bushCount && tries < 12000 * clamp(areaIn, 1, 4)) {
       tries++;
       const x = (rng() * 2 - 1) * (PLAY_HALF + 60), z = (rng() * 2 - 1) * (PLAY_HALF + 60);
       if (this._nearBuilding(x, z, 3)) continue;
       if (this._roadDist(x, z) < 4) continue;
       if (FLAGS.some((f) => Math.hypot(x - f.x, z - f.z) < f.radius + 2)) continue;
       const y = this.heightAt(x, z);
+      if (wet(y)) continue;
       const s = 0.6 + rng() * 1.1;
       dummy.position.set(x, y + s * 0.25, z);
       dummy.rotation.set(0, rng() * 6.28, 0);
@@ -505,10 +576,10 @@ export class World {
     // Rocks
     const rockGeo = new THREE.DodecahedronGeometry(1, 0);
     const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, flatShading: true });
-    const rockCount = Math.round(190 * VEGETATION.rocks), rocksIn = Math.round(140 * VEGETATION.rocks);
+    const rockCount = Math.round(190 * VEGETATION.rocks * clamp(areaOut, 1, 4)), rocksIn = Math.round(140 * VEGETATION.rocks * clamp(areaIn, 1, 4));
     this.rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, Math.max(1, rockCount));
     placed = 0; tries = 0;
-    while (placed < rockCount && tries < 8000) {
+    while (placed < rockCount && tries < 8000 * clamp(areaOut, 1, 4)) {
       tries++;
       const inside = placed < rocksIn;
       const lim = inside ? PLAY_HALF - 5 : WORLD_HALF - 80;
@@ -518,6 +589,7 @@ export class World {
       if (this._nearBuilding(x, z, 5)) continue;
       if (inside && this._roadDist(x, z) < 6) continue;
       const y = this.heightAt(x, z);
+      if (wet(y) && inside) continue;
       const s = inside ? 0.7 + rng() * 1.8 : 2 + rng() * 6;
       const sy = s * (0.5 + rng() * 0.4);
       dummy.position.set(x, y + sy * 0.3, z);
@@ -816,10 +888,17 @@ export class World {
       if (best <= tExit || tExit > maxT || tExit === Infinity) break;
       if (tMaxX < tMaxZ) { cx += stepX; tMaxX += tDX; } else { cz += stepZ; tMaxZ += tDZ; }
     }
-    let terrainHit = false;
+    let terrainHit = false, waterHit = false;
+    hit.water = false;
     if (terrain) {
       const tt = this.raycastTerrain(ox, oy, oz, dx, dy, dz, best);
       if (tt < best) { best = tt; bestBox = null; terrainHit = true; }
+      // the sea surface stops things coming from above it
+      const sea = this.water;
+      if (sea !== null && dy < -1e-6 && oy >= sea) {
+        const tw = (sea - oy) / dy;
+        if (tw < best) { best = tw; bestBox = null; terrainHit = true; waterHit = true; }
+      }
     }
     if (!bestBox && !terrainHit) return hit;
     hit.hit = true;
@@ -836,6 +915,9 @@ export class World {
       if ((d = Math.abs(hit.z - b.minZ)) < m) { m = d; nx = 0; ny = 0; nz = -1; }
       if ((d = Math.abs(hit.z - b.maxZ)) < m) { m = d; nx = 0; ny = 0; nz = 1; }
       hit.nx = nx; hit.ny = ny; hit.nz = nz;
+    } else if (waterHit) {
+      hit.water = true;
+      hit.nx = 0; hit.ny = 1; hit.nz = 0;
     } else {
       const n = this.normalAt(hit.x, hit.z, _n);
       hit.nx = n.x; hit.ny = n.y; hit.nz = n.z;

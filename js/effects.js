@@ -207,6 +207,12 @@ export class Effects {
   }
 
   impact(x, y, z, nx, ny, nz, mat) {
+    if (mat === 'water') {
+      for (let i = 0; i < 5; i++) {
+        this.smoke.add(x, y + 0.05, z, rand(-0.6, 0.6), rand(2.5, 5), rand(-0.6, 0.6), rand(0.4, 0.7), rand(0.1, 0.2), rand(0.4, 0.7), 0xe4edf0, 0.85, 9, 1);
+      }
+      return;
+    }
     let color = 0x8a7358, spark = false, n = 5;
     if (mat === 'plaster') color = 0xd8cdb8;
     else if (mat === 'concrete') color = 0xaaa59b;
@@ -241,7 +247,22 @@ export class Effects {
     }
   }
 
+  // A shell or bomb landing in the sea: a tall column of white water
+  splash(x, y, z, scale = 1) {
+    const s = scale;
+    for (let i = 0; i < 30 * s + 8; i++) {
+      const a = rand(0, Math.PI * 2), r = rand(0, 1.6) * s;
+      this.smoke.add(x + Math.cos(a) * r, y + 0.2, z + Math.sin(a) * r, Math.cos(a) * rand(0.5, 3) * s, rand(8, 22) * s, Math.sin(a) * rand(0.5, 3) * s,
+        rand(1.2, 2.4), rand(0.6, 1.2) * s, rand(1.6, 3.2) * s, i % 3 ? 0xe9f1f3 : 0xc9d8dc, 0.9, 11, 0.6);
+    }
+    for (let i = 0; i < 14 * s; i++) {
+      this.smoke.add(x + rand(-2, 2) * s, y + 0.3, z + rand(-2, 2) * s, rand(-4, 4) * s, rand(0.5, 2), rand(-4, 4) * s, rand(2, 4), rand(1, 2) * s, rand(4, 7) * s, 0xdfe8ea, 0.5, -0.1, 0.8);
+    }
+  }
+
   explosion(x, y, z, scale = 1) {
+    const sea = this.game.world.water;
+    if (sea !== null && y < sea + 1.2) { this.splash(x, sea, z, scale); this.flash(x, sea + 1, z, 30 * scale, 20 * scale, 0.12); return; }
     this.flash(x, y + 1, z, 60 * scale, 30 * scale, 0.22);
     const s = scale;
     for (let i = 0; i < 22 * s + 6; i++) {

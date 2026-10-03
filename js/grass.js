@@ -2,16 +2,18 @@
 // tile; the vertex shader wraps it to the copy nearest the camera and seats it on the terrain
 // using a height/density texture, so nothing is updated on the CPU per frame.
 import * as THREE from 'three';
+import { PLAY_HALF } from './config.js';
 
-const HALF = 280, STEP = 2.5;
-const M = Math.round((HALF * 2) / STEP) + 1;
 export const GRASS_MAX = 20000;
 
 export class Grass {
   constructor(game) {
     this.game = game;
     const w = game.world;
-    // Height (r) and grass density (g) sampled on the fine terrain grid
+    // Height (r) and grass density (g) sampled over the play area (coarser on big maps)
+    const HALF = Math.max(280, PLAY_HALF + 40);
+    const STEP = Math.max(2.5, (HALF * 2) / 460);
+    const M = Math.round((HALF * 2) / STEP) + 1;
     const data = new Float32Array(M * M * 4);
     for (let j = 0; j < M; j++) {
       const z = -HALF + j * STEP;
@@ -100,6 +102,7 @@ export class Grass {
           float dist = length(wp - uCenter);
           float fade = 1.0 - smoothstep(uSize * 0.3, uSize * 0.5, dist);
           float sc = hs.y > r ? (0.65 + r * 0.7) * fade : 0.0;
+          if (abs(wp.x) > uHalf || abs(wp.y) > uHalf) sc = 0.0;
           vec3 transformed = position * vec3(sc, sc * (0.75 + fract(r * 7.13) * 0.7), sc);
           float ang = r * 43.98;
           float cs = cos(ang), sn = sin(ang);

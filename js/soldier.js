@@ -1,6 +1,6 @@
 // Soldier entity shared by the player and bots: movement physics, health/downed state, model.
 import * as THREE from 'three';
-import { TEAMS, MOVE, RULES, CLASSES, WEAPONS, GADGETS } from './config.js';
+import { TEAMS, MOVE, RULES, CLASSES, WEAPONS, GADGETS, PLAY_HALF } from './config.js';
 import { mergeParts, raySphere, rayAABB, dirFromAngles, pick, clamp } from './util.js';
 import { Gun } from './weapons.js';
 
@@ -314,7 +314,7 @@ export class Soldier {
     }
     this.jumped = false;
     for (const v of this.game.vehicles) v.pushOut(this);
-    const lim = 330;
+    const lim = PLAY_HALF + 90;
     if (this.pos.x > lim) this.pos.x = lim; else if (this.pos.x < -lim) this.pos.x = -lim;
     if (this.pos.z > lim) this.pos.z = lim; else if (this.pos.z < -lim) this.pos.z = -lim;
   }

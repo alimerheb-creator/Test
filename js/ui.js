@@ -18,6 +18,7 @@ export class UI {
     this._buildPause();
     this._buildEnd();
     this._buildMods();
+    this._buildBattles();
   }
 
   show(name) {
@@ -253,7 +254,7 @@ export class UI {
   renderModList() {
     const g = this.game;
     const list = g.mods.list;
-    const statusText = { ok: 'ACTIVE', off: 'OFF', warn: 'ACTIVE · CHECK NOTES', error: 'ERROR' };
+    const statusText = { ok: 'ACTIVE', off: 'OFF', warn: 'ACTIVE · CHECK NOTES', error: 'ERROR', standby: 'ON · NOT IN THIS BATTLE' };
     $('mod-list').innerHTML = list.length ? list.map((m, i) => `
       <li class="mod-item ${m.status}">
         <div class="mod-top">
@@ -272,19 +273,137 @@ export class UI {
       </li>`).join('') : '<li class="mod-empty">No mods installed yet. Import a mod file or add one of the examples below.</li>';
     this._renderExamples();
     this.updateModsButton();
+    if (!g.mods.storageOk) this._modMsg('Your mod list could not be saved on this device (its storage is full or blocked), so these changes will be gone the next time the game starts.', true);
   }
 
   async _loadExamples() {
     if (this.examples) { this._renderExamples(); return; }
-    try {
-      const res = await fetch('mods/index.json');
-      if (!res.ok) throw new Error(String(res.status));
-      const idx = await res.json();
-      this.examples = Array.isArray(idx.mods) ? idx.mods.filter((m) => m && typeof m.file === 'string' && /^[\w.-]+$/.test(m.file)) : [];
-    } catch (e) {
-      this.examples = [];
+    if (!this._examplesLoading) {
+      this._examplesLoading = (async () => {
+        try {
+          const res = await fetch('mods/index.json');
+          if (!res.ok) throw new Error(String(res.status));
+          const idx = await res.json();
+          this.examples = Array.isArray(idx.mods) ? idx.mods.filter((m) => m && typeof m.file === 'string' && /^[\w.-]+$/.test(m.file)) : [];
+        } catch (e) {
+          this.examples = [];
+        }
+      })();
     }
+    await this._examplesLoading;
     this._renderExamples();
+  }
+
+  // ------------------------------------------------------------ battle picker (main menu)
+  // NORMAL is the base game; every other card is a battle mod, installed or shipped in the mods folder
+  _buildBattles() {
+    $('mm-battle').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-battle]');
+      if (b) this._pickBattle(b.dataset.battle);
+    });
+    this.renderBattles();
+    this._loadExamples().then(() => { this.renderBattles(); this._updateExamples(); });
+  }
+
+  battleChoices() {
+    const out = [{ id: 'normal', name: 'NORMAL', blurb: 'Infantry and tanks', order: 0 }];
+    const seen = new Set(['normal']);
+    for (const m of this.game.mods.list) {
+      if (!m.battle || seen.has(m.id)) continue;
+      seen.add(m.id);
+      out.push({ id: m.id, name: m.battle.name, blurb: m.battle.blurb, order: m.battle.order });
+    }
+    for (const e of this.examples || []) {
+      const id = slugify(e.id || e.name);
+      if (!e.battle || seen.has(id)) continue;
+      seen.add(id);
+      out.push({ id, name: String(e.battle.name || e.name).toUpperCase().slice(0, 16), blurb: String(e.battle.blurb || ''), order: Number(e.battle.order) || 50 });
+    }
+    return out.sort((a, b) => a.order - b.order);
+  }
+
+  renderBattles() {
+    const cur = this.game.mods.currentBattle();
+    $('mm-battle').innerHTML = this.battleChoices().map((c) => `<button class="bt-card${c.id === cur ? ' sel' : ''}" data-battle="${esc(c.id)}" aria-pressed="${c.id === cur}">
+      <b>${esc(c.name)}</b><span>${esc(c.blurb || '')}</span></button>`).join('');
+  }
+
+  _battleMsg(text, error = false) {
+    const m = $('mm-battle-msg');
+    m.hidden = !text;
+    m.textContent = text || '';
+    m.classList.toggle('error', error);
+  }
+
+  // Installs a mod shipped in the game's mods folder (when it isn't installed yet) and switches it on
+  async _ensureMod(id) {
+    const mods = this.game.mods;
+    let m = mods.list.find((x) => x.id === id);
+    if (!m) {
+      await this._loadExamples();
+      const ex = (this.examples || []).find((e) => slugify(e.id || e.name) === id);
+      if (!ex) throw new Error(`the "${id}" mod isn't installed`);
+      const res = await fetch(`mods/${ex.file}`);
+      if (!res.ok) throw new Error(`could not load ${ex.file} (HTTP ${res.status})`);
+      m = mods.add(await res.text());
+    }
+    if (!m.enabled) mods.setEnabled(id, true);
+    return m;
+  }
+
+  async _pickBattle(id) {
+    const g = this.game, mods = g.mods;
+    if (this._picking) return;
+    g.audio.unlock();
+    g.audio.click();
+    if (id === mods.currentBattle()) return;
+    this._picking = true;
+    const cards = [...$('mm-battle').querySelectorAll('button')];
+    cards.forEach((b) => { b.disabled = true; });
+    try {
+      if (id !== 'normal') {
+        const m = await this._ensureMod(id);
+        if (!m.battle) throw new Error(`"${m.name}" is not a battle`);
+        for (const need of m.battle.needs) await this._ensureMod(need);
+      }
+      this._battleMsg('');
+      g.setBattle(id);
+    } catch (e) {
+      this._battleMsg(`Could not switch battles: ${e.message}`, true);
+    } finally {
+      this._picking = false;
+      cards.forEach((b) => { b.disabled = false; });
+      this.renderBattles();
+    }
+  }
+
+  // Mods that came from the game's mods folder are kept up to date: when the game ships a newer version of one
+  // you installed, the new one replaces it (switched on or off as before)
+  async _updateExamples() {
+    const g = this.game, mods = g.mods;
+    const newer = (a, b) => {
+      const pa = String(a || '0').split('.').map(Number), pb = String(b || '0').split('.').map(Number);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d > 0; }
+      return false;
+    };
+    let changed = false;
+    for (const ex of this.examples || []) {
+      const m = mods.list.find((x) => x.id === slugify(ex.id || ex.name));
+      if (!m || !ex.version || !newer(ex.version, m.version)) continue;
+      try {
+        const res = await fetch(`mods/${ex.file}`);
+        if (!res.ok) continue;
+        const text = await res.text();
+        const e = mods._entry(text, m.enabled);
+        if (!e || e.id !== m.id || !newer(e.version, m.version)) continue;
+        mods.add(text);
+        changed = true;
+      } catch (err) { /* offline: keep the installed copy */ }
+    }
+    if (!changed) return;
+    if (g.state === 'menu' && this.screens.mods.hidden) g.reloadMods();
+    else this.modsDirty = true;
+    this.renderBattles();
   }
 
   _renderExamples() {

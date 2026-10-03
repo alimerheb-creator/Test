@@ -1,7 +1,7 @@
 // Game orchestrator: renderer, match lifecycle, main loop and camera modes.
 import * as THREE from 'three';
-import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, CLASSES, HQS, QUALITY, VEHICLES, ATMOSPHERE, RULES, VEGETATION } from './config.js';
-import { Emitter, loadSettings, rand } from './util.js';
+import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, CLASSES, HQS, QUALITY, VEHICLES, ATMOSPHERE, RULES, VEGETATION, PLAY_HALF } from './config.js';
+import { Emitter, loadSettings, saveSettings, rand, clamp } from './util.js';
 import { World } from './world.js';
 import { Buildings } from './buildings.js';
 import { Effects } from './effects.js';
@@ -184,6 +184,7 @@ export class Game extends Emitter {
     if (!CLASSES[this.ui.selectedClass] || !CLASS_ORDER.includes(this.ui.selectedClass)) this.ui.selectedClass = CLASS_ORDER[0];
     this.ui.renderClassCards();
     this.ui.updateModsButton();
+    this.ui.renderBattles();
     this.hud.updateLabels();
   }
 
@@ -198,6 +199,19 @@ export class Game extends Emitter {
     this.mods.applyAll();
     this.onModsApplied();
     if (this.state === 'menu') this.newMatch();
+  }
+
+  // The main menu's battle picker: 'normal' or a battle mod's id. A different battlefield restarts the page.
+  setBattle(id) {
+    this.settings.battleType = id || 'normal';
+    saveSettings(this.settings);
+    this.reloadMods();
+  }
+
+  // Ground or sea surface, whichever is higher
+  surfaceAt(x, z) {
+    const h = this.world.heightAt(x, z), w = this.world.water;
+    return w !== null && w > h ? w : h;
   }
 
   vibrate(pattern) {
@@ -380,6 +394,7 @@ export class Game extends Emitter {
     else this._menuCam(dt);
 
     this.world.updateSky(cam.position);
+    this.world.updateWater(dt);
     _f.set(0, 0, -1).applyQuaternion(cam.quaternion);
     _v.copy(cam.position).addScaledVector(_f, 40);
     this.world.updateShadow(_v);
@@ -444,10 +459,12 @@ export class Game extends Emitter {
     this.menuAngle += dt * 0.035;
     const a = this.menuAngle;
     const cam = this.camera;
-    const r = 105;
+    // bigger maps get a wider, higher orbit
+    const k = clamp(PLAY_HALF / 240, 1, 2.6);
+    const r = 105 * k;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    cam.position.set(x, this.world.heightAt(x, z) + 42, z);
-    cam.lookAt(0, 6, 0);
+    cam.position.set(x, Math.max(this.surfaceAt(x, z), this.surfaceAt(0, 0)) + 42 * Math.sqrt(k), z);
+    cam.lookAt(0, this.surfaceAt(0, 0) + 6, 0);
     if (cam.fov !== 55) { cam.fov = 55; cam.updateProjectionMatrix(); this.effects.setScale(this.renderer.domElement.height, cam.fov); }
   }
 
@@ -455,7 +472,7 @@ export class Game extends Emitter {
     const cam = this.camera;
     const pt = this.ui.selectedPoint ? this.ui.selectedPoint() : null;
     const tx = pt ? pt.x : HQS[0].x, tz = pt ? pt.z : HQS[0].z;
-    const ty = this.world.heightAt(tx, tz);
+    const ty = this.surfaceAt(tx, tz);
     const toCenter = Math.atan2(-tx, -tz);
     _v.set(tx - Math.sin(toCenter) * 60, ty + 55, tz - Math.cos(toCenter) * 60);
     cam.position.lerp(_v, Math.min(1, dt * 2.5));

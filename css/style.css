@@ -551,6 +551,23 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   .pop, .flag-chip.contested { animation: none; }
 }
 
+/* Battle picker (main menu) */
+.mm-battle-wrap { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.mm-battle { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 8px; width: 100%; }
+.bt-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 10px 12px; text-align: left;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); color: var(--text); cursor: pointer; font: inherit;
+}
+.bt-card b { font-size: 0.95rem; letter-spacing: 0.14em; font-weight: 800; }
+.bt-card span { font-size: 0.7rem; letter-spacing: 0.04em; color: var(--muted); line-height: 1.3; }
+.bt-card:hover { background: rgba(255, 255, 255, 0.09); }
+.bt-card:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.bt-card.sel { border-color: var(--signal); background: rgba(242, 179, 61, 0.14); box-shadow: inset 3px 0 0 var(--signal); }
+.bt-card.sel b { color: var(--signal); }
+.bt-card:disabled { opacity: 0.55; cursor: progress; }
+.mm-battle-msg { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.mm-battle-msg.error { color: var(--enemy); }
+
 /* ============================================================ Mods */
 .mm-buttons { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
 #btn-mods { padding: 16px 28px; font-size: 1rem; }

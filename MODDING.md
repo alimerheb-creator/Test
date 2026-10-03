@@ -8,8 +8,10 @@ Mods have full control of the game:
 
 - **Data sections** change or add weapons (with their own 3D models and reload styles), gadgets, projectiles,
   classes, movement, rules, scoring, tanks, teams, bot skill, time of day and weather.
-- **A map section** builds a whole new battlefield: flags, HQs, buildings, roads, props, terrain and vegetation,
-  or no flags at all for Team Deathmatch.
+- **A map section** builds a whole new battlefield: its size (up to 6 km across), flags, HQs, buildings,
+  roads, props, terrain, a sea with islands, and vegetation, or no flags at all for Team Deathmatch.
+- **A battle section** makes the mod a battle type of its own, with a card in the main menu's BATTLE picker
+  (the game ships TANKS, AVIATION and NAVAL this way).
 - **Scripts** can hook into damage, firing, explosions, projectiles, movement, reloading and scoring to change
   or cancel them. They can also spawn explosions, projectiles and bots, move and heal soldiers, build 3D models
   with collision, add HUD elements, bind keys (with touch buttons on phones), run timers, slow down time and
@@ -19,14 +21,17 @@ The example mods ship with the game (add them from the MODS screen in one tap) a
 
 | File | What it shows |
 | --- | --- |
+| `tank-warfare.sfmod.json` | A battle type (TANKS): its own map, extra tanks created from the engine's tank class, every soldier deploying straight into a tank, and tank bots that push from flag to flag |
+| `aviation.sfmod.json` | A battle type (AVIATION) that needs the Jets and Bombers mods: a 3 km map (`map.size`), more aircraft per side, everyone flying, and "sky zones" (flags with a `height`) captured from the air and knocked back by bombing |
+| `naval.sfmod.json` | A battle type (NAVAL): a sea map (`map.water`, `map.islands`, `terrain.level`), ships built as new vehicles (hull geometry, physics on the water, turrets, ballistic shells, torpedoes, guided missiles, close-in defence, sinking), bot captains, ship classes on the deploy screen, and multiplayer support through the vehicle hooks |
 | `random-wheel.sfmod.json` | A wheel before every match that picks a map and a game mode: replaces DEPLOY through `api.game`, switches other mods on and off, and carries the mods it needs in a `_pack` field |
 | `mode-capture-the-flag.sfmod.json` | Capture the Flag: flag models, carrying, returns and scoring, plus bot roles (attack, defend, hunt) by extending the bot code through `api.game` |
 | `mode-king-of-the-hill.sfmod.json` | King of the Hill: a single central point that follows whatever map is loaded |
 | `hd-weapons.sfmod.json` | Detailed custom models for every base gun (with moving mags, bolts, slides and a feed cover), plus a script for brass, barrel smoke and reflections |
 | `aggressive-reloads.sfmod.json` | Changing every weapon from a script, extending the viewmodel animation through `api.game`, and undoing it with `api.onDisable` |
 | `multiplayer.sfmod.json` | Online play: a lobby screen, a host whose game runs the bots and the match, compact snapshots with interpolation, damage, explosions and kills passed between pages, and vehicles that change hands. It patches the engine through `api.game` only while an online game is running. Pages meet through the public PeerJS server and talk over WebRTC data channels, with the claude.ai room capability (`window.claude.use('room')`) as a fallback |
-| `jets.sfmod.json` | Six flyable jets added as new vehicles: procedural three.js models, arcade flight physics, lock-on missiles, bombs, flares, ejecting with a parachute, bot pilots, deploy-screen spawn points and a flight HUD, all by extending the game through `api.game` |
-| `bombers.sfmod.json` | Two heavy bombers on the same aircraft core as Jets (whichever loads first installs it, the last one off removes it): bomb bays, a bomb sight, AI gun turrets and a gunner seat |
+| `jets.sfmod.json` | Aviation battles only (`"battles": ["aviation"]`). Six flyable jets added as new vehicles: procedural three.js models, arcade flight physics, lock-on missiles, bombs, flares, ejecting with a parachute, bot pilots, deploy-screen spawn points and a flight HUD, all by extending the game through `api.game` |
+| `bombers.sfmod.json` | Aviation battles only. Two heavy bombers on the same aircraft core as Jets (whichever loads first installs it, the last one off removes it): bomb bays, a bomb sight, AI gun turrets and a gunner seat |
 | `armory.sfmod.json` | A currency and an upgrade shop: credits from game events, a new screen on the main menu, saving with `api.store`, per-player weapon stats, attachments on the viewmodel and a live 3D preview |
 | `vehicle-interiors.sfmod.json` | Drawing a second scene over the world (like the gun in your hands) for tank and cockpit interiors, live canvas screens and a render-to-texture gun sight |
 | `hd-knife.sfmod.json` | A first-person model built in a script with three.js (a gloved hand and a detailed knife), keyframed melee animations, a motion trail, and chaining a viewmodel patch so other mods can patch it too |
@@ -61,6 +66,12 @@ Start your own from [`mods/TEMPLATE.sfmod.json`](mods/TEMPLATE.sfmod.json).
   (hooks, timers, models, HUD elements, keys, slow motion).
 - A mod with a `map` section rebuilds the battlefield, so the game restarts by itself when you switch it on or
   off (your mod list is kept).
+- Mods take part in the battle type picked on the main menu (see [Battle types](#battle-types)). A mod that is
+  switched on but doesn't run in the current battle shows **ON · NOT IN THIS BATTLE** and does nothing.
+- The examples that ship with the game update themselves: when the game has a newer version of one you
+  installed, the new one replaces it (switched on or off as before).
+- Another copy of the game open at the same time (a second tab) can't overwrite your mod list: each copy picks
+  up the other's changes as they happen.
 - Keys starting with `_` are ignored, so you can use `"_comment"` fields for notes.
 
 ## File layout
@@ -75,7 +86,8 @@ Start your own from [`mods/TEMPLATE.sfmod.json`](mods/TEMPLATE.sfmod.json).
   "description": "One or two sentences shown in the MODS screen.",
   "weapons": {}, "gadgets": {}, "projectiles": {}, "classes": {},
   "movement": {}, "rules": {}, "scoring": {}, "vehicles": {}, "teams": [],
-  "difficulty": {}, "atmosphere": {}, "botNames": [], "map": {}, "script": []
+  "difficulty": {}, "atmosphere": {}, "botNames": [], "map": {}, "script": [],
+  "battle": {}, "battles": []
 }
 ```
 
@@ -263,10 +275,61 @@ numbers `sunIntensity`, `hemiIntensity`, `fogNear`, `fogFar`, `clouds` (0–1), 
 
 A list of at least four names that replaces the bot name pool.
 
+## Battle types
+
+The main menu has a BATTLE picker: **NORMAL** (the base game: infantry and tanks on the normal maps), plus one
+card for every battle mod, installed or shipped with the game. Picking a card installs and switches on that
+mod (and the mods it needs) and restarts on its map.
+
+A battle mod has a `battle` section:
+
+```json
+"battle": { "name": "NAVAL", "blurb": "Warships among islands", "tagline": "Shown under the title on the main menu.", "order": 3, "needs": ["jets"] }
+```
+
+| Field | Meaning |
+| --- | --- |
+| `name` | The card's title (16 chars), also shown above the main menu's title |
+| `blurb` | One line under it on the card |
+| `tagline` | Replaces the paragraph under the game's title while this battle is picked |
+| `order` | Position of the card (NORMAL is 0) |
+| `needs` | Ids of mods this battle needs. Picking the battle installs (from the game's own mods folder) and switches them on, and they run in this battle even if their `battles` list doesn't name it |
+
+Which switched-on mods run where:
+
+- A battle mod runs only in its own battle (its id is the battle's id).
+- A mod with `"battles": ["aviation", "normal"]` runs only in those battles. Jets and Bombers use `["aviation"]`.
+- A mod with a `map` section and no `battles` replaces the normal battlefield, so it runs in NORMAL only.
+- Every other mod runs in every battle.
+
+Battle mods are applied after all the other mods, so their settings win and their scripts can build on what
+the other mods set up (Aviation adds aircraft to the Jets and Bombers mods' aircraft core). Scripts can ask
+which battle is on with `api.battle()`.
+
+### Vehicle hooks
+
+Vehicles live in `api.game.vehicles`. The engine's own code reads a few fields from every vehicle (`team`,
+`pos`, `yaw`, `alive`, `exists`, `driver`, `health`, `maxHealth`, `input`, `hull`) and calls
+`update(dt)`, `damage(amount, attacker, weapon)`, `destroy(attacker, weapon)`, `rayHit(...)`, `pushOut(soldier)`,
+`rebuildModel()`, `spawn()`, `enter(soldier)` and `removeDriver(soldier, place)`. A vehicle with `slot` 99 is never
+spawned by the engine. Optional extras for vehicles of your own (the Naval mod's ships use all of them):
+
+| Field | Meaning |
+| --- | --- |
+| `blastDist(x, y, z)` | How far a point is from the hull; explosions use it instead of the distance to `pos` (for long vehicles) |
+| `ownHud: true` | The engine doesn't draw its tank sight while you drive it |
+| `label` | Short name in the squad list and over its head (default `TANK`) |
+| `markerHeight` | Height of that marker above `pos` |
+| `mpFlags()`, `mpEncode(arr, offset, q)`, `mpApply(a, b, t, dt, newest, nowMs)` | With the Multiplayer mod: extra state bits, writing fields 6–10 and 12 of the vehicle's snapshot record, and showing a vehicle someone else drives (`a` and `b` are the two records around the drawn moment, `t` the mix) |
+
+During an online game the Multiplayer mod also offers `api.game.__mp` (`live()`, `role()`, `send(tag, data)`,
+`on(tag, fn)`) for a mod's own messages, and emits the `mpSession` event when a game starts.
+
 ## Maps
 
 The `map` section replaces the battlefield. The playable area is the square from -230 to 230 metres on both
-axes (x is east, z is south). Anything you leave out keeps the Karsa Valley default.
+axes (x is east, z is south) unless the map sets its `size`. Anything you leave out keeps the Karsa Valley
+default.
 
 ```json
 "map": {
@@ -289,13 +352,16 @@ axes (x is east, z is south). Anything you leave out keeps the Karsa Valley defa
 | --- | --- |
 | `name` | Map name (24 chars), shown on the menu, scoreboard and end screen |
 | `hq` | Exactly two HQs, yours first: `x`, `z` and optional `yaw` in degrees (they face the middle by default) |
-| `flags` | 0–8 capture points: `name`, `x`, `z`, `radius` (5–40), `flat` (radius of flattened ground), `town` (paved square with more cover), `id` (defaults to A, B, C…). An empty list `[]` gives Team Deathmatch: no flags, tickets only drop when soldiers die, and bots hunt the enemy |
+| `size` | `play`: half the width of the playable square in metres (100–3000, default 240); `world`: half the width of the terrain out to the horizon; `inner` and `fine`: how far out and how finely (in metres) the detailed terrain mesh goes. Big maps get more trees, a longer view and a wider minimap by themselves |
+| `water` | Sea level in metres (−60–60), or `null` for none. Terrain below it is under water: ships float on it, shells splash into it, and nothing grows there |
+| `islands` | Up to 40 `[x, z, radius, height]` mounds with ragged coastlines, added on top of the terrain (also handy for big mountains on a dry map) |
+| `flags` | 0–8 capture points: `name`, `x`, `z`, `radius` (5–400), `height` (how high above the flag its zone reaches, 4–3000: give sky zones a few hundred metres so aircraft capture them), `flat` (radius of flattened ground), `town` (paved square with more cover), `id` (defaults to A, B, C…). An empty list `[]` gives Team Deathmatch: no flags, tickets only drop when soldiers die, and bots hunt the enemy |
 | `buildings` | Replaces all buildings. Each is `[x, z, width, depth, floors]`, with width and depth in 2.5 m wall panels (2–8) and 1–5 floors. Up to 80. Every building is destructible |
 | `addBuildings` | Same format, added to the existing buildings |
 | `roads` | Replaces the roads: a list of roads, each a list of `[x, z]` points |
 | `props` | Hand-placed cover (up to 400): `type` (`container`, `barrier`, `sandbags`, `crate`, `wreck`, `ruin`, `block`), `x`, `z`, `rot` (0 or 90 degrees), `color`. A `block` also takes `size` `[w, h, d]` and `y` (height above the ground), for walls, towers and platforms |
 | `randomProps` | `false` removes the automatic cover around flags, HQs and across the fields |
-| `terrain` | `seed` (any number gives a different landscape), `hills` (0–4), `bumps` (0–4), `mountains` (0–3, the ring around the edge), `valley` (−5–5, a dip through the middle; negative makes a ridge) |
+| `terrain` | `seed` (any number gives a different landscape), `hills` (0–4), `bumps` (0–4), `mountains` (0–3, the ring around the edge), `valley` (−5–5, a dip through the middle; negative makes a ridge), `level` (−80–80, raises or lowers all of it: below `water` for a sea) |
 | `vegetation` | Multipliers for `trees`, `bushes`, `rocks` (0–3) and `grass` (0–2) |
 
 Ground is flattened automatically around flags, HQs and buildings. The team with more flags makes the other
@@ -371,6 +437,7 @@ cancel the action.
 | `api.player()`, `api.soldiers()`, `api.alive(team?)`, `api.vehicles()` | The player, all soldiers, living soldiers (optionally of one team), tanks |
 | `api.flags()`, `api.tickets()`, `api.time()`, `api.state()` | Objectives, ticket counts, game time, and `menu`/`deploy`/`playing`/`paused`/`ended` |
 | `api.heightAt(x, z)` | Ground height |
+| `api.battle()`, `api.mapSize()`, `api.water()` | The battle type being played (`normal` or a battle mod's id), `{ play, world }` half-sizes of the map, and the sea level (`null` without water) |
 | `api.raycast(from, dir, maxDist, { ignore })` | Returns `{ hit, x, y, z, distance, soldier, vehicle, terrain, normal }` |
 | `api.vec(x, y, z)` | A `THREE.Vector3` |
 | `api.teleport(soldier, x, y, z)` | Move a soldier (leave out `y` to land on the ground) |

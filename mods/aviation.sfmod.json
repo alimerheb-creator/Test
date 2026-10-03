@@ -1,0 +1,810 @@
+{
+  "format": "sixthfront-mod",
+  "id": "aviation",
+  "name": "Aviation",
+  "version": "1.0",
+  "author": "Sixth Front",
+  "description": "A battle type: pick AVIATION on the main menu. An air war over Highlands, a map about six times the size of the normal one (3 km across). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. The five objectives are sky zones: fly through one to take it, and bomb a zone the enemy holds to knock it back to neutral.",
+  "battle": {
+    "name": "AVIATION",
+    "blurb": "Jets and bombers, huge map",
+    "tagline": "Highlands, three kilometres of mountains and valleys. Everyone flies: take the sky zones by flying through them, bomb the ones the enemy holds, and keep their fighters off your bombers.",
+    "order": 2,
+    "needs": [
+      "jets",
+      "bombers"
+    ]
+  },
+  "rules": {
+    "respawnTime": 5,
+    "captureSpeed": 3,
+    "bleedSpeed": 1.2
+  },
+  "vehicles": {
+    "tank": {
+      "perTeam": 0
+    }
+  },
+  "atmosphere": {
+    "preset": "noon",
+    "fogNear": 500,
+    "fogFar": 3300,
+    "clouds": 0.55
+  },
+  "map": {
+    "name": "HIGHLANDS",
+    "size": {
+      "play": 1500,
+      "world": 2700,
+      "inner": 1100,
+      "fine": 8
+    },
+    "terrain": {
+      "seed": 7310,
+      "hills": 2.4,
+      "bumps": 0.45,
+      "mountains": 1.7,
+      "valley": 0
+    },
+    "islands": [
+      [
+        -560,
+        980,
+        320,
+        105
+      ],
+      [
+        600,
+        1050,
+        300,
+        95
+      ],
+      [
+        -1050,
+        -300,
+        380,
+        120
+      ],
+      [
+        1080,
+        300,
+        360,
+        115
+      ],
+      [
+        380,
+        -250,
+        260,
+        80
+      ],
+      [
+        -350,
+        300,
+        240,
+        70
+      ],
+      [
+        0,
+        -1050,
+        340,
+        100
+      ],
+      [
+        -200,
+        -500,
+        220,
+        60
+      ],
+      [
+        1150,
+        -1100,
+        300,
+        90
+      ],
+      [
+        -1150,
+        1150,
+        300,
+        90
+      ]
+    ],
+    "vegetation": {
+      "trees": 0.55,
+      "bushes": 0.5,
+      "rocks": 1,
+      "grass": 0.8
+    },
+    "hq": [
+      {
+        "x": 0,
+        "z": 1350
+      },
+      {
+        "x": 0,
+        "z": -1350
+      }
+    ],
+    "flags": [
+      {
+        "id": "A",
+        "name": "NORTH PASS",
+        "x": -760,
+        "z": 640,
+        "radius": 340,
+        "height": 700,
+        "flat": 30
+      },
+      {
+        "id": "B",
+        "name": "LAKE STATION",
+        "x": 760,
+        "z": 660,
+        "radius": 340,
+        "height": 700,
+        "flat": 30
+      },
+      {
+        "id": "C",
+        "name": "HIGH RIDGE",
+        "x": 0,
+        "z": 0,
+        "radius": 340,
+        "height": 700,
+        "flat": 30
+      },
+      {
+        "id": "D",
+        "name": "RADAR HILL",
+        "x": -780,
+        "z": -660,
+        "radius": 340,
+        "height": 700,
+        "flat": 30
+      },
+      {
+        "id": "E",
+        "name": "SOUTH VALLEY",
+        "x": 760,
+        "z": -640,
+        "radius": 340,
+        "height": 700,
+        "flat": 30
+      }
+    ],
+    "roads": [
+      [
+        [0, 1450],
+        [80, 900],
+        [-200, 600],
+        [0, 0],
+        [200, -600],
+        [-80, -900],
+        [0, -1450]
+      ],
+      [
+        [-1450, 700],
+        [-760, 640],
+        [-200, 600]
+      ],
+      [
+        [1450, 700],
+        [760, 660],
+        [80, 900]
+      ],
+      [
+        [-1450, -700],
+        [-780, -660],
+        [-200, -620]
+      ],
+      [
+        [1450, -650],
+        [760, -640],
+        [200, -600]
+      ]
+    ],
+    "buildings": [
+      [
+        -649.7,
+        646.9,
+        5,
+        4,
+        2
+      ],
+      [
+        -649.6,
+        666.8,
+        4,
+        5,
+        1
+      ],
+      [
+        -656.6,
+        690,
+        4,
+        4,
+        2
+      ],
+      [
+        -668.3,
+        653.9,
+        3,
+        3,
+        2
+      ],
+      [
+        -677.3,
+        761.5,
+        5,
+        5,
+        2
+      ],
+      [
+        -741,
+        722.6,
+        4,
+        4,
+        2
+      ],
+      [
+        835.1,
+        747.8,
+        4,
+        5,
+        1
+      ],
+      [
+        742.6,
+        711.8,
+        6,
+        6,
+        2
+      ],
+      [
+        826.4,
+        771.9,
+        5,
+        3,
+        2
+      ],
+      [
+        740.3,
+        734,
+        5,
+        3,
+        1
+      ],
+      [
+        836.3,
+        679.1,
+        4,
+        4,
+        2
+      ],
+      [
+        889.2,
+        684.2,
+        4,
+        3,
+        1
+      ],
+      [
+        53.5,
+        -5.1,
+        5,
+        5,
+        2
+      ],
+      [
+        57.8,
+        102.1,
+        6,
+        4,
+        1
+      ],
+      [
+        70.7,
+        67.8,
+        5,
+        4,
+        2
+      ],
+      [
+        6.8,
+        27.3,
+        4,
+        4,
+        1
+      ],
+      [
+        24.7,
+        20.2,
+        5,
+        4,
+        1
+      ],
+      [
+        106.6,
+        -17,
+        3,
+        6,
+        2
+      ],
+      [
+        -716.3,
+        -584.7,
+        4,
+        3,
+        2
+      ],
+      [
+        -695.1,
+        -625.3,
+        5,
+        6,
+        1
+      ],
+      [
+        -701.2,
+        -591.4,
+        4,
+        5,
+        1
+      ],
+      [
+        -748.1,
+        -618.3,
+        3,
+        4,
+        1
+      ],
+      [
+        -649.5,
+        -583,
+        5,
+        3,
+        1
+      ],
+      [
+        -651.3,
+        -621.2,
+        3,
+        5,
+        2
+      ],
+      [
+        846.8,
+        -584.3,
+        5,
+        3,
+        1
+      ],
+      [
+        837,
+        -615.8,
+        4,
+        5,
+        1
+      ],
+      [
+        841.6,
+        -517.2,
+        5,
+        6,
+        1
+      ],
+      [
+        830.1,
+        -556.4,
+        6,
+        3,
+        2
+      ],
+      [
+        787.4,
+        -518.4,
+        3,
+        5,
+        1
+      ],
+      [
+        854.9,
+        -610.1,
+        4,
+        5,
+        2
+      ],
+      [
+        -415.4,
+        1074.1,
+        3,
+        5,
+        1
+      ],
+      [
+        -418.3,
+        1059,
+        6,
+        3,
+        1
+      ],
+      [
+        -406.3,
+        1104.5,
+        4,
+        6,
+        1
+      ],
+      [
+        -404.7,
+        1073.7,
+        3,
+        4,
+        1
+      ],
+      [
+        430.7,
+        -1055.9,
+        5,
+        3,
+        1
+      ],
+      [
+        495.5,
+        -1078.7,
+        6,
+        3,
+        1
+      ],
+      [
+        439.3,
+        -1108.1,
+        3,
+        3,
+        1
+      ],
+      [
+        430.4,
+        -1002.3,
+        5,
+        6,
+        1
+      ],
+      [
+        1038.6,
+        -44,
+        6,
+        3,
+        2
+      ],
+      [
+        1103.9,
+        19.3,
+        4,
+        3,
+        2
+      ],
+      [
+        1084,
+        -34.6,
+        6,
+        5,
+        2
+      ],
+      [
+        992.8,
+        5.9,
+        6,
+        4,
+        2
+      ],
+      [
+        1001.1,
+        38,
+        5,
+        5,
+        2
+      ],
+      [
+        -1030.4,
+        4.7,
+        3,
+        3,
+        2
+      ],
+      [
+        -1088.3,
+        17.2,
+        6,
+        3,
+        2
+      ],
+      [
+        -1007.9,
+        56.1,
+        3,
+        5,
+        2
+      ],
+      [
+        -1034.5,
+        63.4,
+        6,
+        4,
+        2
+      ],
+      [
+        -1086.4,
+        66.4,
+        6,
+        4,
+        1
+      ]
+    ],
+    "props": [],
+    "randomProps": false
+  },
+  "script": [
+    "// ================================================================ battle kit (shared by the battle mods)",
+    "// A battle mod turns the match into a vehicle battle: every soldier (you and the bots) deploys straight into",
+    "// a vehicle, and the deploy screen only offers places where vehicles can join the fight.",
+    "const g = api.game, pc = g.playerCtl, hud = g.hud, ui = g.ui, world = g.world;",
+    "const { HQS, TEAMS, RULES, VEHICLES } = api.config;",
+    "const V3 = THREE.Vector3;",
+    "const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);",
+    "const rand = (a, b) => a + Math.random() * (b - a);",
+    "const lerp = (a, b, t) => a + (b - a) * t;",
+    "const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));",
+    "const yawTo = (dx, dz) => Math.atan2(-dx, -dz);",
+    "const $ = (id) => document.getElementById(id);",
+    "const onOff = (fn) => {",
+    "  if (api.onDisable) return api.onDisable(fn);",
+    "  const h = api.addModel([{ shape: 'box', size: [0.01, 0.01, 0.01] }], { x: 0, y: -500, z: 0 });",
+    "  h.setVisible(false);",
+    "  const remove = h.remove;",
+    "  h.remove = () => { remove(); fn(); };",
+    "};",
+    "// Replaces a method and remembers how to put the old one back",
+    "const undo = [];",
+    "const patch = (obj, name, make) => {",
+    "  const own = Object.prototype.hasOwnProperty.call(obj, name);",
+    "  const prev = obj[name];",
+    "  const fn = make(prev);",
+    "  obj[name] = fn;",
+    "  undo.push(() => { if (obj[name] === fn) { if (own) obj[name] = prev; else delete obj[name]; } });",
+    "  return prev;",
+    "};",
+    "onOff(() => { for (const u of undo.splice(0).reverse()) { try { u(); } catch (e) { console.error(e); } } });",
+    "const MAPSIZE = api.mapSize ? api.mapSize() : { play: 240, world: 560 };",
+    "const SEA = api.water ? api.water() : null;",
+    "const surface = (x, z) => { const h = world.heightAt(x, z); return SEA !== null && SEA > h ? SEA : h; };",
+    "// how many vehicles each side gets: one per soldier, up to a cap",
+    "// (the same on every page, so online games agree on the list of vehicles)",
+    "const perSide = (cap) => cap;",
+    "",
+    "// The place a bot rejoins the fight: usually the held flag closest to the enemy, otherwise its HQ",
+    "function botPoint(team) {",
+    "  const pts = g.mode.spawnPoints(team).filter((p) => p.type === 'hq' || p.type === 'flag');",
+    "  let pt = pts[0];",
+    "  const flags = pts.filter((p) => p.type === 'flag');",
+    "  if (flags.length && Math.random() < 0.7) {",
+    "    let bd = Infinity;",
+    "    for (const p of flags) {",
+    "      let d = Infinity;",
+    "      for (const f of g.mode.flags) if (f.owner !== team) d = Math.min(d, Math.hypot(f.x - p.x, f.z - p.z));",
+    "      d += rand(0, 80);",
+    "      if (d < bd) { bd = d; pt = p; }",
+    "    }",
+    "  }",
+    "  return pt;",
+    "}",
+    "",
+    "// B: { noun, plural, free(team) -> vehicles ready to take, keep(point) -> deploy points shown,",
+    "//      board(soldier, vehicle, point) -> put the soldier in the vehicle at that point, pickFor(point) -> the player's vehicle }",
+    "// People (you, and other players in an online game) on a side who are waiting to deploy",
+    "const humansWaiting = (team) => (g.state === 'menu' ? 0 : g.soldiers.filter((s) => (s.isPlayer || (s.mp && s.mp.player)) && s.team === team && s.state !== 'alive' && s.state !== 'downed').length);",
+    "",
+    "function vehicleBattle(B) {",
+    "  const readyFor = (team, bot, skip) => {",
+    "    let list = B.free(team);",
+    "    if (skip) list = list.filter((v) => !skip.has(v));",
+    "    // the bots leave a vehicle for each person on their side who is choosing where to deploy",
+    "    if (bot && list.length <= humansWaiting(team)) return [];",
+    "    return list;",
+    "  };",
+    "  B.readyFor = readyFor;",
+    "  const keep = B.keep || ((p) => p.type === 'hq' || p.type === 'flag');",
+    "  patch(g.mode, 'spawnPoints', (prev) => function (team, forPlayer = false) {",
+    "    const pts = prev.call(this, team, forPlayer).filter(keep);",
+    "    if (forPlayer && B.label) for (const p of pts) B.label(p, team);",
+    "    return pts;",
+    "  });",
+    "  // bots respawn straight into a free vehicle, or wait for one",
+    "  patch(g.mode, 'respawnBot', (prev) => function (s) {",
+    "    if (B.botRespawn) return B.botRespawn(s, prev.bind(this));",
+    "    const v = readyFor(s.team, true)[0];",
+    "    if (!v) { s.respawnT = rand(1, 2.5); return; }",
+    "    B.board(s, v, botPoint(s.team));",
+    "  });",
+    "  // the Multiplayer mod asks which vehicle you'd get (to claim it from the host first), then deploys with it",
+    "  const pick = (point, skip) => (B.pickFor ? B.pickFor(point, skip) : readyFor(g.player.team, false, skip)[0]) || null;",
+    "  const vb = { pick };",
+    "  g.__vb = vb;",
+    "  onOff(() => { if (g.__vb === vb) delete g.__vb; });",
+    "  patch(g, 'deployPlayer', (prev) => function (classId, point) {",
+    "    const P = this.player;",
+    "    if (P.state === 'alive' || P.state === 'downed') return;",
+    "    const v = g.__vbForce || pick(point);",
+    "    if (!v) { hud.toast(`NO ${B.noun} READY`); return; }",
+    "    prev.call(this, classId, point);",
+    "    if (P.state === 'alive' && P.vehicle !== v) B.board(P, v, point);",
+    "    if (B.afterDeploy) B.afterDeploy(P, v);",
+    "  });",
+    "  // the deploy button waits while no vehicle is ready",
+    "  patch(ui, 'updateDeploy', (prev) => function (dt) {",
+    "    prev.call(this, dt);",
+    "    if (g.redeployT > 0) return;",
+    "    const btn = $('btn-deploy');",
+    "    const ok = B.pickFor ? !!B.pickFor(this.selectedPoint()) : readyFor(g.player.team, false).length > 0;",
+    "    btn.disabled = !ok;",
+    "    btn.textContent = ok ? `DEPLOY · ${B.noun}` : `WAITING FOR A ${B.noun}`;",
+    "  });",
+    "  patch(ui, '_deploy', (prev) => function () {",
+    "    if ($('btn-deploy').disabled) return;",
+    "    return prev.call(this);",
+    "  });",
+    "}",
+    "",
+    "// ================================================================ Aviation",
+    "// Air war over a huge map. Everyone flies: the jets and bombers from the Jets and Bombers mods, more of them",
+    "// than in a normal battle. The objectives are sky zones, tall cylinders of airspace: fly through one to take",
+    "// it, bomb an enemy zone to knock it back toward neutral.",
+    "const A = g.__air;",
+    "if (!A) throw new Error('Aviation needs the Jets and Bombers mods (they are switched on when you pick AVIATION on the main menu)');",
+    "const MAX_AIR = 10;",
+    "const added = [];",
+    "// the air core boards bots by itself in normal battles; here this mod decides who flies what",
+    "const prevMaxBots = A.maxBots;",
+    "A.maxBots = 0;",
+    "onOff(() => {",
+    "  if (prevMaxBots === undefined) delete A.maxBots; else A.maxBots = prevMaxBots;",
+    "  for (const a of A.fleet) delete a.spare;",
+    "  for (const a of added) if (A.fleet.includes(a)) A.removeAircraft(a);",
+    "  added.length = 0;",
+    "});",
+    "",
+    "// One aircraft per soldier (up to 10 a side): about one bomber in five, the rest spread over the jets",
+    "function fillFleet() {",
+    "  const want = perSide(MAX_AIR);",
+    "  for (const team of [0, 1]) {",
+    "    const types = A.types.filter((t) => t.teams.includes(team));",
+    "    const jets = types.filter((t) => t.kind !== 'bomber'), bombers = types.filter((t) => t.kind === 'bomber');",
+    "    const nb = bombers.length ? Math.max(1, Math.round(want / 5)) : 0, nj = want - nb;",
+    "    const plan = new Map();",
+    "    jets.forEach((t, i) => plan.set(t, Math.floor(nj / jets.length) + (i < nj % jets.length ? 1 : 0)));",
+    "    bombers.forEach((t, i) => plan.set(t, Math.floor(nb / bombers.length) + (i < nb % bombers.length ? 1 : 0)));",
+    "    for (const [t, n] of plan) {",
+    "      let have = A.fleet.filter((a) => a.type === t && a.team === team);",
+    "      for (let i = have.length; i < n; i++) added.push(A.addAircraft(t, team));",
+    "      have = A.fleet.filter((a) => a.type === t && a.team === team);",
+    "      have.forEach((a, i) => { a.spare = i >= Math.max(1, n); });",
+    "    }",
+    "  }",
+    "}",
+    "fillFleet();",
+    "",
+    "const ready = (a) => a.state === 'ready' && !a.exists && !a.spare;",
+    "function board(s, a) {",
+    "  if (s.state !== 'alive') {",
+    "    const hq = HQS[s.team];",
+    "    s.spawn(hq.x, world.heightAt(hq.x, hq.z) + 0.1, hq.z, hq.yaw);",
+    "  }",
+    "  a.launch(s);",
+    "  if (s === g.player) { pc.camYaw = a.yaw; pc.camPitch = a.pitch; A.helpT = 9; }",
+    "}",
+    "vehicleBattle({",
+    "  noun: 'AIRCRAFT',",
+    "  free: (team) => A.fleet.filter((a) => a.team === team && ready(a)),",
+    "  keep: (p) => p.type === 'air' && p.air && !p.air.spare,",
+    "  pickFor: (pt) => (pt && pt.type === 'air' && pt.air && ready(pt.air) ? pt.air : null),",
+    "  board,",
+    "  botRespawn(s) {",
+    "    const list = A.fleet.filter((a) => a.team === s.team && ready(a));",
+    "    const P = g.player;",
+    "    // leave one for you on your side while you choose",
+    "    if (P && P.team === s.team && P.state !== 'alive' && g.state !== 'menu') {",
+    "      const sel = g.ui.selectedPoint && g.state === 'deploy' ? g.ui.selectedPoint() : null;",
+    "      const keepFor = sel && sel.air ? sel.air : list[0];",
+    "      const i = list.indexOf(keepFor);",
+    "      if (i >= 0) list.splice(i, 1);",
+    "    }",
+    "    if (list.length <= humansWaiting(s.team) - (P && P.team === s.team && P.state !== 'alive' ? 1 : 0)) { s.respawnT = rand(1, 2.5); return; }",
+    "    // fill gaps: whichever kind this side has fewest of in the air",
+    "    const flying = (k) => A.fleet.filter((a) => a.team === s.team && a.kind === k && a.flying).length;",
+    "    list.sort((a, b) => flying(a.kind) - flying(b.kind) + rand(-0.5, 0.5));",
+    "    board(s, list[0]);",
+    "  },",
+    "  afterDeploy(P, a) { if (P.vehicle === a) A.helpT = 9; },",
+    "});",
+    "api.on('matchStart', () => { fillFleet(); });",
+    "// shot-down aircraft are back on the line in ten seconds instead of half a minute",
+    "api.on('tick', () => { for (const a of A.fleet) if (!a.alive && a.respawnT > 10) a.respawnT = 10; });",
+    "",
+    "// ---------------------------------------------------------------- sky zones",
+    "const zoneVis = [];",
+    "const disposeZones = () => {",
+    "  for (const z of zoneVis) { g.scene.remove(z.group); z.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); }",
+    "  zoneVis.length = 0;",
+    "};",
+    "onOff(disposeZones);",
+    "const NEUTRAL = new THREE.Color(0xc9ccc4);",
+    "function buildZones() {",
+    "  disposeZones();",
+    "  for (const f of g.mode.flags) {",
+    "    const h = f.height || 600;",
+    "    const group = new THREE.Group();",
+    "    group.position.set(f.x, f.y, f.z);",
+    "    const beamMat = new THREE.MeshBasicMaterial({ color: NEUTRAL.clone(), transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });",
+    "    const beam = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, h, 10, 1, true), beamMat);",
+    "    beam.position.y = h / 2;",
+    "    group.add(beam);",
+    "    const ringMat = new THREE.MeshBasicMaterial({ color: NEUTRAL.clone(), transparent: true, opacity: 0.55, depthWrite: false });",
+    "    for (const k of [0.22, 0.5, 0.8]) {",
+    "      const ring = new THREE.Mesh(new THREE.TorusGeometry(f.radius, 1.6, 4, 120), ringMat);",
+    "      ring.rotation.x = Math.PI / 2;",
+    "      ring.position.y = h * k;",
+    "      group.add(ring);",
+    "    }",
+    "    g.scene.add(group);",
+    "    zoneVis.push({ f, group, beamMat, ringMat });",
+    "  }",
+    "}",
+    "buildZones();",
+    "api.on('tick', (dt) => {",
+    "  for (const z of zoneVis) {",
+    "    const f = z.f;",
+    "    const target = f.owner >= 0 ? new THREE.Color(TEAMS[f.owner].hex) : NEUTRAL;",
+    "    z.beamMat.color.lerp(target, Math.min(1, dt * 3));",
+    "    z.ringMat.color.lerp(target, Math.min(1, dt * 3));",
+    "    z.ringMat.opacity = f.contested || (f.capturing >= 0 && f.capturing !== f.owner) ? 0.35 + 0.3 * Math.abs(Math.sin(g.time * 6)) : 0.5;",
+    "  }",
+    "});",
+    "",
+    "// Bombs, rockets and missiles that land inside a zone you don't hold knock it toward your side",
+    "patch(g.combat, 'explode', (prev) => function (x, y, z, def, owner) {",
+    "  prev.call(this, x, y, z, def, owner);",
+    "  if (!owner || !owner.vehicle || !owner.vehicle.isAircraft || g.mode.over || (def && def.name === 'CRASH')) return;",
+    "  for (const f of g.mode.flags) {",
+    "    if (f.owner === owner.team || Math.hypot(x - f.x, z - f.z) > f.radius || y > f.y + 80) continue;",
+    "    const push = clamp((def.dmg || 100) / 2600, 0.02, 0.15) * (owner.team === 0 ? 1 : -1);",
+    "    f.progress = clamp(f.progress + push, -1, 1);",
+    "    if (owner.isPlayer) g.mode.award(owner, 10, `ZONE ${f.id} HIT`);",
+    "  }",
+    "});",
+    "",
+    "// Bot pilots: fighters go after the zones (taking or holding them); attackers and bombers bomb enemy zones",
+    "patch(A, 'botThink', (prev) => function (v, ai) {",
+    "  prev.call(this, v, ai);",
+    "  if (ai.mode === 'dogfight') return;",
+    "  const attacker = v.kind === 'bomber' || v.type.role === 'attack';",
+    "  if (ai.mode === 'attack' && (attacker || !(ai.target && ai.target.isPoint))) return;",
+    "  let best = null, bs = -Infinity;",
+    "  if (ai.zonePref === undefined) ai.zonePref = g.mode.flags.map(() => rand(0, 30));",
+    "  g.mode.flags.forEach((f, i) => {",
+    "    let sc = ai.zonePref[i] - Math.hypot(f.x - v.pos.x, f.z - v.pos.z) / 30;",
+    "    if (f.owner !== v.team) sc += 60;",
+    "    if (f.capturing >= 0 && f.capturing !== v.team) sc += 45;",
+    "    if (f === ai.zone) sc += 15;",
+    "    if (sc > bs) { bs = sc; best = f; }",
+    "  });",
+    "  if (!best) return;",
+    "  ai.mode = 'patrol'; ai.target = null; ai.zone = best;",
+    "  ai.cx = best.x; ai.cz = best.z; ai.r = clamp(v.speed * 2.2, 140, best.radius * 0.8);",
+    "});",
+    "",
+    "// Bailing out over a map this size is a long walk: say how to get back in the air",
+    "api.on('exitVehicle', (e) => {",
+    "  if (e.soldier === g.player && e.vehicle.isAircraft && g.state === 'playing') api.toast(g.isTouch ? 'PAUSE → REDEPLOY TO FLY AGAIN' : 'ESC → REDEPLOY TO FLY AGAIN');",
+    "});",
+    ""
+  ]
+}

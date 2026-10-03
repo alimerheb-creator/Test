@@ -339,7 +339,7 @@ export class Combat {
     const wh = g.world.raycast(o.x, o.y, o.z, dir.x, dir.y, dir.z, maxT);
     let best = wh.hit ? wh.t : maxT;
     const wHit = wh.hit, nx = wh.nx, ny = wh.ny, nz = wh.nz;
-    const mat = wh.box ? (wh.box.data && wh.box.data.mat) || 'concrete' : 'dirt';
+    const mat = wh.box ? (wh.box.data && wh.box.data.mat) || 'concrete' : wh.water ? 'water' : 'dirt';
     let victim = null, head = false, veh = null;
     for (const s of g.soldiers) {
       if (s === shooter || (s.team === shooter.team && !RULES.friendlyFire) || s.state !== 'alive' || s.vehicle) continue;
@@ -492,7 +492,8 @@ export class Combat {
     }
     for (const v of g.vehicles) {
       if (!v.alive) continue;
-      const d = Math.max(0, v.pos.distanceTo(_c.set(x, y, z)) - 2.4);
+      // big vehicles (ships) say how far a point is from their hull
+      const d = v.blastDist ? v.blastDist(x, y, z) : Math.max(0, v.pos.distanceTo(_c.set(x, y, z)) - 2.4);
       if (d < r) {
         v.damage(def.veh * (1 - d / r), owner, def.name);
         if (owner && owner.isPlayer && v.team !== owner.team) g.hud.hitmarker(false, false, true);
