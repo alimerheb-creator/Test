@@ -96,8 +96,11 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
   fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). Every airbase is guarded by
   **C-RAM** guns: they track and shoot down bombs, rockets and missiles with a roar of tracers and hose down
-  low-flying enemy aircraft. You hear the "INCOMING" alarm when a missile comes for you, a slow beep when an
-  enemy C-RAM tracks you and a fast one while it fires at you.
+  low-flying enemy aircraft. When your side's guns engage something incoming near you, or a missile comes for
+  you, the base alarm sounds like the real one over a base's loudspeakers: a wailing siren with an echo, then
+  "INCOMING, INCOMING, INCOMING". A slow beep means an enemy C-RAM is tracking you, a fast one that it's firing.
+  To hear the real recording instead, use **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings
+  (MP3 or WAV under 2.5 MB; **BUILT-IN** goes back, **TEST** plays it).
 - **NAVAL**: cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates (Constellation /
   Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats, eight ships a side. Maps: **Sapphire Strait**
   (rocky islands), **Iron Harbor** (a grey port between two coasts) and **Arctic Passage** (pack ice and
