@@ -83,19 +83,45 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 ## Battle types
 
 The **BATTLE** picker on the main menu chooses what kind of battle you fight. Each one is a mod with its own map;
-picking a card installs and switches it on for you and restarts on its map.
+picking a card installs and switches it on for you and restarts on its map. Aviation and Naval also offer a
+**MAP** and a **MODE** row under the cards.
 
 - **NORMAL**: the base game, infantry and tanks on Karsa Valley (or a map mod you switched on).
 - **TANKS** (Tank Warfare): everyone commands a tank, up to 10 a side, on Iron Steppe, a wide open map of farms,
   a rail depot and the crossroads town of Karsk. Deploy at your HQ or a flag you hold and you start in a tank.
-- **AVIATION**: an air war over Highlands, a 3 km map (about six times the normal one). Everyone flies the jets
-  and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side. The objectives are sky zones:
-  fly through one to take it, bomb one the enemy holds to knock it back.
-- **NAVAL**: destroyers, frigates and patrol boats in Sapphire Strait, open sea between rocky islands, with the
-  flags on buoys. Pick your ship class on the deploy screen. W/S set the engine telegraph and A/D the rudder, you
-  aim with the mouse (or a drag) and the guns elevate themselves to land where you aim. 1/2/3 switch between guns,
-  torpedoes (a dashed line shows where they will run) and anti-ship missiles (hold the sight on a ship to lock).
-  Right mouse (AIM on phones) gives binoculars. Destroyers and frigates shoot incoming missiles down.
+- **AVIATION**: an air war on 3 km maps (about six times the normal one): **Highlands** (mountains and green
+  valleys), **Dune Sea** (desert dunes and mesas) and **Fjordland** (fjords, glaciers and snowy peaks). Everyone
+  flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side. Modes:
+  **Conquest** (sky zones: fly through one to take it, bomb one the enemy holds to knock it back), **Air
+  Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
+  fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). Every airbase is guarded by
+  **C-RAM** guns: they track and shoot down bombs, rockets and missiles with a roar of tracers and hose down
+  low-flying enemy aircraft. You hear the "INCOMING" alarm when a missile comes for you, a slow beep when an
+  enemy C-RAM tracks you and a fast one while it fires at you.
+- **NAVAL**: cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates (Constellation /
+  Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats, eight ships a side. Maps: **Sapphire Strait**
+  (rocky islands), **Iron Harbor** (a grey port between two coasts) and **Arctic Passage** (pack ice and
+  icebergs). Modes: **Conquest** (buoys), **Fleet Battle** (no flags, sink the enemy fleet) and **Strike** (shell
+  the enemy's shore installations while their coastal batteries shoot back). Pick your ship on the deploy
+  screen. W/S set the engine telegraph and A/D the rudder, you aim with the mouse (or a drag) and the guns
+  elevate themselves to land where you aim. 1/2/3 switch between guns, torpedoes (a dashed line shows where they
+  will run) and anti-ship missiles (hold the sight on a ship or shore target to lock). **G** (NADE) switches HE
+  and AP shells, right mouse (AIM) gives binoculars. Hits start **fires**, **flood** compartments (the ship
+  settles and lists) and knock out the **engine**, **rudder** or **guns** for a while; **R** (RELOAD) calls the
+  damage control party. The bigger ships carry **Phalanx CIWS** guns that shoot down missiles coming for them,
+  with the same alarms and sound as the C-RAM.
+
+### Career
+
+Switch on the **Career** mod (MODS screen) for War Thunder style progression. Every battle pays research points
+(RP) and silver (SL), more for a win and for the big naval and aviation battles; the after-action report shows
+what you earned. In the **HANGAR** (main menu or deploy screen) research ships, aircraft and guns with RP, one
+after another down each tree, then buy them with silver. Only what you own goes into battle: you start with a
+patrol boat, an F-16C (or MiG-29) and the standard guns. Owned ships and aircraft take modifications you research,
+buy and switch on (reinforced hull, gas turbines, rudder, gun loading drill, fast rearming, Phalanx Block 1B,
+damage control training, spall liners; engine tuning, airframe, flight controls, extra flares). New guns to
+unlock and equip per class: AK-12, SCAR-H, MP5A3, KRISS Vector, Remington 870, M249 SAW, PKP Pecheneg, Mk 14 EBR,
+AWM, Glock 17 and Desert Eagle.
 
 ## Multiplayer
 
@@ -127,8 +153,9 @@ full control of the game:
   can spawn explosions and bots, move soldiers, build 3D objects with collision, add HUD elements, bind keys
   (with touch buttons on phones), run timers, save data and slow down time.
 
-Bundled examples: the three battle types (Tank Warfare, Aviation, Naval), Multiplayer (online play with friends), Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25) and Bombers (B-17 and Lancaster) for Aviation battles, Armory (earn
-credits from kills and upgrade your guns with suppressors and more), Vehicle Interiors (sit inside tanks and
+Bundled examples: the three battle types (Tank Warfare, Aviation, Naval), Multiplayer (online play with friends), Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25) and Bombers (B-17 and Lancaster) for Aviation battles, Career
+(research and buy ships, aircraft and guns), Armory (earn credits from kills and upgrade your guns with
+suppressors and more), Vehicle Interiors (sit inside tanks and
 cockpits), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
 HD Knife (a real hand holding a detailed knife), Aggressive Reloads, five game modes (Capture the Flag, King of the
 Hill, Gun Game, Hardpoint, Last Stand) plus Team Deathmatch, four extra maps (Dust Ridge, Iron Forest, Old Town,

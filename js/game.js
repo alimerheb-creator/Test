@@ -203,8 +203,12 @@ export class Game extends Emitter {
   }
 
   // The main menu's battle picker: 'normal' or a battle mod's id. A different battlefield restarts the page.
-  setBattle(id) {
-    this.settings.battleType = id || 'normal';
+  // opts.map and opts.mode pick one of the battle's maps and modes
+  setBattle(id, opts = {}) {
+    id = id || 'normal';
+    this.settings.battleType = id;
+    if (opts.map) this.settings.battleMaps = { ...(this.settings.battleMaps || {}), [id]: opts.map };
+    if (opts.mode) this.settings.battleModes = { ...(this.settings.battleModes || {}), [id]: opts.mode };
     saveSettings(this.settings, true);
     this.reloadMods();
   }

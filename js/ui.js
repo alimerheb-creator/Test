@@ -301,6 +301,13 @@ export class UI {
       const b = e.target.closest('button[data-battle]');
       if (b) this._pickBattle(b.dataset.battle);
     });
+    $('mm-battle-opts').addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-opt]');
+      if (!b || b.classList.contains('sel')) return;
+      const g = this.game, id = g.mods.currentBattle();
+      g.audio.unlock(); g.audio.click();
+      g.setBattle(id, { [b.dataset.opt]: b.dataset.val });
+    });
     this.renderBattles();
     this._loadExamples().then(() => { this.renderBattles(); this._updateExamples(); });
   }
@@ -323,9 +330,21 @@ export class UI {
   }
 
   renderBattles() {
-    const cur = this.game.mods.currentBattle();
+    const mods = this.game.mods, cur = mods.currentBattle();
     $('mm-battle').innerHTML = this.battleChoices().map((c) => `<button class="bt-card${c.id === cur ? ' sel' : ''}" data-battle="${esc(c.id)}" aria-pressed="${c.id === cur}">
       <b>${esc(c.name)}</b><span>${esc(c.blurb || '')}</span></button>`).join('');
+    // the picked battle's maps and modes
+    const b = mods.battleEntry(cur);
+    const row = (kind, label, list, sel) => (list.length > 1 ? `<div class="bt-opts"><span>${label}</span>${list.map((o) => `<button class="bt-chip${o.id === sel ? ' sel' : ''}" data-opt="${kind}" data-val="${esc(o.id)}" title="${esc(o.blurb)}">${esc(o.name)}</button>`).join('')}</div>` : '');
+    const html = b ? row('map', 'MAP', b.battle.maps, mods.currentMap(cur)) + row('mode', 'MODE', b.battle.modes, mods.currentMode(cur)) : '';
+    const el = $('mm-battle-opts');
+    el.innerHTML = html;
+    el.hidden = !html;
+    const mo = b && b.battle.modes.find((o) => o.id === mods.currentMode(cur));
+    const mp = b && b.battle.maps.find((o) => o.id === mods.currentMap(cur));
+    const note = [mp && mp.blurb, mo && mo.blurb].filter(Boolean).join(' · ');
+    $('mm-battle-note').textContent = note;
+    $('mm-battle-note').hidden = !note;
   }
 
   _battleMsg(text, error = false) {
@@ -351,12 +370,12 @@ export class UI {
     return m;
   }
 
-  async _pickBattle(id) {
+  async _pickBattle(id, opts) {
     const g = this.game, mods = g.mods;
     if (this._picking) return;
     g.audio.unlock();
     g.audio.click();
-    if (id === mods.currentBattle()) return;
+    if (id === mods.currentBattle() && !opts) return;
     this._picking = true;
     const cards = [...$('mm-battle').querySelectorAll('button')];
     cards.forEach((b) => { b.disabled = true; });
@@ -367,7 +386,7 @@ export class UI {
         for (const need of m.battle.needs) await this._ensureMod(need);
       }
       this._battleMsg('');
-      g.setBattle(id);
+      g.setBattle(id, opts || {});
     } catch (e) {
       this._battleMsg(`Could not switch battles: ${e.message}`, true);
     } finally {

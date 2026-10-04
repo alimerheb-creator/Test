@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "bombers",
   "name": "Bombers",
-  "version": "1.3",
+  "version": "1.4",
   "author": "Sixth Front",
   "battles": [
     "aviation"
@@ -20,7 +20,7 @@
     "  const remove = h.remove;",
     "  h.remove = () => { remove(); fn(); };",
     "};",
-    "const AIR_VERSION = 4;",
+    "const AIR_VERSION = 5;",
     "function createAir() {",
     "  const A = { version: AIR_VERSION, refs: 0, types: [], fleet: [], undo: [] };",
     "  // ================================================================ kit: maths, textures, materials, geometry",
@@ -620,7 +620,8 @@
     "    }",
     "",
     "    _fly(dt) {",
-    "      const F = this.type.flight;",
+    "      // flightB: this aircraft's own flight numbers when it has upgrades (the Career mod), else its type's",
+    "      const F = this.flightB || this.type.flight;",
     "      const dc = this.direct;",
     "      if (dc && this.driver && this.driver === g.playerCtl.s) { this.ctl.pitch = dc.pitch; this.ctl.roll = dc.roll; this.ctl.yaw = dc.yaw; }",
     "      else { this.direct = null; this.steer(this.aim, this.ctl); }",

@@ -566,6 +566,17 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
 .bt-card.sel b { color: var(--signal); }
 .bt-card:disabled { opacity: 0.55; cursor: progress; }
 .mm-battle-msg { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.mm-battle-opts { display: flex; flex-direction: column; gap: 6px; }
+.bt-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bt-opts > span { width: 44px; font-size: 0.66rem; letter-spacing: 0.2em; font-weight: 700; color: var(--muted); }
+.bt-chip {
+  padding: 6px 10px; font: inherit; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; color: var(--text); cursor: pointer;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line);
+}
+.bt-chip:hover { background: rgba(255, 255, 255, 0.09); }
+.bt-chip.sel { border-color: var(--signal); color: var(--signal); background: rgba(242, 179, 61, 0.12); }
+.bt-chip:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.mm-battle-note { margin: 0; font-size: 0.78rem; line-height: 1.4; color: #b9bdb3; max-width: 60ch; }
 .mm-battle-msg.error { color: var(--enemy); }
 
 /* ============================================================ Mods */

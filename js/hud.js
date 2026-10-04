@@ -1,7 +1,7 @@
 // In-game HUD: tickets & flags, minimap, ammo, killfeed, score popups, crosshair,
 // hitmarkers, damage direction, world markers, scoreboard and the full-screen map.
 import * as THREE from 'three';
-import { TEAMS, SQUAD_COLOR, PLAY_HALF, BUILDINGS, ROADS, HQS, SQUAD_NAMES, VEHICLES, RULES, MAP, FLAGS } from './config.js';
+import { TEAMS, SQUAD_COLOR, PLAY_HALF, BUILDINGS, ROADS, HQS, SQUAD_NAMES, VEHICLES, RULES, MAP, FLAGS, TERRAIN } from './config.js';
 import { clamp, wrapAngle, yawTo, formatTime, esc } from './util.js';
 
 const $ = (id) => document.getElementById(id);
@@ -94,9 +94,10 @@ export class HUD {
     if (vt) vt.textContent = VEHICLES.tank.name;
     const eb = document.getElementById('mm-eyebrow');
     if (eb) {
-      const b = this.game.mods && this.game.mods.battleEntry(this.game.mods.battle);
+      const mods = this.game.mods, b = mods && mods.battleEntry(mods.battle);
       const mode = b ? b.battle.name : FLAGS.length ? 'CONQUEST' : 'TEAM DEATHMATCH';
-      const parts = FLAGS.length ? [mode, MAP.name, `${FLAGS.length} OBJECTIVE${FLAGS.length === 1 ? '' : 'S'}`] : [mode, MAP.name, 'NO OBJECTIVES'];
+      const mo = b && b.battle.modes.find((o) => o.id === mods.battleMode);
+      const parts = mo ? [mode, MAP.name, mo.name] : FLAGS.length ? [mode, MAP.name, `${FLAGS.length} OBJECTIVE${FLAGS.length === 1 ? '' : 'S'}`] : [mode, MAP.name, 'NO OBJECTIVES'];
       eb.innerHTML = parts.map(esc).join(' <span>·</span> ');
       // the line under the title describes the battle being played
       const tag = document.querySelector('#menu-main .tag');
@@ -140,6 +141,10 @@ export class HUD {
     const img = g.createImageData(S, S);
     const w = this.game.world;
     const d = img.data;
+    // land in the map's own colour when it has one (sand, snow), olive otherwise
+    const hex = TERRAIN.palette && /^#[0-9a-f]{6}$/i.test(TERRAIN.palette.grass || '') ? parseInt(TERRAIN.palette.grass.slice(1), 16) : -1;
+    const rgb = hex >= 0 ? [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255] : null;
+    const land = rgb ? [rgb[0] * 0.62, rgb[1] * 0.62, rgb[2] * 0.62, rgb[0] * 0.18, rgb[1] * 0.18, rgb[2] * 0.18] : [58, 64, 50, 20, 20, 18];
     for (let j = 0; j < S; j++) {
       for (let i = 0; i < S; i++) {
         const x = -MAP_HALF + ((i + 0.5) / S) * MAP_HALF * 2;
@@ -154,7 +159,7 @@ export class HUD {
           d[k] = 34 - deep * 14; d[k + 1] = 70 - deep * 22; d[k + 2] = 92 - deep * 18; d[k + 3] = 255;
           continue;
         }
-        d[k] = 58 * shade + 20; d[k + 1] = 64 * shade + 20; d[k + 2] = 50 * shade + 18; d[k + 3] = 255;
+        d[k] = land[0] * shade + land[3]; d[k + 1] = land[1] * shade + land[4]; d[k + 2] = land[2] * shade + land[5]; d[k + 3] = 255;
       }
     }
     g.putImageData(img, 0, 0);

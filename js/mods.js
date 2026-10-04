@@ -55,6 +55,23 @@ const KV = {
   },
 };
 const parseJSON = (s) => { try { return s ? JSON.parse(s) : null; } catch (e) { return null; } };
+// Mods' saved data (api.store) is written shortly after the last change, and straight away when the page closes
+const pendingStores = new Map();
+let storeTimer = 0;
+function flushStores() {
+  clearTimeout(storeTimer);
+  for (const [k, fn] of pendingStores) { try { KV.set(k, fn()); } catch (e) { /* full */ } }
+  pendingStores.clear();
+}
+function saveStore(key, fn) {
+  pendingStores.set(key, fn);
+  clearTimeout(storeTimer);
+  storeTimer = setTimeout(flushStores, 300);
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushStores);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flushStores(); });
+}
 
 // ---------------------------------------------------------------- field schemas
 const num = (min, max, int = false) => ({ t: 'num', min, max, int });
@@ -113,6 +130,7 @@ const SCHEMA = {
     stars: num(0, 2), sunElevation: num(3, 89), sunAzimuth: num(-360, 360), exposure: num(0.2, 4), envIntensity: num(0, 3),
   },
   terrain: { seed: num(0, 1000000), hills: num(0, 4), bumps: num(0, 4), mountains: num(0, 3), valley: num(-5, 5), level: num(-80, 80) },
+  palette: { grass: colorStr, grass2: colorStr, dirt: colorStr, rock: colorStr, peak: colorStr, town: colorStr, road: colorStr, sand: colorStr, seabed: colorStr },
   vegetation: { trees: num(0, 3), bushes: num(0, 3), rocks: num(0, 3), grass: num(0, 2) },
   flag: { id: str(2), name: str(20), x: coord, z: coord, radius: num(5, 400), flat: num(10, 200), town: bool, height: num(4, 3000) },
   hq: { x: coord, z: coord, yaw: num(-360, 360) },
@@ -265,7 +283,7 @@ export function parseMod(text) {
 
 const MAP_TABLES = () => ({ MAP, FLAGS, HQS, BUILDINGS, ROADS, TERRAIN, VEGETATION, MAP_PROPS });
 const KNOWN_SECTIONS = new Set(['format', 'id', 'name', 'version', 'author', 'description', 'weapons', 'gadgets', 'projectiles', 'classes',
-  'movement', 'rules', 'scoring', 'vehicles', 'teams', 'difficulty', 'atmosphere', 'botNames', 'map', 'script', 'battle', 'battles']);
+  'movement', 'rules', 'scoring', 'vehicles', 'teams', 'difficulty', 'atmosphere', 'botNames', 'map', 'script', 'battle', 'battles', 'maps']);
 // The base game's battle: infantry and tanks on the normal maps
 export const NORMAL_BATTLE = 'normal';
 
@@ -400,7 +418,7 @@ export class ModManager {
       return {
         id: slugify(mod.id || mod.name), name: String(mod.name).slice(0, 48), version: String(mod.version || ''),
         author: String(mod.author || ''), description: String(mod.description || '').slice(0, 300),
-        hasScript: !!mod.script, hasMap: mod.map !== undefined, enabled, text, mod, status: 'ok', messages: [], mapMessages: [],
+        hasScript: !!mod.script, hasMap: mod.map !== undefined || isObj(mod.maps), enabled, text, mod, status: 'ok', messages: [], mapMessages: [],
         battle: this._battleInfo(mod), battles: Array.isArray(mod.battles) ? mod.battles.filter((b) => typeof b === 'string').map(slugify).slice(0, 8) : null,
       };
     } catch (e) {
@@ -413,10 +431,17 @@ export class ModManager {
     const b = mod.battle;
     if (!isObj(b)) return null;
     const txt = (v, n, d = '') => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : d);
+    // choices offered under the battle's card: its maps (the first one is the "map" section, the others come
+    // from the "maps" section) and its modes (a mode can change the map, for example to remove the flags)
+    const list = (arr, max) => (Array.isArray(arr) ? arr : []).filter(isObj).slice(0, max).map((x, i) => ({
+      id: slugify(x.id || x.name || 'option-' + i), name: txt(x.name, 20, String(x.id || 'OPTION')).toUpperCase(), blurb: txt(x.blurb, 80),
+      map: isObj(x.map) ? x.map : null, tagline: txt(x.tagline, 240),
+    }));
     return {
       name: txt(b.name, 16, String(mod.name).slice(0, 16)).toUpperCase(), tagline: txt(b.tagline, 240), blurb: txt(b.blurb, 60),
       order: Number.isFinite(+b.order) ? +b.order : 50,
       needs: Array.isArray(b.needs) ? b.needs.filter((x) => typeof x === 'string').map(slugify).slice(0, 8) : [],
+      maps: list(b.maps, 8), modes: list(b.modes, 8),
     };
   }
 
@@ -429,6 +454,28 @@ export class ModManager {
   }
 
   battleEntry(id = this.currentBattle()) { return this.list.find((m) => m.id === id && m.battle) || null; }
+
+  // The map and mode picked for a battle (the first of each when nothing is picked), or null
+  _pick(battle, kind) {
+    const b = this.battleEntry(battle);
+    const opts = b ? b.battle[kind] : [];
+    if (!opts.length) return null;
+    const want = ((this.game.settings[kind === 'maps' ? 'battleMaps' : 'battleModes']) || {})[battle];
+    return opts.find((o) => o.id === want) || opts[0];
+  }
+  currentMap(battle = this.currentBattle()) { const o = this._pick(battle, 'maps'); return o ? o.id : null; }
+  currentMode(battle = this.currentBattle()) { const o = this._pick(battle, 'modes'); return o ? o.id : null; }
+
+  // The map section a mod contributes in this battle: a battle mod's picked map, with its picked mode's changes
+  _mapSection(m, battle) {
+    const mod = m.mod;
+    if (!(m.battle && m.id === battle)) return mod.map;
+    const mp = this._pick(battle, 'maps'), mo = this._pick(battle, 'modes');
+    let map = mod.map;
+    if (mp && mp !== m.battle.maps[0] && isObj(mod.maps) && isObj(mod.maps[mp.id])) map = mod.maps[mp.id];
+    if (mo && mo.map) map = { ...(isObj(map) ? map : {}), ...mo.map };
+    return map;
+  }
 
   // Whether a switched-on mod takes part in this battle. A battle mod only runs in its own battle; a mod with
   // "battles" only in those (or when a battle needs it); map mods replace the normal battlefield, so they only
@@ -498,7 +545,7 @@ export class ModManager {
   // ---------------------------------------------------------------- maps
   _mapSig() {
     const battle = this.currentBattle();
-    return JSON.stringify([battle, this.list.filter((m) => m.hasMap && this._activeIn(m, battle)).map((m) => m.mod.map)]);
+    return JSON.stringify([battle, this.currentMap(battle), this.currentMode(battle), this.list.filter((m) => m.hasMap && this._activeIn(m, battle)).map((m) => this._mapSection(m, battle))]);
   }
 
   // True when the enabled map mods differ from the map the world was built with
@@ -512,7 +559,7 @@ export class ModManager {
     const maps = this.list.filter((m) => m.hasMap && this._activeIn(m, battle));
     // the size goes first: everything else on the map is placed (and clamped) inside it
     applyMapSize(undefined);
-    for (const m of maps) if (isObj(m.mod.map) && m.mod.map.size !== undefined) this._applySize(m.mod.map.size, []);
+    for (const m of maps) { const s = this._mapSection(m, battle); if (isObj(s) && s.size !== undefined) this._applySize(s.size, []); }
     Object.keys(MAP).forEach((k) => delete MAP[k]);
     Object.assign(MAP, clone(P.MAP));
     Object.assign(TERRAIN, clone(P.TERRAIN));
@@ -525,7 +572,7 @@ export class ModManager {
     for (const m of this._ordered()) {
       m.mapMessages = [];
       if (!maps.includes(m)) continue;
-      try { this._applyMap(m.mod.map, m.mapMessages); } catch (e) { m.mapMessages.push(`map: ${e.message}`); }
+      try { this._applyMap(this._mapSection(m, battle), m.mapMessages); } catch (e) { m.mapMessages.push(`map: ${e.message}`); }
     }
     this.appliedMapSig = this._mapSig();
   }
@@ -539,7 +586,11 @@ export class ModManager {
 
   _applyMap(map, log) {
     if (!isObj(map)) { log.push('map: expected an object'); return; }
-    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands'];
+    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'palette', 'atmosphere'];
+    if (map.palette !== undefined) {
+      if (!isObj(map.palette)) log.push('map.palette: expected an object like { "grass": "#c9b48a" }');
+      else { const p = {}; applyFields(p, map.palette, SCHEMA.palette, 'map.palette', {}, log); TERRAIN.palette = p; }
+    }
     if (map.size !== undefined && !isObj(map.size)) log.push('map.size: expected an object like { "play": 600 }');
     if (map.water !== undefined) {
       if (map.water === null) TERRAIN.water = null;
@@ -681,6 +732,8 @@ export class ModManager {
     this._restore();
     const battle = this.currentBattle();
     this.battle = battle;
+    this.battleMap = this.currentMap(battle);
+    this.battleMode = this.currentMode(battle);
     for (const m of this._ordered()) {
       m.messages = [...(m.mapMessages || [])];
       if (!m.enabled) { m.status = 'off'; continue; }
@@ -769,6 +822,16 @@ export class ModManager {
       if (next.preset) for (const k of Object.keys(ATMOSPHERE)) delete ATMOSPHERE[k];
       Object.assign(ATMOSPHERE, next);
     }
+    // a battle's picked map (or mode) can bring its own weather on top
+    if (entry.battle && entry.id === this.currentBattle()) {
+      const ms = this._mapSection(entry, entry.id);
+      if (isObj(ms) && isObj(ms.atmosphere)) {
+        const next = {};
+        applyFields(next, ms.atmosphere, SCHEMA.atmosphere, 'map.atmosphere', tables, log);
+        if (next.preset) for (const k of Object.keys(ATMOSPHERE)) delete ATMOSPHERE[k];
+        Object.assign(ATMOSPHERE, next);
+      }
+    }
     if (mod.botNames !== undefined) {
       const names = Array.isArray(mod.botNames) ? mod.botNames.filter((n) => typeof n === 'string' && n.trim()).map((n) => n.trim().slice(0, 16)) : [];
       if (names.length >= 4) BOT_NAMES.splice(0, BOT_NAMES.length, ...names);
@@ -845,8 +908,8 @@ export class ModManager {
       : x && typeof x === 'object' ? new THREE.Vector3(+x.x || 0, +x.y || 0, +x.z || 0) : new THREE.Vector3(+x || 0, +y || 0, +z || 0));
     const isSoldier = (s) => s && g.soldiers.includes(s);
     const storeKey = STORE_PREFIX + entry.id;
-    let store = {};
-    try { store = JSON.parse(localStorage.getItem(storeKey) || '{}') || {}; } catch (e) { store = {}; }
+    let store = parseJSON(KV.get(storeKey)) || {};
+    if (!isObj(store)) store = {};
     const hudLayer = () => {
       let el = document.getElementById('mod-hud');
       if (!el) {
@@ -950,6 +1013,8 @@ export class ModManager {
       time: () => g.time,
       state: () => g.state,
       battle: () => mgr.battle || NORMAL_BATTLE,
+      battleMap: () => mgr.battleMap || null,
+      battleMode: () => mgr.battleMode || null,
       mapSize: () => ({ play: PLAY_HALF, world: WORLD_HALF }),
       water: () => g.world.water,
       heightAt: (x, z) => g.world.heightAt(+x, +z),
@@ -1244,7 +1309,7 @@ export class ModManager {
         get: (key, fallback) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : fallback),
         set(key, value) {
           store[String(key)] = value;
-          try { localStorage.setItem(storeKey, JSON.stringify(store)); } catch (e) { report(e); }
+          saveStore(storeKey, () => JSON.stringify(store));
         },
       },
     };

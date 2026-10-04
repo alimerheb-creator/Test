@@ -196,9 +196,11 @@ export class World {
 
     const nor = geo.attributes.normal.array;
     const col = new Float32Array(count * 3);
-    const grassA = new THREE.Color(0x7a7446), grassB = new THREE.Color(0x5b6538), dirt = new THREE.Color(0x8e7657);
-    const rock = new THREE.Color(0x77706a), rockHi = new THREE.Color(0x9a948c), town = new THREE.Color(0x9b8b70);
-    const road = new THREE.Color(0x5f574d), sand = new THREE.Color(0xc2b087), seabed = new THREE.Color(0x3f4a3f);
+    // the ground's colours (a map can repaint them: desert sand, snow, ...)
+    const P = TERRAIN.palette || {};
+    const grassA = new THREE.Color(P.grass || 0x7a7446), grassB = new THREE.Color(P.grass2 || 0x5b6538), dirt = new THREE.Color(P.dirt || 0x8e7657);
+    const rock = new THREE.Color(P.rock || 0x77706a), rockHi = new THREE.Color(P.peak || 0x9a948c), town = new THREE.Color(P.town || 0x9b8b70);
+    const road = new THREE.Color(P.road || 0x5f574d), sand = new THREE.Color(P.sand || 0xc2b087), seabed = new THREE.Color(P.seabed || 0x3f4a3f);
     const c = new THREE.Color();
     const segs = [];
     for (const r of ROADS) for (let i = 0; i < r.length - 1; i++) segs.push([r[i][0], r[i][1], r[i + 1][0], r[i + 1][1]]);

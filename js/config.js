@@ -108,7 +108,7 @@ export const ROADS = [
 // Terrain shape multipliers and seed, vegetation density multipliers, and hand-placed props
 // level raises or lowers the whole terrain (below a sea, for example); water is the sea level (null: no water);
 // islands are [x, z, radius, height] mounds added on top
-export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1, level: 0, water: null, islands: [] };
+export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1, level: 0, water: null, islands: [], palette: null };
 export const VEGETATION = { trees: 1, bushes: 1, rocks: 1, grass: 1 };
 export const MAP_PROPS = [];
 

@@ -297,6 +297,23 @@ A battle mod has a `battle` section:
 | `tagline` | Replaces the paragraph under the game's title while this battle is picked |
 | `order` | Position of the card (NORMAL is 0) |
 | `needs` | Ids of mods this battle needs. Picking the battle installs (from the game's own mods folder) and switches them on, and they run in this battle even if their `battles` list doesn't name it |
+| `maps` | Up to 8 `{ "id", "name", "blurb" }` shown as a MAP row under the cards. The first is the mod's `map` section; the others are taken from the mod's top-level `maps` section by id |
+| `modes` | Up to 8 `{ "id", "name", "blurb", "map" }` shown as a MODE row. A mode's `map` is merged over the picked map, for example `{ "flags": [] }` for a mode without flags |
+
+A battle with maps and modes keeps a top-level `maps` section beside `map`:
+
+```json
+"battle": {
+  "name": "NAVAL", "blurb": "Warships, three seas",
+  "maps": [ { "id": "sapphire-strait", "name": "SAPPHIRE STRAIT" }, { "id": "arctic-passage", "name": "ARCTIC PASSAGE", "blurb": "Pack ice" } ],
+  "modes": [ { "id": "conquest", "name": "CONQUEST" }, { "id": "fleet", "name": "FLEET BATTLE", "map": { "flags": [] } } ]
+},
+"map": { "name": "SAPPHIRE STRAIT", "...": "..." },
+"maps": { "arctic-passage": { "name": "ARCTIC PASSAGE", "palette": { "grass": "#e6ecef" }, "atmosphere": { "preset": "overcast" }, "...": "..." } }
+```
+
+The player's picks are saved per battle; scripts read them with `api.battleMap()` and `api.battleMode()` (the
+ids, or `null` for a battle without choices). Changing either restarts on the new map.
 
 Which switched-on mods run where:
 
@@ -327,6 +344,14 @@ spawned by the engine. Optional extras for vehicles of your own (the Naval mod's
 
 During an online game the Multiplayer mod also offers `api.game.__mp` (`live()`, `role()`, `send(tag, data)`,
 `on(tag, fn)`) for a mod's own messages, and emits the `mpSession` event when a game starts.
+
+Other things the bundled mods share on `api.game`:
+
+| Object | From | Offers |
+| --- | --- | --- |
+| `__career` | Career | `owned(cat, id, team)` (`cat` is `ship`, `air` or `weapon`; anything the career doesn't know is allowed) and `bonus(cat, id, team)`, the multipliers of the modifications switched on for it (`hp`, `speed`, `turn`, `reload`, `rearm`, `ciws`, `dc`, `crit`, `fire`, `flood`, extra `flares`), or `null` |
+| `__ad` | Naval, Aviation | The C-RAM / Phalanx guns: `mounts`, `provide(fn)` (`fn` returns threats `{ pos, vel, team, kind, local, kill(), hurt?(dmg), aim? }` every frame), `setAlarm('track' \| 'fire' \| 'incoming')` |
+| `__gt` | Naval, Aviation | Ground targets: `list` (`kind`, `team`, `pos`, `hp`, `alive`), `add({ kind, team, x, z, tickets, respawn })` with kinds `radar`, `fuel`, `hangar`, `command`, `battery`, `cram`. The `groundTargetDestroyed` event says when one goes |
 
 ## Maps
 
@@ -366,6 +391,8 @@ default.
 | `randomProps` | `false` removes the automatic cover around flags, HQs and across the fields |
 | `terrain` | `seed` (any number gives a different landscape), `hills` (0–4), `bumps` (0–4), `mountains` (0–3, the ring around the edge), `valley` (−5–5, a dip through the middle; negative makes a ridge), `level` (−80–80, raises or lowers all of it: below `water` for a sea) |
 | `vegetation` | Multipliers for `trees`, `bushes`, `rocks` (0–3) and `grass` (0–2) |
+| `palette` | The ground's colours as `#rrggbb`: `grass`, `grass2`, `dirt`, `rock`, `peak` (high ground), `town`, `road`, `sand` (beaches), `seabed`. Desert sand, snow, ... (the map screen follows `grass`) |
+| `atmosphere` | Only in a battle mod's maps and modes: the same fields as the top-level `atmosphere` section, applied over it while that map or mode is picked |
 
 Ground is flattened automatically around flags, HQs and buildings. The team with more flags makes the other
 side's tickets drain once it holds more than half of them.
@@ -441,6 +468,7 @@ cancel the action.
 | `api.flags()`, `api.tickets()`, `api.time()`, `api.state()` | Objectives, ticket counts, game time, and `menu`/`deploy`/`playing`/`paused`/`ended` |
 | `api.heightAt(x, z)` | Ground height |
 | `api.battle()`, `api.mapSize()`, `api.water()` | The battle type being played (`normal` or a battle mod's id), `{ play, world }` half-sizes of the map, and the sea level (`null` without water) |
+| `api.battleMap()`, `api.battleMode()` | The ids of the map and mode picked for this battle, or `null` |
 | `api.raycast(from, dir, maxDist, { ignore })` | Returns `{ hit, x, y, z, distance, soldier, vehicle, terrain, normal }` |
 | `api.vec(x, y, z)` | A `THREE.Vector3` |
 | `api.teleport(soldier, x, y, z)` | Move a soldier (leave out `y` to land on the ground) |
