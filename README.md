@@ -95,8 +95,9 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   **Conquest** (sky zones: fly through one to take it, bomb one the enemy holds to knock it back), **Air
   Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
   fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). Every airbase is guarded by
-  **C-RAM** guns: they track and shoot down bombs, rockets and missiles with a roar of tracers and hose down
-  low-flying enemy aircraft. When your side's guns engage something incoming near you, or a missile comes for
+  **C-RAM** guns. Nobody aims them: they open up by themselves on air attacks only (enemy jets flying low, and
+  the bombs, rockets and missiles they release) and on the **drone strikes** each side sends at the other's
+  airbase about once a minute. When your side's guns engage something incoming near you, or a strike comes for
   you, the base alarm sounds like the real one over a base's loudspeakers: a wailing siren with an echo, then
   "INCOMING, INCOMING, INCOMING". A slow beep means an enemy C-RAM is tracking you, a fast one that it's firing.
   To hear the real recording instead, use **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings
@@ -111,20 +112,31 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   will run) and anti-ship missiles (hold the sight on a ship or shore target to lock). **G** (NADE) switches HE
   and AP shells, right mouse (AIM) gives binoculars. Hits start **fires**, **flood** compartments (the ship
   settles and lists) and knock out the **engine**, **rudder** or **guns** for a while; **R** (RELOAD) calls the
-  damage control party. The bigger ships carry **Phalanx CIWS** guns that shoot down missiles coming for them,
-  with the same alarms and sound as the C-RAM.
+  damage control party. About once a minute each side sends a **drone strike** (a swarm of one-way attack
+  drones that dive onto a ship) or an **air strike** (two strike jets that release missiles and bombs) at the
+  other. The bigger ships' **Phalanx CIWS** guns take them on by themselves, the strike jets included, with the
+  same alarms and sound as the C-RAM; they leave enemy ships' shells and missiles alone.
 
 ### Career
 
-Switch on the **Career** mod (MODS screen) for War Thunder style progression. Every battle pays research points
-(RP) and silver (SL), more for a win and for the big naval and aviation battles; the after-action report shows
-what you earned. In the **HANGAR** (main menu or deploy screen) research ships, aircraft and guns with RP, one
-after another down each tree, then buy them with silver. Only what you own goes into battle: you start with a
-patrol boat, an F-16C (or MiG-29) and the standard guns. Owned ships and aircraft take modifications you research,
+The game has War Thunder style progression built in (the **Career** mod is installed and switched on by itself
+and can't be switched off). You start with nothing but a patrol boat, an F-16C (or MiG-29) and the standard guns,
+0 research points (RP) and 0 silver (SL). Winning battles pays RP and silver (a lost battle pays only a quarter;
+the big naval and aviation battles pay more); the after-action report shows what you earned. In the **HANGAR**
+(main menu or deploy screen) research ships, aircraft and guns with RP, one after another down each tree, then
+buy them with silver. Only what you own goes into battle, and you always sail and fly **your own** ship or
+aircraft: the bots never take it, and when it's sunk or shot down it's back at the harbour or airbase a few
+seconds later. Owned ships and aircraft take modifications you research,
 buy and switch on (reinforced hull, gas turbines, rudder, gun loading drill, fast rearming, Phalanx Block 1B,
 damage control training, spall liners; engine tuning, airframe, flight controls, extra flares). New guns to
 unlock and equip per class: AK-12, SCAR-H, MP5A3, KRISS Vector, Remington 870, M249 SAW, PKP Pecheneg, Mk 14 EBR,
 AWM, Glock 17 and Desert Eagle.
+
+For testing there is a separate mod that is **not** part of the game:
+[`extras/infinite-everything.sfmod.json`](extras/infinite-everything.sfmod.json). Import it from MODS → IMPORT
+MOD FILE: the HANGAR shows ∞ RP and silver (what you unlock stays unlocked), and in battle you, your ship and
+your aircraft take no damage and never run out of ammo, missiles, torpedoes, bombs or flares. Remove it to play
+normally.
 
 ## Multiplayer
 

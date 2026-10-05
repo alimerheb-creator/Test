@@ -286,6 +286,9 @@ const KNOWN_SECTIONS = new Set(['format', 'id', 'name', 'version', 'author', 'de
   'movement', 'rules', 'scoring', 'vehicles', 'teams', 'difficulty', 'atmosphere', 'botNames', 'map', 'script', 'battle', 'battles', 'maps']);
 // The base game's battle: infantry and tanks on the normal maps
 export const NORMAL_BATTLE = 'normal';
+// Mods every game runs (the Career progression): the game installs and switches them on itself, and they
+// can't be switched off or removed
+export const CORE_MODS = ['career'];
 
 // ---------------------------------------------------------------- manager
 export class ModManager {
@@ -520,6 +523,7 @@ export class ModManager {
   }
 
   remove(id) {
+    if (CORE_MODS.includes(id)) return;
     this._fresh();
     this.list = this.list.filter((m) => m.id !== id);
     this.missing = this.missing.filter((m) => m.id !== id);
@@ -528,6 +532,7 @@ export class ModManager {
   }
 
   setEnabled(id, on) {
+    if (!on && CORE_MODS.includes(id)) return;
     this._fresh();
     const m = this.list.find((x) => x.id === id);
     if (m) { m.enabled = on; this._save(); }

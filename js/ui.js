@@ -1,7 +1,7 @@
 // Menus: main menu with settings, the deploy screen (class + spawn), pause and after-action report.
 import { CLASSES, CLASS_ORDER, WEAPONS, GADGETS, DIFFICULTY, TEAMS, MAP } from './config.js';
 import { saveSettings, formatTime, esc } from './util.js';
-import { parseMod, slugify } from './mods.js';
+import { parseMod, slugify, CORE_MODS } from './mods.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -255,12 +255,13 @@ export class UI {
     const g = this.game;
     const list = g.mods.list;
     const statusText = { ok: 'ACTIVE', off: 'OFF', warn: 'ACTIVE · CHECK NOTES', error: 'ERROR', standby: 'ON · NOT IN THIS BATTLE' };
+    const core = (m) => CORE_MODS.includes(m.id);
     $('mod-list').innerHTML = list.length ? list.map((m, i) => `
       <li class="mod-item ${m.status}">
         <div class="mod-top">
-          <label class="check" for="mod-t-${esc(m.id)}"><input id="mod-t-${esc(m.id)}" type="checkbox" data-toggle="${esc(m.id)}" ${m.enabled ? 'checked' : ''}>
+          <label class="check" for="mod-t-${esc(m.id)}"><input id="mod-t-${esc(m.id)}" type="checkbox" data-toggle="${esc(m.id)}" ${m.enabled ? 'checked' : ''} ${core(m) ? 'disabled' : ''}>
             <span class="mod-name">${esc(m.name)}</span></label>
-          <span class="mod-status">${statusText[m.status] || ''}</span>
+          <span class="mod-status">${core(m) ? 'BUILT IN · ' : ''}${statusText[m.status] || ''}</span>
         </div>
         <p class="mod-meta">${esc([m.version && 'v' + m.version, m.author && 'by ' + m.author, m.hasScript && 'has script', m.hasMap && 'new map (the game restarts when you switch it)'].filter(Boolean).join(' · '))}</p>
         ${m.description ? `<p class="mod-desc">${esc(m.description)}</p>` : ''}
@@ -268,7 +269,7 @@ export class UI {
         <div class="mod-buttons">
           <button class="btn ghost small" data-act="up" data-id="${esc(m.id)}" ${i === 0 ? 'disabled' : ''}>UP</button>
           <button class="btn ghost small" data-act="down" data-id="${esc(m.id)}" ${i === list.length - 1 ? 'disabled' : ''}>DOWN</button>
-          <button class="btn ghost small danger" data-act="remove" data-id="${esc(m.id)}">REMOVE</button>
+          ${core(m) ? '' : `<button class="btn ghost small danger" data-act="remove" data-id="${esc(m.id)}">REMOVE</button>`}
         </div>
       </li>`).join('') : '<li class="mod-empty">No mods installed yet. Import a mod file or add one of the examples below.</li>';
     this._renderExamples();
@@ -309,7 +310,7 @@ export class UI {
       g.setBattle(id, { [b.dataset.opt]: b.dataset.val });
     });
     this.renderBattles();
-    this._loadExamples().then(() => { this.renderBattles(); this._updateExamples(); });
+    this._loadExamples().then(async () => { this.renderBattles(); await this._updateExamples(); await this._ensureCore(); });
   }
 
   battleChoices() {
@@ -418,6 +419,21 @@ export class UI {
         mods.add(text);
         changed = true;
       } catch (err) { /* offline: keep the installed copy */ }
+    }
+    if (!changed) return;
+    if (g.state === 'menu' && this.screens.mods.hidden) g.reloadMods();
+    else this.modsDirty = true;
+    this.renderBattles();
+  }
+
+  // The mods every game runs (Career): installed from the game's own folder and switched on at start
+  async _ensureCore() {
+    const g = this.game, mods = g.mods;
+    let changed = false;
+    for (const id of CORE_MODS) {
+      const m = mods.list.find((x) => x.id === id);
+      if (m && m.enabled) continue;
+      try { await this._ensureMod(id); changed = true; } catch (err) { /* not shipped with this copy of the game */ }
     }
     if (!changed) return;
     if (g.state === 'menu' && this.screens.mods.hidden) g.reloadMods();

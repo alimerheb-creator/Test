@@ -349,8 +349,9 @@ Other things the bundled mods share on `api.game`:
 
 | Object | From | Offers |
 | --- | --- | --- |
-| `__career` | Career | `owned(cat, id, team)` (`cat` is `ship`, `air` or `weapon`; anything the career doesn't know is allowed) and `bonus(cat, id, team)`, the multipliers of the modifications switched on for it (`hp`, `speed`, `turn`, `reload`, `rearm`, `ciws`, `dc`, `crit`, `fire`, `flood`, extra `flares`), or `null` |
+| `__career` | Career (built in: the game installs it and keeps it on) | `setInfinite(on)` (nothing costs anything; the test mod uses it), `owned(cat, id, team)` (`cat` is `ship`, `air` or `weapon`; anything the career doesn't know is allowed) and `bonus(cat, id, team)`, the multipliers of the modifications switched on for it (`hp`, `speed`, `turn`, `reload`, `rearm`, `ciws`, `dc`, `crit`, `fire`, `flood`, extra `flares`), or `null` |
 | `__ad` | Naval, Aviation | The C-RAM / Phalanx guns: `mounts`, `provide(fn)` (`fn` returns threats `{ pos, vel, team, kind, local, kill(), hurt?(dmg), aim? }` every frame), `setAlarm('track' \| 'fire' \| 'incoming')` |
+| `__sk` | Naval, Aviation | Drone strikes and air strikes: `list` of drones, jets, missiles and bombs in the air, `targets(team)` (what a side may strike), `kinds` |
 | `__gt` | Naval, Aviation | Ground targets: `list` (`kind`, `team`, `pos`, `hp`, `alive`), `add({ kind, team, x, z, tickets, respawn })` with kinds `radar`, `fuel`, `hangar`, `command`, `battery`, `cram`. The `groundTargetDestroyed` event says when one goes |
 
 ## Maps
