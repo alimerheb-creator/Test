@@ -117,24 +117,38 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   other. The bigger ships' **Phalanx CIWS** guns take them on by themselves, the strike jets included, with the
   same alarms and sound as the C-RAM; they leave enemy ships' shells and missiles alone.
 
-### Career
+### Career and research
 
-The game has War Thunder style progression built in (the **Career** mod is installed and switched on by itself
-and can't be switched off). You start with nothing but a patrol boat, an F-16C (or MiG-29) and the standard guns,
-0 research points (RP) and 0 silver (SL). Winning battles pays RP and silver (a lost battle pays only a quarter;
-the big naval and aviation battles pay more); the after-action report shows what you earned. In the **HANGAR**
-(main menu or deploy screen) research ships, aircraft and guns with RP, one after another down each tree, then
-buy them with silver. Only what you own goes into battle, and you always sail and fly **your own** ship or
-aircraft: the bots never take it, and when it's sunk or shot down it's back at the harbour or airbase a few
-seconds later. Owned ships and aircraft take modifications you research,
-buy and switch on (reinforced hull, gas turbines, rudder, gun loading drill, fast rearming, Phalanx Block 1B,
-damage control training, spall liners; engine tuning, airframe, flight controls, extra flares). New guns to
-unlock and equip per class: AK-12, SCAR-H, MP5A3, KRISS Vector, Remington 870, M249 SAW, PKP Pecheneg, Mk 14 EBR,
-AWM, Glock 17 and Desert Eagle.
+Progression works like War Thunder Mobile and is built into the game: the **Career** and **Armory** mods are
+installed and switched on by themselves and can't be switched off. Press **RESEARCH** on the main menu (or the
+deploy screen) for the research trees: **SHIPS**, **AIRCRAFT** and **TANKS** for each side (VANGUARD and ONYX), and
+**WEAPONS**. Each tree has a column per rank (I, II, III, IV) with lines from each vehicle to the next; locked ones
+are red, a premium vehicle sits in the gold row at the top, and your **crew slots** run along the bottom.
+
+- **Earning.** You start with a patrol boat, an F-16C (or MiG-29), an M60A3 (or T-62M) and the standard guns, and
+  0 research points (RP), silver and gold. Winning battles pays RP, silver and gold (a lost battle pays a quarter;
+  the big naval and aviation battles pay more); the after-action report lists where it all went.
+- **Research.** Pick a vehicle and press RESEARCH THIS (the one with the star): the RP from that tree's battles
+  (naval for ships, aviation for aircraft, tank battles for tanks, infantry battles for guns) goes into it, shown
+  on its card as ★ 622/840. Anything left over is free RP, which you can put into anything. Researched means you
+  can buy it with silver; premium vehicles are bought straight away with gold and pay 50% more.
+- **Crew slots.** Only what's in your crew slots goes into battle, and you always use **your own** ship, aircraft
+  or tank (the bots never take it; it's back a few seconds after it's sunk, shot down or knocked out). In tank
+  battles the four class cards are your four crew slots. For guns, the slots are each class's gun and the sidearm.
+- **Modifications and attachments.** Every vehicle has modifications (hull, turbines, rudder, loading drill, fast
+  rearming, Phalanx Block 1B, damage control, spall liners; engine, airframe, controls, flares; composite armour,
+  engine, tracks, loader, turret drive, APFSDS) and every gun has the Armory's attachments (suppressor, compensator,
+  muzzle brake, barrels, grips, magazines, laser, ammunition, finishes). What you fight in researches its next one
+  with its own RP (tap one to research it next, tap again to finish it with free RP), then buy it with silver and
+  switch it on or equip it.
+- **Tanks.** VANGUARD: M60A3 Patton, M1 Abrams, M1A1, M1A2 SEPv3 (premium M1A1 HC Click-Bait). ONYX: T-62M, T-72B,
+  T-80U, T-90M (premium T-72B3). Each rank has more armour, speed, a faster reload and a harder-hitting gun.
+- **Guns.** M4K, AK-12, SCAR-H; VX-9, MP5A3, KRISS Vector, Remington 870; KR-250, M249, PKP; SR-338, Mk 14 EBR, AWM;
+  P-19, Glock 17, Desert Eagle; premium HK416.
 
 For testing there is a separate mod that is **not** part of the game:
 [`extras/infinite-everything.sfmod.json`](extras/infinite-everything.sfmod.json). Import it from MODS → IMPORT
-MOD FILE: the HANGAR shows ∞ RP and silver (what you unlock stays unlocked), and in battle you, your ship and
+MOD FILE: the RESEARCH screen shows ∞ RP, silver and gold (what you unlock stays unlocked), and in battle you, your ship and
 your aircraft take no damage and never run out of ammo, missiles, torpedoes, bombs or flares. Remove it to play
 normally.
 

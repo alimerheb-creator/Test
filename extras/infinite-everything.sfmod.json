@@ -4,7 +4,7 @@
   "name": "Infinite Everything (test)",
   "version": "1.0",
   "author": "Sixth Front",
-  "description": "For testing, not part of the game: import it from MODS → IMPORT MOD FILE. The HANGAR shows ∞ research points and silver, so every ship, aircraft, gun and modification can be researched and bought straight away (what you unlock stays unlocked after you remove the mod). In battle you, your ship and your aircraft take no damage and never run out: ammo with no reloads, gadgets, grenades, missiles, torpedoes, bombs, flares, Phalanx rounds; fires, flooding and knocked-out modules are fixed at once. Remove it to play normally.",
+  "description": "For testing, not part of the game: import it from MODS → IMPORT MOD FILE. The RESEARCH screen shows ∞ research points, silver and gold, so every ship, aircraft, tank, gun, premium, modification and attachment can be researched and bought straight away (what you unlock stays unlocked after you remove the mod). In battle you, your ship and your aircraft take no damage and never run out: ammo with no reloads, gadgets, grenades, missiles, torpedoes, bombs, flares, Phalanx rounds; fires, flooding and knocked-out modules are fixed at once. Remove it to play normally.",
   "script": [
     "// Infinite Everything: a test mod (not part of the game). The HANGAR shows ∞ research points and silver, so",
     "// every ship, aircraft, gun and modification can be researched and bought straight away; in battle you,",
