@@ -541,6 +541,20 @@ input[type=range] { width: 100%; accent-color: var(--signal); }
   .kf-row { font-size: 0.72rem; }
 }
 @media (max-height: 520px) {
+  /* landscape phones: the title shrinks, the paragraph goes, and the buttons come up under the title so
+     DEPLOY and RESEARCH are on the first screen */
+  #menu-main { padding-top: calc(14px + var(--safe-t)); padding-bottom: calc(16px + var(--safe-b)); gap: 14px; }
+  .mm-col { gap: 10px; }
+  .mm-col .title { font-size: 2.5rem; line-height: 0.9; }
+  .mm-col .title br { display: none; }
+  .mm-col .tag { display: none; }
+  .mm-col .mm-buttons { order: 3; }
+  .mm-col .eyebrow { order: 1; font-size: 0.68rem; }
+  .mm-col .title { order: 2; }
+  .mm-col .mm-battle-wrap { order: 4; }
+  .mm-col .settings { order: 5; }
+  #btn-play { font-size: 1rem; padding: 12px 30px; }
+  .mm-buttons .btn { padding-top: 10px; padding-bottom: 10px; }
   .cc-blurb { display: none; }
   #menu-deploy { gap: 8px; }
   .dp-head h2 { font-size: 1.6rem; }

@@ -120,8 +120,8 @@ picking a card installs and switches it on for you and restarts on its map. Avia
 ### Career and research
 
 Progression works like War Thunder Mobile and is built into the game: the **Career** and **Armory** mods are
-installed and switched on by themselves and can't be switched off. Press **RESEARCH** on the main menu (or the
-deploy screen) for the research trees: **SHIPS**, **AIRCRAFT** and **TANKS** for each side (VANGUARD and ONYX), and
+installed and switched on by themselves and can't be switched off. Press **RESEARCH** on the main menu (the gold
+button in the top-right corner, or the one next to DEPLOY), the deploy screen or the battle report for the research trees: **SHIPS**, **AIRCRAFT** and **TANKS** for each side (VANGUARD and ONYX), and
 **WEAPONS**. Each tree has a column per rank (I, II, III, IV) with lines from each vehicle to the next; locked ones
 are red, a premium vehicle sits in the gold row at the top, and your **crew slots** run along the bottom.
 
