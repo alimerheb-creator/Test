@@ -91,7 +91,15 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   a rail depot and the crossroads town of Karsk. Deploy at your HQ or a flag you hold and you start in a tank.
 - **AVIATION**: an air war on 3 km maps (about six times the normal one): **Highlands** (mountains and green
   valleys), **Dune Sea** (desert dunes and mesas) and **Fjordland** (fjords, glaciers and snowy peaks). Everyone
-  flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side. Modes:
+  flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side, about four jets
+  to every bomber. Twenty aircraft: for Vanguard the F-16C, F/A-18E, F-35A and F-22A fighters, the A-10C and
+  F-15E for ground attack, and the B-17G, B-52H, B-1B and B-2A bombers; for Onyx the MiG-29, Su-27, Su-35S and
+  Su-57, the Su-25 and Su-34, and the Lancaster, Tu-95MS, Tu-22M3 and Tu-160. The **F-35A, F-22A, Su-57 and B-2A
+  are stealthy**: enemy missiles lock on to them slower and only from closer. **Radar missiles** (AIM-120, R-77)
+  reach about twice as far as heat seekers and fall for flares less often; **guided bombs** (JDAM, KAB) glide
+  onto an enemy vehicle or installation near where they would have landed; the modern bombers carry **cruise
+  missiles** (JASSM, Kh-101, Kh-22) that lock on from about two kilometres, and the **B-1B, Tu-22M3 and Tu-160
+  sweep their wings back** as they speed up. Modes:
   **Conquest** (sky zones: fly through one to take it, bomb one the enemy holds to knock it back), **Air
   Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
   fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). Every airbase is guarded by
@@ -102,8 +110,9 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   "INCOMING, INCOMING, INCOMING". A slow beep means an enemy C-RAM is tracking you, a fast one that it's firing.
   To hear the real recording instead, use **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings
   (MP3 or WAV under 2.5 MB; **BUILT-IN** goes back, **TEST** plays it).
-- **NAVAL**: cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates (Constellation /
-  Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats, eight ships a side. Maps: **Sapphire Strait**
+- **NAVAL**: battleships (Iowa / Sovetsky Soyuz: nine 406 mm guns in three turrets that fire together, eight
+  Harpoons, four Phalanx guns), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates
+  (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats, nine ships a side. Maps: **Sapphire Strait**
   (rocky islands), **Iron Harbor** (a grey port between two coasts) and **Arctic Passage** (pack ice and
   icebergs). Modes: **Conquest** (buoys), **Fleet Battle** (no flags, sink the enemy fleet) and **Strike** (shell
   the enemy's shore installations while their coastal batteries shoot back). Pick your ship on the deploy
@@ -122,7 +131,7 @@ picking a card installs and switches it on for you and restarts on its map. Avia
 Progression works like War Thunder Mobile and is built into the game: the **Career** and **Armory** mods are
 installed and switched on by themselves and can't be switched off. Press **RESEARCH** on the main menu (the gold
 button in the top-right corner, or the one next to DEPLOY), the deploy screen or the battle report for the research trees: **SHIPS**, **AIRCRAFT** and **TANKS** for each side (VANGUARD and ONYX), and
-**WEAPONS**. Each tree has a column per rank (I, II, III, IV) with lines from each vehicle to the next; locked ones
+**WEAPONS**. Each tree has a column per rank (I to V) with lines from each vehicle to the next; locked ones
 are red, a premium vehicle sits in the gold row at the top, and your **crew slots** run along the bottom.
 
 - **Earning.** You start with a patrol boat, an F-16C (or MiG-29), an M60A3 (or T-62M) and the standard guns, and
@@ -141,10 +150,14 @@ are red, a premium vehicle sits in the gold row at the top, and your **crew slot
   muzzle brake, barrels, grips, magazines, laser, ammunition, finishes). What you fight in researches its next one
   with its own RP (tap one to research it next, tap again to finish it with free RP), then buy it with silver and
   switch it on or equip it.
+- **Aircraft.** Fighters, then attack and strike aircraft, then two lines of bombers. VANGUARD: F-16C → F/A-18E →
+  F-35A → F-22A; A-10C → F-15E; B-17G → B-52H → B-2A; B-1B. ONYX: MiG-29 → Su-27 → Su-35S → Su-57; Su-25 → Su-34;
+  Lancaster → Tu-95MS → Tu-160; Tu-22M3. The deploy screen lists the aircraft you have bought.
+- **Ships.** Patrol boat → corvette → frigate; destroyer → cruiser → battleship (rank V).
 - **Tanks.** VANGUARD: M60A3 Patton, M1 Abrams, M1A1, M1A2 SEPv3 (premium M1A1 HC Click-Bait). ONYX: T-62M, T-72B,
   T-80U, T-90M (premium T-72B3). Each rank has more armour, speed, a faster reload and a harder-hitting gun.
-- **Guns.** M4K, AK-12, SCAR-H; VX-9, MP5A3, KRISS Vector, Remington 870; KR-250, M249, PKP; SR-338, Mk 14 EBR, AWM;
-  P-19, Glock 17, Desert Eagle; premium HK416.
+- **Guns.** M4K, AK-12, SCAR-H, MCX Spear; VX-9, MP5A3, KRISS Vector, FN P90; Remington 870, Saiga-12K; KR-250,
+  M249, PKP, XM250; SR-338, Mk 14 EBR, AWM, Barrett M82A1; P-19, Glock 17, Desert Eagle; premium HK416.
 
 For testing there is a separate mod that is **not** part of the game:
 [`extras/infinite-everything.sfmod.json`](extras/infinite-everything.sfmod.json). Import it from MODS → IMPORT
@@ -182,7 +195,8 @@ full control of the game:
   can spawn explosions and bots, move soldiers, build 3D objects with collision, add HUD elements, bind keys
   (with touch buttons on phones), run timers, save data and slow down time.
 
-Bundled examples: the three battle types (Tank Warfare, Aviation, Naval), Multiplayer (online play with friends), Jets (F/A-18E, F-16C, A-10C, Su-27, MiG-29, Su-25) and Bombers (B-17 and Lancaster) for Aviation battles, Career
+Bundled examples: the three battle types (Tank Warfare, Aviation, Naval), Multiplayer (online play with friends), Jets (twelve, from the F-16C and MiG-29 to the F-22A and Su-57) and Bombers (eight, from the B-17 and Lancaster to
+the B-2A and Tu-160) for Aviation battles, Career
 (research and buy ships, aircraft and guns), Armory (earn credits from kills and upgrade your guns with
 suppressors and more), Vehicle Interiors (sit inside tanks and
 cockpits), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
