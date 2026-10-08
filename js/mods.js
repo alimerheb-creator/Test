@@ -288,7 +288,7 @@ const KNOWN_SECTIONS = new Set(['format', 'id', 'name', 'version', 'author', 'de
 export const NORMAL_BATTLE = 'normal';
 // Mods every game runs (the Career progression): the game installs and switches them on itself, and they
 // can't be switched off or removed
-export const CORE_MODS = ['career', 'armory'];
+export const CORE_MODS = ['career', 'armory', 'helicopters'];
 
 // ---------------------------------------------------------------- manager
 export class ModManager {

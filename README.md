@@ -86,8 +86,9 @@ The **BATTLE** picker on the main menu chooses what kind of battle you fight. Ea
 picking a card installs and switches it on for you and restarts on its map. Aviation and Naval also offer a
 **MAP** and a **MODE** row under the cards.
 
-- **NORMAL**: the base game, infantry and tanks on Karsa Valley (or a map mod you switched on).
-- **TANKS** (Tank Warfare): everyone commands a tank, up to 10 a side, on Iron Steppe, a wide open map of farms,
+- **NORMAL**: the base game, infantry and tanks on Karsa Valley (or a map mod you switched on), with attack
+  helicopters flying ground support (see below).
+- **TANKS** (Tank Warfare): everyone commands a tank (or an attack helicopter), up to 10 a side, on Iron Steppe, a wide open map of farms,
   a rail depot and the crossroads town of Karsk. Deploy at your HQ or a flag you hold and you start in a tank.
 - **AVIATION**: an air war on 3 km maps (about six times the normal one): **Highlands** (mountains and green
   valleys), **Dune Sea** (desert dunes and mesas) and **Fjordland** (fjords, glaciers and snowy peaks). Everyone
@@ -126,12 +127,30 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   other. The bigger ships' **Phalanx CIWS** guns take them on by themselves, the strike jets included, with the
   same alarms and sound as the C-RAM; they leave enemy ships' shells and missiles alone.
 
+### Helicopters and ground support
+
+Attack helicopters are built into the game (the **Helicopters** mod, always on) and fly in NORMAL, TANK and
+AVIATION battles: the **AH-1Z Viper** and **AH-64E Apache** for Vanguard, the **Mi-24V Hind** and **Ka-52 Alligator**
+(two rotors on one mast, no tail rotor) for Onyx. Research and buy them in the AIRCRAFT tree, put one in a crew slot,
+and it shows up on the deploy screen as HELI. Each has a chin gun that follows your sight, guided anti-tank missiles
+(Hellfire, Shturm, Vikhr: hold the sight on a tank or installation until it locks, then fire) and rocket pods.
+
+- **Flying.** The mouse (or a drag) aims the gun and turns the nose; W/S (the stick) fly forward and back, A/D
+  sideways; Shift/Z, the mouse wheel or the UP/DOWN buttons on a phone climb and descend. Let go and it hovers. It
+  keeps a few metres off the ground and lifts over the hills ahead by itself.
+- **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
+  ENEMY INFANTRY at a flag (or, in an Aviation battle, knock out an installation). The mission, its progress and a
+  countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area
+  count; finish it and the enemy loses **15 tickets**. The bot pilots fly the missions too.
+- **Danger.** Enemy infantry fire shoulder-launched **Stinger** and **Igla** missiles (flares help), engineers fire
+  RPGs, tank crews put their cannon on helicopters hovering low, and the airbases' C-RAM guns shred anything low.
+
 ### Career and research
 
 Progression works like War Thunder Mobile and is built into the game: the **Career** and **Armory** mods are
-installed and switched on by themselves and can't be switched off. Press **RESEARCH** on the main menu (the gold
+installed and switched on by themselves (with the Helicopters mod) and can't be switched off. Press **RESEARCH** on the main menu (the gold
 button in the top-right corner, or the one next to DEPLOY), the deploy screen or the battle report for the research trees: **SHIPS**, **AIRCRAFT** and **TANKS** for each side (VANGUARD and ONYX), and
-**WEAPONS**. Each tree has a column per rank (I to V) with lines from each vehicle to the next; locked ones
+**WEAPONS**. Next to the back button, **DAILY TASKS** lists today's three tasks (see below). Each tree has a column per rank (I to V) with lines from each vehicle to the next; locked ones
 are red, a premium vehicle sits in the gold row at the top, and your **crew slots** run along the bottom.
 
 - **Earning.** You start with a patrol boat, an F-16C (or MiG-29), an M60A3 (or T-62M) and the standard guns, and
@@ -152,7 +171,13 @@ are red, a premium vehicle sits in the gold row at the top, and your **crew slot
   switch it on or equip it.
 - **Aircraft.** Fighters, then attack and strike aircraft, then two lines of bombers. VANGUARD: F-16C → F/A-18E →
   F-35A → F-22A; A-10C → F-15E; B-17G → B-52H → B-2A; B-1B. ONYX: MiG-29 → Su-27 → Su-35S → Su-57; Su-25 → Su-34;
-  Lancaster → Tu-95MS → Tu-160; Tu-22M3. The deploy screen lists the aircraft you have bought.
+  Lancaster → Tu-95MS → Tu-160; Tu-22M3. Helicopters: AH-1Z → AH-64E and Mi-24V → Ka-52. The deploy screen lists the
+  aircraft you have bought. A helicopter flown in a NORMAL or TANK battle puts half that battle's RP into the
+  AIRCRAFT tree.
+- **Daily tasks.** Three a day, new ones at midnight: win a battle, kill soldiers, destroy tanks, shoot down
+  aircraft, sink ships, capture objectives, score points, destroy targets from a helicopter or complete a ground
+  support mission. Each pays RP, silver (and some gold) the moment it's done; the pinned RESEARCH button shows how
+  many you've finished.
 - **Ships.** Patrol boat → corvette → frigate; destroyer → cruiser → battleship (rank V).
 - **Tanks.** VANGUARD: M60A3 Patton, M1 Abrams, M1A1, M1A2 SEPv3 (premium M1A1 HC Click-Bait). ONYX: T-62M, T-72B,
   T-80U, T-90M (premium T-72B3). Each rank has more armour, speed, a faster reload and a harder-hitting gun.
@@ -227,6 +252,8 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 | Esc or P | Pause |
 
 In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, right mouse to zoom.
+In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
+down, 1/2/3 weapons, Space flares, E ejects.
 In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, 1/2/3 weapons, Space flares,
 E ejects. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around,
