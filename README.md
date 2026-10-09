@@ -82,6 +82,11 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   - Recon: SR-338 bolt-action with a scope that auto-spots, C-4 charges
 - **Tanks**: drivable MBT with a stabilised turret, 120mm cannon, coaxial MG, third-person and gunner
   zoom views. Tanks crush walls, trees and soldiers. Bots drive them too.
+- **Soldiers**: modelled with shaped limbs and joints, a plate carrier with magazine pouches, radio and
+  assault pack, a helmet with headset and NVG mount, camouflage on the uniform, and a carbine with optic, magazine
+  and foregrip. They shoulder the rifle when fighting and carry it at low ready when running or with no enemy
+  about; knees bend as they walk, crouch (kneeling on one knee) and crawl. When they die their knees give way and
+  they fall back, forward or to the side, limbs loose, and the rifle drops beside them.
 - **AI squads**: up to 20 v 20 bots with reaction time, aim error, burst fire, strafing, grenades,
   anti-tank rockets, reviving downed teammates and dropping supply crates. Three skill levels.
 - **Realistic reloading**: magazines physically come out and go in, and every stage has its own sound. A
@@ -123,7 +128,21 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   reach about twice as far as heat seekers and fall for flares less often; **guided bombs** (JDAM, KAB) glide
   onto an enemy vehicle or installation near where they would have landed; the modern bombers carry **cruise
   missiles** (JASSM, Kh-101, Kh-22) that lock on from about two kilometres, and the **B-1B, Tu-22M3 and Tu-160
-  sweep their wings back** as they speed up. Modes:
+  sweep their wings back** as they speed up. **Flight** follows the angle of attack: pull too hard when slow and
+  the wing stalls and the nose drops, the airframe's g limit means the tightest turns come near corner speed, and
+  a hard turn bleeds speed. The **Su-27, Su-35S, Su-57, MiG-29 and F-22A fly Pugachev's Cobra** (V, or COBRA on a
+  phone): the nose rears up past vertical while the jet slides on along its path and loses most of its speed, so
+  a chaser overshoots and a missile closing in can lose it; the thrust-vectoring Su-35S, Su-57 and F-22A keep
+  their nose under control even very slow. Bots throw a Cobra at whoever sits on their tail. **Damage** goes to
+  the part that is hit: shoot a **wing** and it breaks off (with its engines and missiles), tumbles down burning
+  and the aircraft rolls toward the missing wing and spins in; a shot-off **fin** or **tailplane** leaves it flying
+  but hard to control, and hits around the cockpit hurt most. Damaged aircraft trail grey, then black smoke, then
+  burn with a streaming flame. **Flares** come out the way each aircraft really dispenses them: the Flankers and
+  MiG-29 fan them up and out of the tail, the US fighters drop short bursts from under the fuselage, the A-10 and
+  Su-25 ripple long strings to both sides, bombers lay big "angel wing" fans and helicopters fire them sideways,
+  each one burning white-hot with a thick smoke trail. The canopies are tinted glass (gold on the F-16, F-22,
+  F-35 and Su-57) over a cockpit with the pilot in helmet, visor and oxygen mask, the ejection seat, the glare
+  shield and the HUD. Modes:
   **Conquest** (sky zones: fly through one to take it, bomb one the enemy holds to knock it back), **Air
   Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
   fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). **Your spawns:** each
@@ -309,7 +328,7 @@ In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke scree
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
 down, 1/2/3 weapons, Space flares, E ejects.
 In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, 1/2/3 weapons, Space flares,
-E ejects. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
+V Cobra (Su-27, Su-35S, Su-57, MiG-29, F-22A), E ejects. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around,
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
 commander's seat, in a helicopter the pilot's seat behind the gunner, beside the co-pilot in the Ka-52).
