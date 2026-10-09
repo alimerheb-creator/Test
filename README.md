@@ -94,8 +94,8 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
   sliding, prone, out-of-bounds timer.
 - **Graphics**: HDR rendering with bloom, sun glare and lens ghosts, ACES tone mapping with colour grading,
-  film grain and vignette, image-based reflections, normal-mapped walls and ground, wind-blown grass,
-  textured smoke, MSAA and soft shadows. Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on
+  film grain and vignette, image-based reflections, normal-mapped walls and ground, wind-blown grass and trees
+  (layered firs, leafy broadleaf crowns, weathered boulders), textured smoke, MSAA and soft shadows. Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on
   phones and High on desktop).
 - **Mobile controls**: virtual stick, drag-to-look, and a context button that appears when you can act
   (hold to **revive** a downed teammate with a progress ring, enter or exit a tank, detonate C-4). There are
@@ -153,6 +153,32 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   drones that dive onto a ship) or an **air strike** (two strike jets that release missiles and bombs) at the
   other. The bigger ships' **Phalanx CIWS** guns take them on by themselves, the strike jets included, with the
   same alarms and sound as the C-RAM; they leave enemy ships' shells and missiles alone.
+  **Missile defence.** Every ship, the patrol boat included, has **decoy launchers** (Space, DECOY on a phone):
+  chaff and flare rockets out to both sides that pull most of the missiles coming for you onto the decoys (three
+  salvos, one back every 20 s). **V** (SMOKE) lays a **smoke screen**: for 16 s nobody can lock a missile on you,
+  missiles already flying at you lose you, and the enemy loses sight of you beyond a few hundred metres (45 s to
+  get it back). Missiles also miss sometimes, more often against small, fast boats. Bot captains do the same.
+
+### Matchmaking: you fight your own level
+
+Your **battle rank** in a battle type is the highest rank (I to V) in your crew slots for it. The bots on both
+sides then use only what's within one rank of it, so beginners meet beginners:
+
+- **Naval:** with only the patrol boat (rank I) the fleets are patrol boats and corvettes; a corvette brings in
+  frigates and destroyers; a battleship captain meets destroyers, cruisers and battleships.
+- **Aviation:** a beginner's F-16C (or MiG-29) meets MiG-29s, Su-27s, Su-25s, Lancasters and Mi-24s, not Su-57s
+  and F-22As; the stealth fighters and modern bombers only show up once you fly rank III and IV.
+- **Tanks:** the bot tanks carry the armour, speed and gun of tanks within one rank of yours (an M1A2 or T-90M
+  crew meets M1A1s, T-80Us and the like); attack helicopters only show up if they're within the range too.
+
+The battle shows your rank when it starts (BATTLE RANK II · BOTS RANK I–III). Online, the host's rank is the
+game's, and the games list shows each game's rank so you can pick one near your level.
+
+### Tank smoke
+
+Every tank carries two salvos of **smoke grenades** (V, SMOKE on a phone): a wall of smoke in front that missiles
+can't lock through, and the helicopters' and jets' missiles already flying at you lose you. The cover lasts 12 s
+while you stay near the cloud; a salvo comes back every 40 s. Bot crews fire theirs when a missile comes for them.
 
 ### Helicopters and ground support
 
@@ -278,7 +304,8 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 | Tab / M | Scoreboard / full map |
 | Esc or P | Pause |
 
-In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, right mouse to zoom.
+In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, right mouse to zoom, V smoke grenades.
+In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke screen, R damage control, G HE/AP shells.
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
 down, 1/2/3 weapons, Space flares, E ejects.
 In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, 1/2/3 weapons, Space flares,

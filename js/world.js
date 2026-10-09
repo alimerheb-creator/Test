@@ -4,6 +4,88 @@ import { PLAY_HALF, WORLD_HALF, GRID, FLAGS, HQS, BUILDINGS, ROADS, MAP, TERRAIN
 import { fbm2, smoothstep, lerp, clamp, mulberry32, segDist2, rayAABB } from './util.js';
 import { makeTextures, worldUVMaterial } from './textures.js';
 
+// ---------------------------------------------------------------- vegetation shapes
+// Small, smooth-shaded shapes with vertex colours for self-shadowing (darker underneath and inside), drawn
+// instanced like before, so a forest still costs a handful of draw calls.
+const _hash = (x, y, z) => { const v = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return v - Math.floor(v); };
+function mergeParts(parts) {
+  const pos = [], nor = [], col = [], idx = [];
+  let base = 0;
+  for (const g of parts) {
+    const P = g.attributes.position, N = g.attributes.normal, C = g.attributes.color;
+    for (let i = 0; i < P.count; i++) {
+      pos.push(P.getX(i), P.getY(i), P.getZ(i));
+      nor.push(N.getX(i), N.getY(i), N.getZ(i));
+      col.push(C ? C.getX(i) : 1, C ? C.getY(i) : 1, C ? C.getZ(i) : 1);
+    }
+    if (g.index) for (let i = 0; i < g.index.count; i++) idx.push(g.index.getX(i) + base);
+    else for (let i = 0; i < P.count; i++) idx.push(i + base);
+    base += P.count;
+    g.dispose();
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  out.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  out.setIndex(idx);
+  return out;
+}
+// A pine crown 1 high and 1 wide at the base: four drooping tiers of uneven branches
+function pineCrownGeo() {
+  const parts = [];
+  [[0, 1, 0.42], [0.21, 0.78, 0.4], [0.41, 0.56, 0.36], [0.6, 0.34, 0.4]].forEach(([y0, r, h], tier) => {
+    const c = new THREE.ConeGeometry(r, h, 10, 1, true);
+    c.translate(0, y0 + h / 2, 0);
+    const p = c.attributes.position, col = [];
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x);
+      const rim = y < y0 + 1e-4;
+      if (rim) {
+        const k = 1 + 0.16 * Math.sin(a * 3 + tier * 1.7) + 0.08 * Math.sin(a * 7 + tier);
+        p.setXYZ(i, x * k, y - 0.06 - 0.04 * (Math.sin(a * 5 + tier * 2.3) * 0.5 + 0.5), z * k);
+      }
+      const v = rim ? 0.58 : 0.74 + ((y - y0) / h) * 0.36;
+      col.push(v, v * 1.02, v * 0.96);
+    }
+    c.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    c.computeVertexNormals();
+    parts.push(c);
+  });
+  return mergeParts(parts);
+}
+// A leafy crown 1 across: a cluster of lumpy lobes, lit from above and darker underneath
+function leafCrownGeo(lobes) {
+  const parts = [];
+  lobes.forEach(([cx, cy, cz, r], li) => {
+    const s = new THREE.IcosahedronGeometry(1, 0);
+    const p = s.attributes.position, n = [], col = [];
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      const k = r * (0.86 + _hash(Math.round(x * 50), Math.round(y * 50), Math.round(z * 50) + li * 7) * 0.28);
+      p.setXYZ(i, cx + x * k, cy + y * k, cz + z * k);
+      n.push(x, y, z);
+      const v = 0.6 + (y * 0.5 + 0.5) * 0.48 + (cy - 0.5) * 0.12;
+      col.push(v, v * 1.02, v * 0.94);
+    }
+    s.setAttribute('normal', new THREE.Float32BufferAttribute(n, 3));
+    s.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    parts.push(s);
+  });
+  return mergeParts(parts);
+}
+// A weathered boulder: a lumpy, faceted stone
+function rockGeo() {
+  const s = new THREE.IcosahedronGeometry(1, 1);
+  const p = s.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const k = 0.78 + _hash(Math.round(x * 40), Math.round(y * 40), Math.round(z * 40)) * 0.42;
+    p.setXYZ(i, x * k, y * k * (y < 0 ? 0.7 : 1), z * k);
+  }
+  s.computeVertexNormals();
+  return s;
+}
+
 // Terrain grid: fine spacing in the battle zone, coarse spacing out to the horizon mountains. The layout
 // depends on the map's size, so it is worked out when the world is built.
 let INNER = 280, FINE = 2.5, COARSE = 14, N_OUT = 20, N_IN = 224, N = 265;
@@ -425,6 +507,7 @@ export class World {
 
   updateSky(camPos) {
     this.sky.position.copy(camPos);
+    if (this.windU) this.windU.value = performance.now() / 1000;
   }
 
   updateShadow(focus) {
@@ -480,11 +563,29 @@ export class World {
     const dummy = new THREE.Object3D();
     const trunkGeo = new THREE.CylinderGeometry(0.16, 0.26, 1, 6);
     trunkGeo.translate(0, 0.5, 0);
-    const pineGeo = new THREE.ConeGeometry(1, 1, 7);
-    pineGeo.translate(0, 0.5, 0);
-    const leafGeo = new THREE.IcosahedronGeometry(1, 0);
+    const pineGeo = pineCrownGeo();
+    const leafGeo = leafCrownGeo([[0, 0.62, 0, 0.55], [0.42, 0.42, 0.12, 0.42], [-0.38, 0.45, -0.2, 0.44], [0.1, 0.4, -0.45, 0.4], [-0.12, 0.3, 0.42, 0.38], [0.05, 0.95, 0.05, 0.36]]);
+    // centred on 0 like the old round crown, and about as big
+    leafGeo.translate(0, -0.55, 0);
+    leafGeo.scale(1.3, 1.45, 1.3);
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2c, roughness: 1, flatShading: true });
-    const crownMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, flatShading: true });
+    const crownMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, vertexColors: true });
+    // the crowns sway in the wind (each tree a little out of step with its neighbours)
+    this.windU = { value: 0 };
+    crownMat.onBeforeCompile = (shader) => {
+      shader.uniforms.uWind = this.windU;
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nuniform float uWind;')
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+          #ifdef USE_INSTANCING
+            vec2 tp = vec2(instanceMatrix[3][0], instanceMatrix[3][2]);
+            float bend = max(0.0, position.y + 0.3);
+            float sw = sin(uWind * 1.25 + tp.x * 0.11 + tp.y * 0.07) * 0.05 + sin(uWind * 2.9 + tp.x * 0.43) * 0.016;
+            transformed.x += sw * bend * bend;
+            transformed.z += sw * 0.55 * bend * bend;
+          #endif`);
+    };
+    crownMat.customProgramCacheKey = () => 'crown-wind';
 
     const spots = [];
     let tries = 0;
@@ -548,7 +649,7 @@ export class World {
     }
 
     // Bushes (no collision)
-    const bushGeo = new THREE.IcosahedronGeometry(1, 0);
+    const bushGeo = leafCrownGeo([[0, 0.1, 0, 0.62], [0.45, -0.05, 0.1, 0.48], [-0.42, 0, -0.12, 0.5]]);
     const bushCount = Math.round(520 * VEGETATION.bushes * clamp(areaIn, 1, 4));
     this.bushMesh = new THREE.InstancedMesh(bushGeo, crownMat, Math.max(1, bushCount));
     let placed = 0; tries = 0;
@@ -576,10 +677,10 @@ export class World {
     this.scene.add(this.bushMesh);
 
     // Rocks
-    const rockGeo = new THREE.DodecahedronGeometry(1, 0);
+    const rockGeo2 = rockGeo();
     const rockMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, flatShading: true });
     const rockCount = Math.round(190 * VEGETATION.rocks * clamp(areaOut, 1, 4)), rocksIn = Math.round(140 * VEGETATION.rocks * clamp(areaIn, 1, 4));
-    this.rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, Math.max(1, rockCount));
+    this.rockMesh = new THREE.InstancedMesh(rockGeo2, rockMat, Math.max(1, rockCount));
     placed = 0; tries = 0;
     while (placed < rockCount && tries < 8000 * clamp(areaOut, 1, 4)) {
       tries++;

@@ -74,11 +74,21 @@ export class Grass {
       uM: { value: M },
     };
     const mat = new THREE.MeshLambertMaterial({
-      map: game.world.tex.grass, vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, color: 0xc4bd78,
+      map: game.world.tex.grass, vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, color: 0xb4bc70,
     });
     const U = this.uniforms;
     mat.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, U);
+      // the texture's see-through texels are black, so its smaller mipmaps darken thin blades into black tufts in
+      // the distance: take the colour back out of the coverage
+      // both sides of a blade face the sky (double-sided cards would otherwise turn their backs black)
+      shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n          normal = normalize( vNormal );');
+      shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>', `
+        #ifdef USE_MAP
+          vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+          sampledDiffuseColor.rgb /= max( sampledDiffuseColor.a, 0.25 );
+          diffuseColor *= sampledDiffuseColor;
+        #endif`);
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>
           attribute vec3 aOff;
