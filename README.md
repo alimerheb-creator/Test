@@ -30,6 +30,26 @@ npm run build:apk        # writes android/build/SixthFront.apk
 `npm run build:web` alone produces the same offline web build (single bundled script, local fonts) in
 `android/build/assets/www`, which you can host anywhere.
 
+## Windows app
+
+A ready-to-run Windows program is in [`exe/SixthFront.exe`](exe/SixthFront.exe) (about 10 MB, nothing to
+install, works offline except for multiplayer).
+
+1. Download `SixthFront.exe` and double-click it. It is not signed, so the first time Windows may say
+   "Windows protected your PC": click **More info**, then **Run anyway**.
+2. The game opens in its own window, maximized. **F11** switches to full screen and back.
+
+It plays in the Microsoft Edge WebView2 Runtime, which comes with Windows 11 and up-to-date Windows 10. Without
+it, the game opens in your web browser instead (keep the little Sixth Front box open while you play). Your
+progress is kept in `%LOCALAPPDATA%\SixthFront`; delete that folder to start over. Windows 10 or 11, 64-bit.
+
+To rebuild it yourself (Linux, macOS or Windows with Git Bash; needs Node and Go 1.24 or newer, no C compiler):
+
+```bash
+npm install
+npm run build:exe        # writes windows/build/SixthFront.exe
+```
+
 ## Play it in a browser
 
 ES modules need to be served over HTTP (opening `index.html` straight from disk won't work):
@@ -296,6 +316,10 @@ The game is split into small ES modules under `js/`:
 The Android wrapper lives in `android/`: `MainActivity.java` hosts the game in a full-screen WebView and
 serves the bundled files from inside the APK, `prepare-web.mjs` builds the offline bundle, and
 `build-apk.sh` compiles, packages and signs the APK.
+The Windows wrapper lives in `windows/`: a small Go program with the same offline bundle packed inside. It
+serves the game on `127.0.0.1:47613` (a fixed address, so saves are found again) and shows it in a WebView2
+window; `build-exe.sh` builds it. On Linux or macOS, `cd windows && go run .` after `npm run build:exe` serves
+the same files and prints the address to open in a browser.
 
 Fonts (Big Shoulders Stencil, Saira Semi Condensed, IBM Plex Mono) are under the SIL Open Font License;
 the license texts are in `android/fonts/`.
