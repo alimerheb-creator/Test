@@ -250,8 +250,8 @@ full control of the game:
 Bundled examples: the three battle types (Tank Warfare, Aviation, Naval), Multiplayer (online play with friends), Jets (twelve, from the F-16C and MiG-29 to the F-22A and Su-57) and Bombers (eight, from the B-17 and Lancaster to
 the B-2A and Tu-160) for Aviation battles, Career
 (research and buy ships, aircraft and guns), Armory (earn credits from kills and upgrade your guns with
-suppressors and more), Vehicle Interiors (sit inside tanks and
-cockpits), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
+suppressors and more), Vehicle Interiors (sit inside tanks and the
+cockpits of jets, bombers and helicopters), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
 HD Knife (a real hand holding a detailed knife), Aggressive Reloads, five game modes (Capture the Flag, King of the
 Hill, Gun Game, Hardpoint, Last Stand) plus Team Deathmatch, four extra maps (Dust Ridge, Iron Forest, Old Town,
 Karsa Outskirts), Heavy Arsenal, Commander Call-ins (airstrikes and reinforcements), Jetpack, Explosive Rounds,
@@ -285,7 +285,7 @@ In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D 
 E ejects. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around,
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
-commander's seat).
+commander's seat, in a helicopter the pilot's seat behind the gunner, beside the co-pilot in the Ka-52).
 With C-4 selected, right mouse detonates.
 
 ## Code layout
