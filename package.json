@@ -7,7 +7,8 @@
     "serve": "python3 -m http.server 8000",
     "build:web": "node android/prepare-web.mjs",
     "build:apk": "bash android/build-apk.sh",
-    "build:exe": "bash windows/build-exe.sh"
+    "build:exe": "bash windows/build-exe.sh",
+    "release": "bash release.sh"
   },
   "devDependencies": {
     "esbuild": "0.24.0",

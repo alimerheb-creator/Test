@@ -50,6 +50,9 @@ npm install
 npm run build:exe        # writes windows/build/SixthFront.exe
 ```
 
+`npm run release` builds both apps and copies them to `apk/SixthFront.apk` and `exe/SixthFront.exe`;
+every release ships the two together.
+
 ## Play it in a browser
 
 ES modules need to be served over HTTP (opening `index.html` straight from disk won't work):

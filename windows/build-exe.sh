@@ -27,5 +27,5 @@ cd "$WIN"
 
 echo "==> exe"
 rm -rf "$OUT" && mkdir -p "$OUT"
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -H windowsgui" -o "$OUT/SixthFront.exe" .
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -buildvcs=false -ldflags "-s -w -H windowsgui" -o "$OUT/SixthFront.exe" .
 ls -lh "$OUT/SixthFront.exe"
