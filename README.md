@@ -103,7 +103,11 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   sweep their wings back** as they speed up. Modes:
   **Conquest** (sky zones: fly through one to take it, bomb one the enemy holds to knock it back), **Air
   Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
-  fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). Every airbase is guarded by
+  fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). **Your spawns:** each
+  aircraft in your crew is yours alone and comes back at your airbase about 6 seconds after you lose it (ejecting
+  counts as losing it). With **1 aircraft** in your crew you get **3 spawns** in it; with **2**, the first gets
+  **2** and the second **1**; with **3 or 4**, each gets **1**. The deploy list shows how many each one has left
+  ("2 SPAWNS LEFT", "BACK IN 4 S"). Every airbase is guarded by
   **C-RAM** guns. Nobody aims them: they open up by themselves on air attacks only (enemy jets flying low, and
   the bombs, rockets and missiles they release) and on the **drone strikes** each side sends at the other's
   airbase about once a minute. When your side's guns engage something incoming near you, or a strike comes for
