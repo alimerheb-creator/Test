@@ -178,13 +178,14 @@ export class World {
     const m = smoothstep(PLAY_HALF - 5, PLAY_HALF + 160, e);
     h += m * (30 + (fbm2(x * 0.008 - 3 + s, z * 0.008 + 9, 5) * 0.5 + 0.5) * 80) * T.mountains;
     if (T.level) h += T.level;
-    // islands: a raised mound with a ragged coastline and a hilly top
+    // islands [x, z, radius, height, cliff]: a raised mound with a ragged coastline and a hilly top; with a cliff
+    // (0..1, how far out the top reaches before the edge drops) it is a flat-topped mesa with sheer sides
     for (const isl of T.islands || []) {
       const dx = x - isl[0], dz = z - isl[1], r = isl[2];
       const d2 = dx * dx + dz * dz;
       if (d2 > r * r * 2.2) continue;
       const d = Math.sqrt(d2) * (1 + 0.28 * fbm2(x * 0.012 + isl[0] * 0.01, z * 0.012 - isl[1] * 0.01, 3));
-      const k = 1 - smoothstep(r * 0.25, r, d);
+      const k = 1 - smoothstep(r * (isl[4] || 0.25), r, d);
       h += k * k * (3 - 2 * k) * isl[3];
     }
     return h;

@@ -2,9 +2,9 @@
   "format": "sixthfront-mod",
   "id": "aviation",
   "name": "Aviation",
-  "version": "1.8",
+  "version": "1.9",
   "author": "Sixth Front",
-  "description": "A battle type: pick AVIATION on the main menu, then a map (Highlands, Dune Sea, Fjordland: each about 3 km across) and a mode (Conquest with sky zones, Air Superiority, Ground Strike). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. Every airbase is guarded by C-RAM guns that shoot down bombs, rockets and missiles and hose down low-flying aircraft (you hear the alarm and the beeps when one tracks you). In Ground Strike, bomb the enemy base: radar, fuel depot, hangars, command bunker and the C-RAM sites. Your own aircraft come back about 6 seconds after you lose them: with 1 aircraft in your crew you get 3 spawns in it, with 2 the first gets 2 spawns and the second 1, with 3 or 4 each gets 1. Matchmaking: the bots on both sides fly only the aircraft within one rank of your best one, so a beginner's F-16 meets MiG-29s and Su-27s, not Su-57s. The C-RAM guns fire a visible stream of glowing tracers.",
+  "description": "A battle type: pick AVIATION on the main menu, then a map (Highlands, Dune Sea, Fjordland, Sea Canyons: each about 3 km across) and a mode (Conquest with sky zones, Air Superiority, Ground Strike). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. Every airbase is guarded by C-RAM guns that shoot down bombs, rockets and missiles and hose down low-flying aircraft (you hear the alarm and the beeps when one tracks you). In Ground Strike, bomb the enemy base: radar, fuel depot, hangars, command bunker and the C-RAM sites. Your own aircraft come back about 6 seconds after you lose them: with 1 aircraft in your crew you get 3 spawns in it, with 2 the first gets 2 spawns and the second 1, with 3 or 4 each gets 1. Matchmaking: the bots on both sides fly only the aircraft within one rank of your best one, so a beginner's F-16 meets MiG-29s and Su-27s, not Su-57s. The C-RAM guns fire a visible stream of glowing tracers.",
   "battle": {
     "name": "AVIATION",
     "blurb": "Jets and bombers, huge maps",
@@ -30,6 +30,11 @@
         "id": "fjordland",
         "name": "FJORDLAND",
         "blurb": "Fjords, glaciers and peaks"
+      },
+      {
+        "id": "sea-canyons",
+        "name": "SEA CANYONS",
+        "blurb": "Low flying between sea cliffs"
       }
     ],
     "modes": [
@@ -1239,6 +1244,239 @@
       ],
       "props": [],
       "randomProps": false
+    },
+    "sea-canyons": {
+      "name": "SEA CANYONS",
+      "size": {
+        "play": 1500,
+        "world": 2700,
+        "inner": 1100,
+        "fine": 8
+      },
+      "water": 0,
+      "terrain": {
+        "seed": 4417,
+        "hills": 0.6,
+        "bumps": 0.5,
+        "mountains": 2.6,
+        "valley": 0,
+        "level": -36
+      },
+      "islands": [
+        [
+          -999.5643517582512,
+          -673.8311119348887,
+          245.18814137214244,
+          230.3068053258149,
+          0.78
+        ],
+        [
+          -332.17060012611125,
+          -623.3567284901425,
+          246.299099815683,
+          269.9020072817346,
+          0.78
+        ],
+        [
+          286.732745702254,
+          -677.9937619706586,
+          259.5659596773637,
+          223.61432484053742,
+          0.78
+        ],
+        [
+          965.3618354212315,
+          -616.5618447664016,
+          261.90312915803077,
+          259.63919674495196,
+          0.78
+        ],
+        [
+          -981.6182768329131,
+          -7.447760686021185,
+          269.55730626571795,
+          272.1546930736651,
+          0.78
+        ],
+        [
+          -298.46615981937674,
+          26.001702875831025,
+          248.98258778452063,
+          207.84298146043113,
+          0.78
+        ],
+        [
+          353.29046491919576,
+          -15.2498694021487,
+          265.7918592825494,
+          219.26320602617375,
+          0.78
+        ],
+        [
+          939.0333137121206,
+          -32.97461367816413,
+          273.3754666607713,
+          278.22722527581607,
+          0.78
+        ],
+        [
+          -973.5223104239079,
+          622.692182558911,
+          255.3171003564806,
+          288.3523045658843,
+          0.78
+        ],
+        [
+          -358.5354450640899,
+          617.5776069693163,
+          270.0651249871893,
+          221.85219896577865,
+          0.78
+        ],
+        [
+          310.9172160578506,
+          627.2446971513539,
+          268.1093835519205,
+          254.6978570915283,
+          0.78
+        ],
+        [
+          984.1957235844786,
+          673.3566971837341,
+          254.7535876323253,
+          218.49112163693232,
+          0.78
+        ],
+        [
+          0,
+          1400,
+          400,
+          44,
+          0.55
+        ],
+        [
+          0,
+          -1400,
+          400,
+          44,
+          0.55
+        ]
+      ],
+      "vegetation": {
+        "trees": 0.3,
+        "bushes": 0.3,
+        "rocks": 1,
+        "grass": 0.4
+      },
+      "palette": {
+        "grass": "#4f5a44",
+        "grass2": "#434c3a",
+        "rock": "#4c4d4e",
+        "peak": "#5d6062",
+        "sand": "#6f6a5e",
+        "seabed": "#1d2a30"
+      },
+      "atmosphere": {
+        "preset": "overcast",
+        "horizon": "#8e9aa3",
+        "skyTop": "#566573",
+        "ground": "#4b4f50",
+        "hemiGround": "#3a3e40",
+        "fogNear": 450,
+        "fogFar": 3000,
+        "clouds": 0.9,
+        "sunIntensity": 1.5
+      },
+      "hq": [
+        {
+          "x": 0,
+          "z": 1400
+        },
+        {
+          "x": 0,
+          "z": -1400
+        }
+      ],
+      "flags": [
+        {
+          "id": "A",
+          "name": "NORTH GORGE",
+          "x": -640,
+          "z": 320,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "B",
+          "name": "RAVEN CHANNEL",
+          "x": 640,
+          "z": 320,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "C",
+          "name": "THE NARROWS",
+          "x": 0,
+          "z": 0,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "D",
+          "name": "BLACK SOUND",
+          "x": -640,
+          "z": -320,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "E",
+          "name": "SOUTH GORGE",
+          "x": 640,
+          "z": -320,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        }
+      ],
+      "roads": [],
+      "buildings": [
+        [
+          0,
+          1400,
+          4,
+          3,
+          2
+        ],
+        [
+          40,
+          1440,
+          3,
+          3,
+          1
+        ],
+        [
+          0,
+          -1400,
+          4,
+          3,
+          2
+        ],
+        [
+          -40,
+          -1440,
+          3,
+          3,
+          1
+        ]
+      ],
+      "props": [],
+      "randomProps": false
     }
   },
   "script": [
@@ -1352,7 +1590,7 @@
     "  });",
     "}",
     "// per-map data: shore targets, icebergs, C-RAM sites",
-    "const MAPDATA = {\"highlands\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]]},\"dune-sea\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]]},\"fjordland\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]]}};",
+    "const MAPDATA = {\"highlands\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]]},\"dune-sea\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]]},\"fjordland\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]]},\"sea-canyons\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]]}};",
     "",
     "// ================================================================ C-RAM / CIWS (shared by the battle mods)",
     "// A radar-guided 20 mm six-barrel gatling (Phalanx on ships, C-RAM on a trailer on the ground). Nobody aims it:",

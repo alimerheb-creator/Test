@@ -50,8 +50,34 @@ npm install
 npm run build:exe        # writes windows/build/SixthFront.exe
 ```
 
-`npm run release` builds both apps and copies them to `apk/SixthFront.apk` and `exe/SixthFront.exe`;
-every release ships the two together.
+`npm run release` builds both apps and copies them to `apk/SixthFront.apk` and `exe/SixthFront.exe`; the
+iPhone app is built by GitHub (below). Every release ships all three together.
+
+## iPhone and iPad app
+
+The iOS app is in [`ipa/SixthFront.ipa`](ipa/SixthFront.ipa) (about 2 MB, works offline except for multiplayer).
+GitHub builds it on a Mac from the same game files every time the game changes
+([`.github/workflows/ios.yml`](.github/workflows/ios.yml)), and starts it on an iPhone simulator to check the game
+comes up.
+
+Apple only lets signed apps onto an iPhone, and signing needs an Apple account, so the file is unsigned: install it
+with a sideloading tool that signs it with your own Apple ID.
+
+1. On a computer, install **Sideloadly** (Windows or Mac) or **AltStore**.
+2. Connect the iPhone or iPad with a cable, open Sideloadly, drop `SixthFront.ipa` in, type your Apple ID and press
+   **Start**.
+3. On the iPhone: **Settings → General → VPN & Device Management**, tap your Apple ID and **Trust** it. On iOS 16 and
+   newer also switch on **Settings → Privacy & Security → Developer Mode** (the phone restarts).
+4. Open **Sixth Front**. It runs full screen in landscape, keeps the screen on, and saves on the device.
+
+With a free Apple ID an installed app runs for 7 days before it has to be signed again (AltStore and Sideloadly can
+refresh it automatically); a paid Apple Developer account makes it a year. Needs iOS 15 or newer.
+
+No computer at hand? Play it in Safari: put the game on GitHub Pages (see *Play it in a browser*), open it on the
+iPhone, then **Share → Add to Home Screen**. It then opens full screen from its own icon.
+
+To build the app yourself on a Mac: `npm install`, `brew install xcodegen`, then `bash ios/build-ipa.sh` (writes
+`ios/build/SixthFront.ipa`; `ios/` holds the Swift app that runs the game).
 
 ## Play it in a browser
 
@@ -119,7 +145,9 @@ picking a card installs and switches it on for you and restarts on its map. Avia
 - **TANKS** (Tank Warfare): everyone commands a tank (or an attack helicopter), up to 10 a side, on Iron Steppe, a wide open map of farms,
   a rail depot and the crossroads town of Karsk. Deploy at your HQ or a flag you hold and you start in a tank.
 - **AVIATION**: an air war on 3 km maps (about six times the normal one): **Highlands** (mountains and green
-  valleys), **Dune Sea** (desert dunes and mesas) and **Fjordland** (fjords, glaciers and snowy peaks). Everyone
+  valleys), **Dune Sea** (desert dunes and mesas), **Fjordland** (fjords, glaciers and snowy peaks) and **Sea
+  Canyons** (sheer cliffs standing in a dark sea with narrow channels between them, made for flying low between the
+  walls). Everyone
   flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side, about four jets
   to every bomber. Twenty aircraft: for Vanguard the F-16C, F/A-18E, F-35A and F-22A fighters, the A-10C and
   F-15E for ground attack, and the B-17G, B-52H, B-1B and B-2A bombers; for Onyx the MiG-29, Su-27, Su-35S and
@@ -142,7 +170,13 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   Su-25 ripple long strings to both sides, bombers lay big "angel wing" fans and helicopters fire them sideways,
   each one burning white-hot with a thick smoke trail. The canopies are tinted glass (gold on the F-16, F-22,
   F-35 and Su-57) over a cockpit with the pilot in helmet, visor and oxygen mask, the ejection seat, the glare
-  shield and the HUD. Modes:
+  shield and the HUD. The chase camera sits close behind and above your jet; long white **contrails** stream off the
+  wingtips of fast jets, cannon **tracers** fly out as glowing streaks, and the engines glow on afterburner. The HUD
+  has a **compass radar** (heading-up, with the view ahead as a pale wedge and every aircraft as an arrow, red the
+  enemy and blue your side), the **pilot's name** over each aircraft, and a **top view of your aircraft** whose
+  wings, tail and fuselage turn yellow, orange and red as they are hit (a part shot off is dashed). On a phone, a
+  **throttle slider** sits on the left (the top is afterburner), the fire button is a big round button with
+  rounds on it, and the minimap makes room for the radar. Modes:
   **Conquest** (sky zones: fly through one to take it, bomb one the enemy holds to knock it back), **Air
   Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
   fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). **Your spawns:** each
@@ -328,7 +362,8 @@ In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke scree
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
 down, 1/2/3 weapons, Space flares, E ejects.
 In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, 1/2/3 weapons, Space flares,
-V Cobra (Su-27, Su-35S, Su-57, MiG-29, F-22A), E ejects. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
+V Cobra (Su-27, Su-35S, Su-57, MiG-29, F-22A), E ejects. On a phone: drag to steer, the slider on the left is the
+throttle, the big round button fires. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around,
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
 commander's seat, in a helicopter the pilot's seat behind the gunner, beside the co-pilot in the Ka-52).

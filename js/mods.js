@@ -606,14 +606,18 @@ export class ModManager {
       }
     }
     if (map.islands !== undefined) {
-      if (!Array.isArray(map.islands)) log.push('map.islands: expected a list of [x, z, radius, height]');
+      if (!Array.isArray(map.islands)) log.push('map.islands: expected a list of [x, z, radius, height] or [x, z, radius, height, cliff]');
       else {
         const lim = worldEdge();
         TERRAIN.islands = map.islands.slice(0, 40).filter((s, i) => {
-          const ok = Array.isArray(s) && s.length === 4 && s.every((x) => Number.isFinite(Number(x)));
-          if (!ok) log.push(`map.islands[${i}]: expected [x, z, radius, height]`);
+          const ok = Array.isArray(s) && (s.length === 4 || s.length === 5) && s.every((x) => Number.isFinite(Number(x)));
+          if (!ok) log.push(`map.islands[${i}]: expected [x, z, radius, height] or [x, z, radius, height, cliff]`);
           return ok;
-        }).map(([x, z, r, h]) => [clamp(+x, -lim, lim), clamp(+z, -lim, lim), clamp(+r, 10, 1500), clamp(+h, -60, 120)]);
+        }).map(([x, z, r, h, c]) => {
+          const out = [clamp(+x, -lim, lim), clamp(+z, -lim, lim), clamp(+r, 10, 1500), clamp(+h, -60, 400)];
+          if (c !== undefined) out.push(clamp(+c, 0.25, 0.95));
+          return out;
+        });
       }
     }
     for (const k of Object.keys(map)) if (!known.includes(k) && !k.startsWith('_')) log.push(`map.${k}: unknown setting (ignored)`);

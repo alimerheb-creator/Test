@@ -385,7 +385,7 @@ default.
 | `hq` | Exactly two HQs, yours first: `x`, `z` and optional `yaw` in degrees (they face the middle by default) |
 | `size` | `play`: half the width of the playable square in metres (100–3000, default 240); `world`: half the width of the terrain out to the horizon; `inner` and `fine`: how far out and how finely (in metres) the detailed terrain mesh goes. Big maps get more trees, a longer view and a wider minimap by themselves |
 | `water` | Sea level in metres (−60–60), or `null` for none. Terrain below it is under water: ships float on it, shells splash into it, and nothing grows there |
-| `islands` | Up to 40 `[x, z, radius, height]` mounds with ragged coastlines, added on top of the terrain (also handy for big mountains on a dry map) |
+| `islands` | Up to 40 `[x, z, radius, height]` mounds with ragged coastlines, added on top of the terrain (also handy for big mountains on a dry map). Add a fifth number, `cliff` (0.25–0.95), for a flat-topped mesa with sheer sides: it says how far out the flat top reaches before the edge drops (height up to 400) |
 | `flags` | 0–8 capture points: `name`, `x`, `z`, `radius` (5–400), `height` (how high above the flag its zone reaches, 4–3000: give sky zones a few hundred metres so aircraft capture them), `flat` (radius of flattened ground), `town` (paved square with more cover), `id` (defaults to A, B, C…). An empty list `[]` gives Team Deathmatch: no flags, tickets only drop when soldiers die, and bots hunt the enemy |
 | `buildings` | Replaces all buildings. Each is `[x, z, width, depth, floors]`, with width and depth in 2.5 m wall panels (2–8) and 1–5 floors. Up to 80. Every building is destructible |
 | `addBuildings` | Same format, added to the existing buildings |
