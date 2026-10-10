@@ -60,3 +60,27 @@ jobs:
             sleep $((i * 5))
           done
           exit 1
+      # a check that the game really starts in the app: run it on an iPhone simulator for a minute, log what the
+      # game reports (its state and the first script error) and take a screenshot
+      - name: Run it on an iPhone simulator
+        continue-on-error: true
+        run: |
+          cd ios
+          xcodebuild -project SixthFront.xcodeproj -scheme SixthFront -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO -quiet build
+          DEV=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")).devices;const all=Object.entries(d).filter(([k])=>k.includes("iOS")).flatMap(([,v])=>v);const p=all.find((x)=>/^iPhone \d+( Pro)?$/.test(x.name))||all.find((x)=>x.name.startsWith("iPhone"));console.log(p.udid)')
+          echo "simulator $DEV"
+          xcrun simctl boot "$DEV"
+          xcrun simctl bootstatus "$DEV" -b
+          xcrun simctl install "$DEV" build/sim/Build/Products/Release-iphonesimulator/SixthFront.app
+          xcrun simctl launch --console-pty "$DEV" com.sixthfront.game > build/sim.log 2>&1 &
+          sleep 70
+          xcrun simctl io "$DEV" screenshot build/iphone.png
+          grep "SixthFront:" build/sim.log || tail -40 build/sim.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iphone-simulator
+          path: |
+            ios/build/iphone.png
+            ios/build/sim.log

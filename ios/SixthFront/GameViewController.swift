@@ -40,6 +40,21 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
     override func viewDidLoad() {
         super.viewDidLoad()
         web.load(URLRequest(url: Self.startURL))
+        reportStartup()
+    }
+
+    /// For the first minute, logs whether the game has started (and its first script error, if any), so a test
+    /// run on a simulator can tell from the log that the game came up.
+    private func reportStartup(_ n: Int = 0) {
+        guard n < 12 else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            guard let self = self else { return }
+            let js = "JSON.stringify({ state: window.__game ? window.__game.state : null, mods: window.__game && window.__game.mods ? window.__game.mods.list.length : 0, error: window.__sfError || null })"
+            self.web.evaluateJavaScript(js) { result, _ in
+                NSLog("SixthFront: %@", String(describing: result ?? "no page"))
+            }
+            self.reportStartup(n + 1)
+        }
     }
 
     // full screen, landscape, and swipes from the screen edges go to the game first
@@ -59,6 +74,9 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
         controller.removeAllUserScripts()
         controller.addUserScript(WKUserScript(source: store.bootstrapScript(), injectionTime: .atDocumentStart,
                                               forMainFrameOnly: true))
+        controller.addUserScript(WKUserScript(
+            source: "addEventListener('error', function (e) { if (!window.__sfError) window.__sfError = String(e.message) + ' @ ' + e.filename + ':' + e.lineno; });",
+            injectionTime: .atDocumentStart, forMainFrameOnly: true))
     }
 
     // MARK: - navigation: stay inside the game, open web links in Safari
