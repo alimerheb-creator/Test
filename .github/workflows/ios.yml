@@ -1,0 +1,61 @@
+# Builds the iPhone/iPad app on a Mac whenever the game changes and commits it to ipa/SixthFront.ipa, next to
+# apk/SixthFront.apk and exe/SixthFront.exe. The .ipa is unsigned: install it with Sideloadly or AltStore, which
+# sign it with your Apple ID (see README.md, "iPhone and iPad app").
+name: iOS app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/battlefield-6-game-2iu72e]
+    paths:
+      - 'js/**'
+      - 'css/**'
+      - 'mods/**'
+      - 'index.html'
+      - 'android/fonts/**'
+      - 'android/prepare-web.mjs'
+      - 'android/AndroidManifest.xml'
+      - 'package.json'
+      - 'ios/**'
+      - '.github/workflows/ios.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tools
+        run: |
+          npm install --no-audit --no-fund
+          brew install xcodegen
+          xcodebuild -version
+      - name: Build the app
+        run: bash ios/build-ipa.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SixthFront-ipa
+          path: ios/build/SixthFront.ipa
+      - name: Commit it to ipa/SixthFront.ipa
+        run: |
+          mkdir -p ipa
+          cp ios/build/SixthFront.ipa ipa/SixthFront.ipa
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ipa/SixthFront.ipa
+          git commit -m "iOS app $(node -p "require('./package.json').version") [ios-only] [skip ci]"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

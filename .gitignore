@@ -3,3 +3,7 @@ android/build/
 windows/build/
 windows/www/
 windows/*.syso
+ios/www/
+ios/build/
+ios/SixthFront.xcodeproj/
+ios/SixthFront/Info.plist

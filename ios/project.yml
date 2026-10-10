@@ -1,0 +1,50 @@
+# Xcode project for the iPhone/iPad app, generated with XcodeGen (ios/build-ipa.sh runs it).
+name: SixthFront
+options:
+  bundleIdPrefix: com.sixthfront
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  SixthFront:
+    type: application
+    platform: iOS
+    sources:
+      - path: SixthFront
+      - path: www
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_NAME: SixthFront
+        PRODUCT_BUNDLE_IDENTIFIER: com.sixthfront.game
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_BITCODE: NO
+        SUPPORTS_MACCATALYST: NO
+    info:
+      path: SixthFront/Info.plist
+      properties:
+        CFBundleDisplayName: Sixth Front
+        CFBundleName: Sixth Front
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UIRequiresFullScreen: true
+        UIStatusBarHidden: true
+        UIViewControllerBasedStatusBarAppearance: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        ITSAppUsesNonExemptEncryption: false

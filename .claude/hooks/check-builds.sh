@@ -4,7 +4,7 @@
 # A commit that really concerns one app only can say so in its message: [android-only] or [windows-only].
 cmd="$(jq -r '.tool_input.command // ""')"
 case "$cmd" in *"git commit"*) ;; *) exit 0 ;; esac
-case "$cmd" in *"[android-only]"*|*"[windows-only]"*) exit 0 ;; esac
+case "$cmd" in *"[android-only]"*|*"[windows-only]"*|*"[ios-only]"*) exit 0 ;; esac
 cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 changed() { [ -n "$(git status --porcelain -- "$1" 2>/dev/null)" ]; }
 apk=0; exe=0
