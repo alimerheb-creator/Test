@@ -146,8 +146,8 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   a rail depot and the crossroads town of Karsk. Deploy at your HQ or a flag you hold and you start in a tank.
 - **AVIATION**: an air war on 3 km maps (about six times the normal one): **Highlands** (mountains and green
   valleys), **Dune Sea** (desert dunes and mesas), **Fjordland** (fjords, glaciers and snowy peaks) and **Sea
-  Canyons** (sheer cliffs standing in a dark sea with narrow channels between them, made for flying low between the
-  walls). Everyone
+  Canyons** (sheer, layered cliffs standing in the sea with narrow channels between them, made for flying low between
+  the walls, with a low afternoon sun straight down the channels). Everyone
   flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side, about four jets
   to every bomber. Twenty aircraft: for Vanguard the F-16C, F/A-18E, F-35A and F-22A fighters, the A-10C and
   F-15E for ground attack, and the B-17G, B-52H, B-1B and B-2A bombers; for Onyx the MiG-29, Su-27, Su-35S and
@@ -156,12 +156,21 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   reach about twice as far as heat seekers and fall for flares less often; **guided bombs** (JDAM, KAB) glide
   onto an enemy vehicle or installation near where they would have landed; the modern bombers carry **cruise
   missiles** (JASSM, Kh-101, Kh-22) that lock on from about two kilometres, and the **B-1B, Tu-22M3 and Tu-160
-  sweep their wings back** as they speed up. **Flight** follows the angle of attack: pull too hard when slow and
-  the wing stalls and the nose drops, the airframe's g limit means the tightest turns come near corner speed, and
-  a hard turn bleeds speed. The **Su-27, Su-35S, Su-57, MiG-29 and F-22A fly Pugachev's Cobra** (V, or COBRA on a
-  phone): the nose rears up past vertical while the jet slides on along its path and loses most of its speed, so
-  a chaser overshoots and a missile closing in can lose it; the thrust-vectoring Su-35S, Su-57 and F-22A keep
-  their nose under control even very slow. Bots throw a Cobra at whoever sits on their tail. **Damage** goes to
+  sweep their wings back** as they speed up. **Flight is real physics**: thrust along the nose, lift square to the
+  airflow that grows with the square of the speed and with the angle of attack until the wing stalls, drag (a huge
+  air brake with the jet broadside to the air), gravity, and a velocity that can stop and go backwards; the
+  controls turn the nose against the airframe's own stability, which swings the nose into the airflow. A
+  fly-by-wire system keeps the angle of attack under the stall and the load under the g limit, so the tightest
+  turns come near corner speed, a hard turn bleeds speed, and the engines (about 1 g of thrust, 1.4 g in
+  afterburner) can't hold a vertical climb for ever. **No buttons for manoeuvres: they come out of the physics.**
+  In the **Su-27, Su-35S, Su-57, MiG-29 and F-22A** a sharp, hard pull from level flight at a moderate speed
+  (flick the aim far up above the nose, or snap the stick back) overrides the limiter, and you fly **Pugachev's
+  Cobra**: the nose rears up past vertical while the jet slides on along its path and the air brakes it hard, then
+  comes back down as you let go, so a chaser overshoots and a missile closing in can lose you. Hold the pull in the
+  thrust-vectoring Su-35S, Su-57 or F-22A and the nose keeps going right over, the **Kulbit**. In any jet, climb
+  straight up with the throttle back until the speed runs out: it stops, slides back on its tail, and the airflow
+  swings the nose down through the vertical like a bell's clapper into a dive, the **Kvochur Bell**. The HUD names
+  the manoeuvre while you fly it. Bots throw a Cobra at whoever sits on their tail. **Damage** goes to
   the part that is hit: shoot a **wing** and it breaks off (with its engines and missiles), tumbles down burning
   and the aircraft rolls toward the missing wing and spins in; a shot-off **fin** or **tailplane** leaves it flying
   but hard to control, and hits around the cockpit hurt most. Damaged aircraft trail grey, then black smoke, then
@@ -170,13 +179,22 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   Su-25 ripple long strings to both sides, bombers lay big "angel wing" fans and helicopters fire them sideways,
   each one burning white-hot with a thick smoke trail. The canopies are tinted glass (gold on the F-16, F-22,
   F-35 and Su-57) over a cockpit with the pilot in helmet, visor and oxygen mask, the ejection seat, the glare
-  shield and the HUD. The chase camera sits close behind and above your jet; long white **contrails** stream off the
-  wingtips of fast jets, cannon **tracers** fly out as glowing streaks, and the engines glow on afterburner. The HUD
+  shield and the HUD. The chase camera frames every jet the same way, the whole aircraft in the lower half of the
+  screen with its fins just under the aiming point (the F/A-18's twin fins no longer fill the view). The **sea** is
+  drawn by its own shader: waves at three scales, the sky, clouds and cliffs mirrored in it, the sun's glittering
+  path, turquoise shallows and surf along the shore. Looking toward the sun you see **sun shafts** past the cliffs
+  and wings. **Afterburners** burn as glowing plumes with shock diamonds, cannon **tracers** fly out as white-hot
+  streaks (a glowing dot when seen from right behind) with a **muzzle flash**, and the rounds throw up spray from
+  the water and dust from the ground. A jet skimming the sea throws up spray, the edges of the picture blur at
+  speed, and long white **contrails** stream off the wingtips of fast jets. The HUD
   has a **compass radar** (heading-up, with the view ahead as a pale wedge and every aircraft as an arrow, red the
   enemy and blue your side), the **pilot's name** over each aircraft, and a **top view of your aircraft** whose
-  wings, tail and fuselage turn yellow, orange and red as they are hit (a part shot off is dashed). On a phone, a
-  **throttle slider** sits on the left (the top is afterburner), the fire button is a big round button with
-  rounds on it, and the minimap makes room for the radar. Modes:
+  wings, tail and fuselage turn yellow, orange and red as they are hit (a part shot off is dashed). On a phone the
+  **buttons change when you fly**: the soldier's buttons give way to the aircraft's own, the weapons by name (GUN,
+  MISSILE, BOMBS, ROCKETS, ATGM... with what's left), FLARES, CAMERA, ZOOM (BOMB SIGHT with bombs) and SPOT, and
+  EJECT moves up next to the pause button. A **throttle slider** sits on the left (the top is
+  afterburner), the fire button is a big round button with rounds on it, you steer by dragging anywhere, and the
+  minimap makes room for the radar. Modes:
   **Conquest** (sky zones: fly through one to take it, bomb one the enemy holds to knock it back), **Air
   Superiority** (no zones, shoot down their air force) and **Ground Strike** (bomb the enemy airbase's radar,
   fuel depot, hangars, command bunker and C-RAM sites; every one lost costs tickets). **Your spawns:** each
@@ -362,8 +380,10 @@ In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke scree
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
 down, 1/2/3 weapons, Space flares, E ejects.
 In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, 1/2/3 weapons, Space flares,
-V Cobra (Su-27, Su-35S, Su-57, MiG-29, F-22A), E ejects. On a phone: drag to steer, the slider on the left is the
-throttle, the big round button fires. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
+E ejects. The Cobra is a sharp, hard pull: flick the mouse far up (or snap the stick back) from level flight
+in a Su-27, Su-35S, Su-57, MiG-29 or F-22A. On a phone: drag anywhere to steer (a quick, long swipe up throws a
+Cobra), the slider on the left is the throttle, the big round button fires, and the buttons are named for flying
+(GUN / MISSILE / BOMBS, FLARES, CAMERA, ZOOM, SPOT, EJECT at the top left). Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around,
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
 commander's seat, in a helicopter the pilot's seat behind the gunner, beside the co-pilot in the Ka-52).

@@ -1,4 +1,4 @@
-// HDR post-processing: MSAA scene target, mip-chain bloom, lens flare, ACES tone mapping,
+// HDR post-processing: MSAA scene target, mip-chain bloom, sun shafts, lens flare, speed blur, ACES tone mapping,
 // colour grading, vignette, film grain and damage effects. Self-contained (no three/addons).
 import * as THREE from 'three';
 
@@ -30,7 +30,22 @@ const UP = `uniform sampler2D tLow; uniform sampler2D tHigh; uniform vec2 texel;
     gl_FragColor = vec4(texture2D(tHigh, vUv).rgb + t / 16.0 * scatter, 1.0);
   }`;
 
-const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom;
+// Sun shafts: the bright parts of the picture near the sun smeared out from it, so whatever stands in front of the
+// sun (a cliff, a wing, a cloud) casts beams of shadow through the light (quarter resolution)
+const RAYS = `uniform sampler2D tSrc; uniform vec2 sunPos; uniform float aspect;
+  varying vec2 vUv;
+  void main(){
+    vec2 uv = vUv, d = (sunPos - vUv) * (0.92 / 32.0);
+    float w = 1.0; vec3 acc = vec3(0.0);
+    for (int i = 0; i < 32; i++) {
+      vec2 q = uv - sunPos; q.x *= aspect;
+      acc += min(texture2D(tSrc, uv).rgb, vec3(6.0)) * w * smoothstep(0.55, 0.04, length(q));
+      w *= 0.955; uv += d;
+    }
+    gl_FragColor = vec4(acc * (1.0 / 16.0), 1.0);
+  }`;
+
+const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform sampler2D tRays; uniform float rays; uniform float blur;
   uniform float bloomStrength; uniform float exposure; uniform float vignette; uniform float grain; uniform float time;
   uniform float saturation; uniform float hurt; uniform float lowHp; uniform float aspect;
   uniform vec2 sunPos; uniform float sunVis; uniform bool useBloom;
@@ -49,10 +64,20 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom;
     vec3 col;
     float ca = hurt * 0.006 + 0.0006;
     vec2 dir = (uv - 0.5) * ca;
-    col.r = texture2D(tScene, uv + dir).r;
-    col.g = texture2D(tScene, uv).g;
-    col.b = texture2D(tScene, uv - dir).b;
+    if (blur > 0.002) {
+      // speed: the edges of the picture streak outward, the middle stays sharp
+      vec2 c2 = uv - 0.5; c2.x *= aspect;
+      vec2 st = (uv - 0.5) * blur * 0.045 * smoothstep(0.18, 0.75, length(c2));
+      col = vec3(0.0);
+      for (int i = 0; i < 6; i++) col += texture2D(tScene, uv - st * (float(i) / 5.0)).rgb;
+      col /= 6.0;
+    } else {
+      col.r = texture2D(tScene, uv + dir).r;
+      col.g = texture2D(tScene, uv).g;
+      col.b = texture2D(tScene, uv - dir).b;
+    }
     if (useBloom) col += texture2D(tBloom, uv).rgb * bloomStrength;
+    if (rays > 0.001) col += texture2D(tRays, uv).rgb * rays * vec3(1.0, 0.86, 0.66);
     // Sun glare and lens ghosts
     if (sunVis > 0.001) {
       vec2 d = uv - sunPos; d.x *= aspect;
@@ -97,8 +122,9 @@ export class PostFX {
     this.scene.add(this.quad);
     this.downMat = mat(DOWN, { tSrc: { value: null }, texel: { value: new THREE.Vector2() }, threshold: { value: 1.0 }, knee: { value: 0.6 }, prefilter: { value: false } });
     this.upMat = mat(UP, { tLow: { value: null }, tHigh: { value: null }, texel: { value: new THREE.Vector2() }, scatter: { value: 0.85 } });
+    this.raysMat = mat(RAYS, { tSrc: { value: null }, sunPos: { value: new THREE.Vector2() }, aspect: { value: 1 } });
     this.compMat = mat(COMPOSITE, {
-      tScene: { value: null }, tBloom: { value: null }, useBloom: { value: true },
+      tScene: { value: null }, tBloom: { value: null }, useBloom: { value: true }, tRays: { value: null }, rays: { value: 0 }, blur: { value: 0 },
       bloomStrength: { value: 0.55 }, exposure: { value: 1.05 }, vignette: { value: 0.32 }, grain: { value: 0.018 },
       time: { value: 0 }, saturation: { value: 1.08 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
       sunPos: { value: new THREE.Vector2(-1, -1) }, sunVis: { value: 0 },
@@ -140,12 +166,15 @@ export class PostFX {
       mw = Math.max(1, mw >> 1); mh = Math.max(1, mh >> 1);
       if (mw < 4 || mh < 4) break;
     }
+    if (this.mips.length > 1) this.rtRays = new THREE.WebGLRenderTarget(this.mips[1].width, this.mips[1].height, { type, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
     this.compMat.uniforms.exposure.value = this.hdr ? (this.exposureValue || 1.05) : 1.0;
     this.downMat.uniforms.threshold.value = this.hdr ? 1.0 : 0.82;
   }
 
   dispose() {
     if (this.rtScene) this.rtScene.dispose();
+    if (this.rtRays) this.rtRays.dispose();
+    this.rtRays = null;
     for (const t of this.mips) t.dispose();
     for (const t of this.ups) t.dispose();
     this.rtScene = null;
@@ -188,7 +217,19 @@ export class PostFX {
       }
       cu.tBloom.value = low.texture;
       cu.useBloom.value = true;
-    } else cu.useBloom.value = false;
+      // sun shafts while the sun is in front of you
+      const rays = fx.rays || 0;
+      if (rays > 0.01 && this.rtRays) {
+        const ru = this.raysMat.uniforms;
+        ru.tSrc.value = this.mips[1].texture;
+        ru.sunPos.value.copy(fx.sunPos);
+        ru.aspect.value = this.w / this.h;
+        this._pass(this.raysMat, this.rtRays);
+        cu.tRays.value = this.rtRays.texture;
+      }
+      cu.rays.value = this.rtRays ? rays : 0;
+    } else { cu.useBloom.value = false; cu.rays.value = 0; }
+    cu.blur.value = fx.blur || 0;
 
     cu.tScene.value = this.rtScene.texture;
     cu.time.value = (fx.time % 100);

@@ -86,6 +86,41 @@ function rockGeo() {
   return s;
 }
 
+// A tiling wave map for the sea: the slopes (red east-west, green north-south) of a few dozen sine waves running
+// mostly with the wind, the short ones nearly as steep as the long ones, so it repeats seamlessly and mip-maps cleanly
+function waveTexture(n, renderer) {
+  const rng = mulberry32(7331), W = [];
+  for (let i = 0; i < 44; i++) {
+    const k = 1 + Math.floor(Math.pow(rng(), 1.5) * 24), a = (rng() - 0.5) * 2.3;
+    const kx = Math.round(Math.cos(a) * k), ky = Math.round(Math.sin(a) * k);
+    if (!kx && !ky) continue;
+    W.push([kx * Math.PI * 2, ky * Math.PI * 2, Math.pow(Math.hypot(kx, ky), -1.3), rng() * Math.PI * 2]);
+  }
+  const sx = new Float32Array(n * n), sy = new Float32Array(n * n);
+  let ss = 0;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const u = i / n, v = j / n;
+      let dx = 0, dy = 0;
+      for (const [kx, ky, amp, ph] of W) { const c = amp * Math.cos(kx * u + ky * v + ph); dx += kx * c; dy += ky * c; }
+      sx[j * n + i] = dx; sy[j * n + i] = dy; ss += dx * dx + dy * dy;
+    }
+  }
+  const scale = 0.5 / Math.sqrt(ss / (n * n)), data = new Uint8Array(n * n * 4);
+  for (let k = 0; k < n * n; k++) {
+    data[k * 4] = clamp(128 + sx[k] * scale * 127, 0, 255);
+    data[k * 4 + 1] = clamp(128 + sy[k] * scale * 127, 0, 255);
+    data[k * 4 + 2] = 255; data[k * 4 + 3] = 255;
+  }
+  const tex = new THREE.DataTexture(data, n, n, THREE.RGBAFormat, THREE.UnsignedByteType);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  if (renderer) tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  tex.needsUpdate = true;
+  return tex;
+}
+
 // Terrain grid: fine spacing in the battle zone, coarse spacing out to the horizon mountains. The layout
 // depends on the map's size, so it is worked out when the world is built.
 let INNER = 280, FINE = 2.5, COARSE = 14, N_OUT = 20, N_IN = 224, N = 265;
@@ -164,6 +199,7 @@ export class World {
     this._buildTerrainMesh();
     this._buildSky();
     this._buildLights();
+    if (this.water !== null) this._buildWater();
     this._buildVegetation();
     this._buildProps();
   }
@@ -313,47 +349,196 @@ export class World {
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: this.tex.ground, normalMap: this.tex.groundN, roughness: 0.96, metalness: 0 });
     mat.normalScale.set(0.9, 0.9);
+    // cliffs: steep ground takes its texture from the side instead of smearing it down the face, and shows
+    // layers of rock, wavering and broken by cracks
+    mat.onBeforeCompile = (sh) => {
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vTWorld; varying vec3 vTNrm;')
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNrm = normal;');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', `#include <common>
+          varying vec3 vTWorld; varying vec3 vTNrm;
+          float tHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+          float tNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+            return mix(mix(tHash(i), tHash(i + vec2(1.0, 0.0)), f.x), mix(tHash(i + vec2(0.0, 1.0)), tHash(i + vec2(1.0, 1.0)), f.x), f.y); }`)
+        .replace('#include <map_fragment>', `
+          vec3 tn = normalize(vTNrm);
+          float steep = smoothstep(0.42, 0.8, 1.0 - tn.y);
+          vec2 sideW = abs(tn.x) > abs(tn.z) ? vTWorld.zy : vTWorld.xy;
+          vec2 sideUv = sideW / vec2(9.0, 5.6);
+          diffuseColor *= mix(texture2D(map, vMapUv), texture2D(map, sideUv), steep);
+          float wob = tNoise(vTWorld.xz * 0.02) * 6.0 + tNoise(vTWorld.xz * 0.11) * 1.5;
+          float band = tNoise(vec2((vTWorld.y + wob) * 0.45, 0.5)) * 0.6 + tNoise(vec2((vTWorld.y + wob) * 1.7, 3.1)) * 0.4;
+          float crack = smoothstep(0.67, 0.7, tNoise(sideW * vec2(0.45, 0.07)));
+          diffuseColor.rgb *= mix(1.0, (0.7 + band * 0.6) * (1.0 - crack * 0.28), steep);`)
+        .replace('#include <normal_fragment_begin>', 'vec2 tNUv = steep > 0.5 ? sideUv : vNormalMapUv;\n' + THREE.ShaderChunk.normal_fragment_begin.replaceAll('vNormalMapUv', 'tNUv'))
+        .replace('#include <normal_fragment_maps>', THREE.ShaderChunk.normal_fragment_maps.replaceAll('vNormalMapUv', 'tNUv'));
+    };
+    mat.customProgramCacheKey = () => 'terrain-cliffs';
     this.terrain = new THREE.Mesh(geo, mat);
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);
-    if (this.water !== null) this._buildWater();
   }
 
-  // A sea: one big sheet with moving ripples, a little see-through near the shore
+  // The sea. Its own shader: waves from a tiling wave map at three scales drifting with the wind, the sky and its
+  // clouds mirrored by the Fresnel law (little straight down, almost all of it at a glancing angle), the sun's
+  // glitter path, the hills and cliffs mirrored too (traced through a height map of the land), turquoise
+  // shallows and surf along the shore, and the fog.
   _buildWater() {
-    const size = 1024, c = document.createElement('canvas');
-    c.width = c.height = size;
-    const x = c.getContext('2d');
-    x.fillStyle = 'rgb(128,128,255)';
-    x.fillRect(0, 0, size, size);
-    const rng = mulberry32(4242);
-    for (let i = 0; i < 2600; i++) {
-      const px = rng() * size, py = rng() * size, r = 6 + rng() * 26, a = rng() * Math.PI;
-      const nx = Math.cos(a), ny = Math.sin(a);
-      x.fillStyle = `rgba(${Math.round(128 + nx * 60)},${Math.round(128 + ny * 60)},255,0.18)`;
-      x.beginPath(); x.ellipse(px, py, r, r * 0.35, a, 0, Math.PI * 2); x.fill();
-    }
-    const nrm = new THREE.CanvasTexture(c);
-    nrm.wrapS = nrm.wrapT = THREE.RepeatWrapping;
-    nrm.repeat.set(WORLD_HALF / 40, WORLD_HALF / 40);
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x1f4e5f, roughness: 0.12, metalness: 0.35, normalMap: nrm, transparent: true, opacity: 0.9, envMapIntensity: 1.2,
+    const land = this._landTexture();
+    const sky = this.skyMat.uniforms;
+    const q = this.game.settings.quality, Q = q === 'low' ? 0 : 1;
+    const P = TERRAIN.palette || {};
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
+        tWaves: { value: waveTexture(256, this.game.renderer) }, tLand: { value: land.tex }, landRect: { value: land.rect },
+        time: { value: 0 }, sea: { value: this.water },
+        sunLight: { value: new THREE.Color() }, sunPower: { value: 3 }, ambient: { value: new THREE.Color() },
+        deep: { value: new THREE.Color(P.sea || 0x175a7a) }, shallow: { value: new THREE.Color(P.shallows || 0x35a8a0) },
+        rock: { value: new THREE.Color(P.rock || 0x77706a) },
+      },
+      vertexShader: `varying vec3 vWorld;
+        #include <fog_pars_vertex>
+        void main(){
+          vec4 wp = modelMatrix * vec4(position, 1.0);
+          vWorld = wp.xyz;
+          vec4 mvPosition = viewMatrix * wp;
+          gl_Position = projectionMatrix * mvPosition;
+          #include <fog_vertex>
+        }`,
+      fragmentShader: `uniform sampler2D tWaves; uniform sampler2D tLand; uniform vec4 landRect;
+        uniform float time; uniform float sea; uniform vec3 sunLight; uniform float sunPower; uniform vec3 ambient;
+        uniform vec3 deep; uniform vec3 shallow; uniform vec3 rock;
+        uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunColor;
+        uniform vec3 cloudLo; uniform vec3 cloudHi; uniform float cloudAmount;
+        varying vec3 vWorld;
+        #include <fog_pars_fragment>
+        float hsh(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
+        float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+          return mix(mix(hsh(i),hsh(i+vec2(1.0,0.0)),f.x), mix(hsh(i+vec2(0.0,1.0)),hsh(i+vec2(1.0,1.0)),f.x), f.y); }
+        // the sky as the sky dome draws it (gradient, sun glow and clouds), without the sun's disc
+        vec3 skyAt(vec3 d){
+          float h = max(d.y, 0.0);
+          vec3 col = mix(horizon, top, smoothstep(0.0, 0.6, h));
+          float s = max(dot(d, sunDir), 0.0);
+          col += sunColor * (pow(s, 48.0) * 0.4 + pow(s, 5.0) * 0.14);
+          vec2 uv = d.xz / (h + 0.18) * 1.6;
+          float c = vn(uv) * 0.55 + vn(uv * 2.3 + 4.0) * 0.3 + vn(uv * 5.1) * 0.15;
+          c = smoothstep(0.52, 0.86, c) * smoothstep(0.0, 0.3, h);
+          return mix(col, mix(cloudLo, cloudHi, s), c * cloudAmount);
+        }
+        // r: how deep the sea bed is here (0..16 m), g: how high the land stands above the sea (0..400 m)
+        vec2 landAt(vec2 xz){ return texture2D(tLand, (xz - landRect.xy) * landRect.zw).rg; }
+        void main(){
+          vec3 toCam = cameraPosition - vWorld;
+          float dist = length(toCam);
+          vec3 V = toCam / dist;
+          vec2 p = vWorld.xz;
+          // waves: big swells, chop and ripples drifting different ways; the fine ones fade out with distance
+          float far = smoothstep(30.0, 900.0, dist);
+          vec2 w1 = texture2D(tWaves, p * 0.0071 + time * vec2(0.0042, 0.0023)).xy * 2.0 - 1.0;
+          vec2 w2 = texture2D(tWaves, p * 0.019 + time * vec2(-0.0081, 0.0063)).xy * 2.0 - 1.0;
+          vec2 w3 = texture2D(tWaves, p * 0.113 + time * vec2(0.023, -0.028)).xy * 2.0 - 1.0;
+          vec2 slope = (w1 * 0.3 + w2 * 0.24 + w3 * 0.2 * (1.0 - far)) * mix(1.0, 0.55, far);
+          vec3 N = normalize(vec3(slope.x, 1.0, slope.y));
+          vec2 L = landAt(p);
+          float depth = L.r * 16.0;
+          // Fresnel: water reflects 2% looking straight down and nearly everything at a glancing angle
+          float NdV = max(dot(N, V), 0.0);
+          float F = 0.02 + 0.98 * pow(1.0 - NdV, 5.0);
+          vec3 R = reflect(-V, N);
+          R.y = abs(R.y) + 0.002;
+          vec3 refl = skyAt(R);
+          #if WATER_Q > 0
+          // the land mirrored: march the reflected ray over the height map and see how far it passes under the
+          // ground (softly, so the edge of a mirrored cliff doesn't come out in steps)
+          float hit = 0.0, hitT = 0.0;
+          for (int i = 1; i <= 6; i++) {
+            float t = float(i * i) * 9.0;
+            vec3 qp = vWorld + R * t;
+            float o = smoothstep(-5.0, 7.0, landAt(qp.xz).g * 400.0 - (qp.y - sea));
+            if (o > hit) { hit = o; hitT = t; }
+          }
+          // a cliff facing back along the ray, lit by the sun if it faces it
+          vec3 face = normalize(vec3(-R.x, 0.001, -R.z));
+          vec3 landCol = rock * (ambient * 0.85 + sunLight * sunPower * 0.3 * max(dot(face, sunDir), 0.0));
+          #ifdef USE_FOG
+          landCol = mix(landCol, horizon, smoothstep(fogNear, fogFar, dist + hitT) * 0.9);
+          #endif
+          refl = mix(refl, landCol, hit * 0.92);
+          #endif
+          // the water itself: deep blue-green, turquoise over sand, lit by the sky and the sun
+          float shallowK = 1.0 - smoothstep(0.4, 10.0, depth);
+          vec3 body = mix(deep, shallow, shallowK * 0.85);
+          body *= ambient * 0.75 + sunLight * sunPower * max(sunDir.y, 0.05) * 0.16;
+          // sunlight through the crest of a wave between you and the sun
+          float sss = pow(max(dot(-V, sunDir) * 0.5 + 0.5, 0.0), 6.0) * max(dot(N.xz, -sunDir.xz), 0.0);
+          body += shallow * sunLight * sss * 0.35;
+          vec3 col = mix(body, refl, F);
+          // the sun on the water: hard glints close in, a wide glittering path far out
+          vec3 H = normalize(sunDir + V);
+          float NdH = max(dot(N, H), 0.0);
+          float sharp = mix(2200.0, 380.0, far);
+          float spec = (pow(NdH, sharp) * mix(30.0, 22.0, far) + pow(NdH, 160.0) * 0.14) * mix(0.4, 1.0, smoothstep(40.0, 260.0, dist)) + pow(NdH, 28.0) * 0.025;
+          col += sunColor * sunLight * spec * sunPower * 0.32 * smoothstep(-0.02, 0.1, sunDir.y);
+          // surf along the shore, breaking up and rolling in
+          float edge = 1.0 - smoothstep(0.0, 2.2, depth);
+          float fn = vn(p * 0.31 + vec2(time * 0.21, -time * 0.13)) * 0.6 + vn(p * 1.17 - vec2(time * 0.37, time * 0.29)) * 0.4;
+          float roll = 0.5 + 0.5 * sin(depth * 5.0 - time * 1.7 + fn * 3.0);
+          float foam = smoothstep(0.55, 0.85, fn * 0.7 + edge * 0.55 + roll * 0.25 * edge) * edge;
+          foam = max(foam, smoothstep(0.82, 1.0, fn) * (1.0 - smoothstep(2.2, 6.0, depth)) * 0.6);
+          col = mix(col, (ambient + sunLight * sunPower * 0.22 * max(sunDir.y, 0.1)) * 0.9, foam * 0.85);
+          float alpha = mix(0.62, 1.0, smoothstep(0.0, 5.0, depth));
+          gl_FragColor = vec4(col, max(alpha, max(F, foam)));
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+          #include <fog_fragment>
+        }`,
+      defines: { WATER_Q: Q },
+      transparent: true,
+      fog: true,
     });
-    mat.normalScale.set(0.55, 0.55);
+    // the sky's own colours, so the reflections follow the time of day
+    for (const k of ['top', 'horizon', 'sunDir', 'sunColor', 'cloudLo', 'cloudHi', 'cloudAmount']) mat.uniforms[k] = sky[k];
     const geo = new THREE.PlaneGeometry(WORLD_HALF * 2.6, WORLD_HALF * 2.6, 1, 1);
     geo.rotateX(-Math.PI / 2);
     this.waterMesh = new THREE.Mesh(geo, mat);
     this.waterMesh.position.y = this.water;
-    this.waterMesh.receiveShadow = true;
     this.waterMesh.renderOrder = 1;
+    this.waterMesh.frustumCulled = false;
     this.scene.add(this.waterMesh);
-    this.waterNormal = nrm;
+    this.waterMat = mat;
+  }
+
+  // A picture of the land for the sea shader: red = the sea bed's depth (0..16 m), green = the land's height
+  // above the sea (0..400 m), covering the whole terrain
+  _landTexture() {
+    const n = 512, half = WORLD_HALF, sea = this.water, data = new Uint8Array(n * n * 4);
+    for (let j = 0; j < n; j++) {
+      const z = -half + ((j + 0.5) / n) * half * 2;
+      for (let i = 0; i < n; i++) {
+        const x = -half + ((i + 0.5) / n) * half * 2, h = this.heightAt(x, z), k = (j * n + i) * 4;
+        data[k] = clamp(((sea - h) / 16) * 255, 0, 255);
+        data[k + 1] = clamp(((h - sea) / 400) * 255, 0, 255);
+        data[k + 3] = 255;
+      }
+    }
+    const tex = new THREE.DataTexture(data, n, n, THREE.RGBAFormat, THREE.UnsignedByteType);
+    tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearFilter;
+    tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+    tex.needsUpdate = true;
+    return { tex, rect: new THREE.Vector4(-half, -half, 1 / (half * 2), 1 / (half * 2)) };
   }
 
   updateWater(dt) {
-    if (!this.waterNormal) return;
-    this.waterNormal.offset.x += dt * 0.012;
-    this.waterNormal.offset.y += dt * 0.007;
+    const m = this.waterMat;
+    if (!m) return;
+    const u = m.uniforms;
+    u.time.value = (u.time.value + dt) % 3600;
+    u.sunLight.value.copy(this.sun.color);
+    u.sunPower.value = this.sun.intensity;
+    u.ambient.value.copy(this.hemi.color).multiplyScalar(this.hemi.intensity * 0.5).lerp(this.skyMat.uniforms.horizon.value, 0.35);
   }
 
   // ---------------------------------------------------------------- sky & light

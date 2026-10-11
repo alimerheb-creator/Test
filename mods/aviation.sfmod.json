@@ -2,9 +2,9 @@
   "format": "sixthfront-mod",
   "id": "aviation",
   "name": "Aviation",
-  "version": "1.9",
+  "version": "1.10",
   "author": "Sixth Front",
-  "description": "A battle type: pick AVIATION on the main menu, then a map (Highlands, Dune Sea, Fjordland, Sea Canyons: each about 3 km across) and a mode (Conquest with sky zones, Air Superiority, Ground Strike). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. Every airbase is guarded by C-RAM guns that shoot down bombs, rockets and missiles and hose down low-flying aircraft (you hear the alarm and the beeps when one tracks you). In Ground Strike, bomb the enemy base: radar, fuel depot, hangars, command bunker and the C-RAM sites. Your own aircraft come back about 6 seconds after you lose them: with 1 aircraft in your crew you get 3 spawns in it, with 2 the first gets 2 spawns and the second 1, with 3 or 4 each gets 1. Matchmaking: the bots on both sides fly only the aircraft within one rank of your best one, so a beginner's F-16 meets MiG-29s and Su-27s, not Su-57s. The C-RAM guns fire a visible stream of glowing tracers.",
+  "description": "A battle type: pick AVIATION on the main menu, then a map (Highlands, Dune Sea, Fjordland, Sea Canyons, where a low afternoon sun lays a glittering path down the channels: each about 3 km across) and a mode (Conquest with sky zones, Air Superiority, Ground Strike). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. Every airbase is guarded by C-RAM guns that shoot down bombs, rockets and missiles and hose down low-flying aircraft (you hear the alarm and the beeps when one tracks you). In Ground Strike, bomb the enemy base: radar, fuel depot, hangars, command bunker and the C-RAM sites. Your own aircraft come back about 6 seconds after you lose them: with 1 aircraft in your crew you get 3 spawns in it, with 2 the first gets 2 spawns and the second 1, with 3 or 4 each gets 1. Matchmaking: the bots on both sides fly only the aircraft within one rank of your best one, so a beginner's F-16 meets MiG-29s and Su-27s, not Su-57s. The C-RAM guns fire a visible stream of glowing tracers.",
   "battle": {
     "name": "AVIATION",
     "blurb": "Jets and bombers, huge maps",
@@ -34,7 +34,7 @@
       {
         "id": "sea-canyons",
         "name": "SEA CANYONS",
-        "blurb": "Low flying between sea cliffs"
+        "blurb": "Low flying between sunlit sea cliffs"
       }
     ],
     "modes": [
@@ -1138,7 +1138,9 @@
         "hemiGround": "#46545a",
         "fogNear": 500,
         "fogFar": 3200,
-        "clouds": 0.7
+        "clouds": 0.6,
+        "sunElevation": 30,
+        "sunAzimuth": 170
       },
       "hq": [
         {
@@ -1369,23 +1371,35 @@
         "grass": 0.4
       },
       "palette": {
-        "grass": "#4f5a44",
-        "grass2": "#434c3a",
-        "rock": "#4c4d4e",
-        "peak": "#5d6062",
-        "sand": "#6f6a5e",
-        "seabed": "#1d2a30"
+        "grass": "#56603f",
+        "grass2": "#4a5536",
+        "rock": "#86786a",
+        "peak": "#9b8d7b",
+        "sand": "#a99779",
+        "seabed": "#24393a",
+        "sea": "#16597a",
+        "shallows": "#3aaba0"
       },
       "atmosphere": {
-        "preset": "overcast",
-        "horizon": "#8e9aa3",
-        "skyTop": "#566573",
-        "ground": "#4b4f50",
-        "hemiGround": "#3a3e40",
-        "fogNear": 450,
-        "fogFar": 3000,
-        "clouds": 0.9,
-        "sunIntensity": 1.5
+        "preset": "dusk",
+        "skyTop": "#4d7db4",
+        "horizon": "#e6cba6",
+        "ground": "#7a6c5c",
+        "sunColor": "#ffd08c",
+        "sunLight": "#ffdcae",
+        "sunIntensity": 3.5,
+        "hemiSky": "#bccbdc",
+        "hemiGround": "#6a5a48",
+        "hemiIntensity": 1.2,
+        "fogNear": 500,
+        "fogFar": 3300,
+        "clouds": 0.32,
+        "cloudColor": "#cdbcad",
+        "cloudLit": "#ffe6c0",
+        "sunElevation": 15,
+        "sunAzimuth": 162,
+        "exposure": 1,
+        "envIntensity": 0.65
       },
       "hq": [
         {

@@ -426,7 +426,8 @@ export class Game extends Emitter {
     this.input.endFrame();
   }
 
-  // Values the post-processing pass needs: sun glare position/visibility and damage feedback
+  // Values the post-processing pass needs: sun glare position/visibility, sun shafts, speed blur and damage
+  // feedback. (Mods set game.motionBlur, 0..1, for speed: the aircraft do while you fly fast.)
   _postParams(dt) {
     const fx = this.fx || (this.fx = { time: 0, hurt: 0, lowHp: 0, sunPos: new THREE.Vector2(), sunVis: 0, sunCheck: 0, sunTarget: 0 });
     fx.time = this.time;
@@ -447,6 +448,12 @@ export class Game extends Emitter {
     }
     if (!onScreen) fx.sunTarget = 0;
     fx.sunVis += (fx.sunTarget - fx.sunVis) * Math.min(1, dt * 8);
+    // sun shafts: strongest looking toward a bright sun, gone when it's behind you or the sky is dull
+    _f.set(0, 0, -1).applyQuaternion(cam.quaternion);
+    const facing = THREE.MathUtils.smoothstep(_f.dot(SUN_DIR), 0.25, 0.8);
+    fx.rays = facing * THREE.MathUtils.clamp((this.world.sun.intensity - 1.3) / 1.8, 0, 1) * (_v.z < 1 ? 1 : 0) * 0.75;
+    const blur = playing ? (this.motionBlur || 0) : 0;
+    fx.blur = (fx.blur || 0) + (blur - (fx.blur || 0)) * Math.min(1, dt * 4);
   }
 
   _engineSound() {

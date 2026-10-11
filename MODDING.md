@@ -273,7 +273,8 @@ Tune the bot skill levels `easy`, `normal` and `hard`: `reaction` (`[min, max]` 
 `preset`: `dusk` (default), `noon`, `overcast` or `night`. Any of these override the preset: colours
 `skyTop`, `horizon`, `ground`, `sunColor`, `sunLight`, `hemiSky`, `hemiGround`, `cloudColor`, `cloudLit`;
 numbers `sunIntensity`, `hemiIntensity`, `fogNear`, `fogFar`, `clouds` (0–1), `stars` (0–2),
-`sunElevation` (degrees), `sunAzimuth` (degrees), `exposure`, `envIntensity`.
+`sunElevation` (degrees), `sunAzimuth` (degrees), `exposure`, `envIntensity`. A low sun (10–25 degrees) in front of
+the player lays a long glittering path on a sea, and sun shafts show when looking toward a bright sun.
 
 ### `botNames`
 
@@ -346,6 +347,9 @@ spawned by the engine. Optional extras for vehicles of your own (the Naval mod's
 During an online game the Multiplayer mod also offers `api.game.__mp` (`live()`, `role()`, `send(tag, data)`,
 `on(tag, fn)`) for a mod's own messages, and emits the `mpSession` event when a game starts.
 
+`api.game.motionBlur` (0–1, default 0) blurs the edges of the picture for a sense of speed; the aircraft set it
+while you fly a jet fast, every frame, so set it every frame too if you use it.
+
 Other things the bundled mods share on `api.game`:
 
 | Object | From | Offers |
@@ -394,7 +398,7 @@ default.
 | `randomProps` | `false` removes the automatic cover around flags, HQs and across the fields |
 | `terrain` | `seed` (any number gives a different landscape), `hills` (0–4), `bumps` (0–4), `mountains` (0–3, the ring around the edge), `valley` (−5–5, a dip through the middle; negative makes a ridge), `level` (−80–80, raises or lowers all of it: below `water` for a sea) |
 | `vegetation` | Multipliers for `trees`, `bushes`, `rocks` (0–3) and `grass` (0–2) |
-| `palette` | The ground's colours as `#rrggbb`: `grass`, `grass2`, `dirt`, `rock`, `peak` (high ground), `town`, `road`, `sand` (beaches), `seabed`. Desert sand, snow, ... (the map screen follows `grass`) |
+| `palette` | The ground's colours as `#rrggbb`: `grass`, `grass2`, `dirt`, `rock`, `peak` (high ground), `town`, `road`, `sand` (beaches), `seabed`, and for the sea `sea` (deep water) and `shallows` (water over sand). Desert sand, snow, ... (the map screen follows `grass`) |
 | `atmosphere` | Only in a battle mod's maps and modes: the same fields as the top-level `atmosphere` section, applied over it while that map or mode is picked |
 
 Ground is flattened automatically around flags, HQs and buildings. The team with more flags makes the other
