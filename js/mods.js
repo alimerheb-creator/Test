@@ -594,7 +594,7 @@ export class ModManager {
 
   _applyMap(map, log) {
     if (!isObj(map)) { log.push('map: expected an object'); return; }
-    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'palette', 'atmosphere'];
+    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'palette', 'atmosphere'];
     if (map.palette !== undefined) {
       if (!isObj(map.palette)) log.push('map.palette: expected an object like { "grass": "#c9b48a" }');
       else { const p = {}; applyFields(p, map.palette, SCHEMA.palette, 'map.palette', {}, log); TERRAIN.palette = p; }
@@ -621,6 +621,22 @@ export class ModManager {
           if (c !== undefined) out.push(clamp(+c, 0.25, 0.95));
           return out;
         });
+      }
+    }
+    if (map.gorges !== undefined) {
+      if (!Array.isArray(map.gorges)) log.push('map.gorges: expected a list of { "path": [[x, z], ...], "width": 120, "floor": -10, "wall": 0.7 }');
+      else {
+        const lim = worldEdge();
+        TERRAIN.gorges = map.gorges.slice(0, 12).filter((gz, i) => {
+          const ok = isObj(gz) && Array.isArray(gz.path) && gz.path.length >= 2 && gz.path.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(Number(v))));
+          if (!ok) log.push(`map.gorges[${i}]: expected { "path": [[x, z], ...] } with at least two points`);
+          return ok;
+        }).map((gz) => ({
+          path: gz.path.slice(0, 32).map(([x, z]) => [clamp(+x, -lim, lim), clamp(+z, -lim, lim)]),
+          width: clamp(Number(gz.width) || 120, 20, 600),
+          floor: clamp(Number.isFinite(Number(gz.floor)) ? Number(gz.floor) : -10, -80, 300),
+          wall: clamp(Number(gz.wall) || 0.7, 0.25, 0.95),
+        }));
       }
     }
     for (const k of Object.keys(map)) if (!known.includes(k) && !k.startsWith('_')) log.push(`map.${k}: unknown setting (ignored)`);

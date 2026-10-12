@@ -224,6 +224,17 @@ export class World {
       const k = 1 - smoothstep(r * (isl[4] || 0.25), r, d);
       h += k * k * (3 - 2 * k) * isl[3];
     }
+    // gorges: a canyon cut down to its floor along a winding path, its walls ragged and their foot widening and
+    // narrowing as it goes
+    for (const gz of T.gorges || []) {
+      const hw = gz.width / 2, P = gz.path;
+      let d2 = Infinity;
+      for (let i = 0; i < P.length - 1; i++) d2 = Math.min(d2, segDist2(x, z, P[i][0], P[i][1], P[i + 1][0], P[i + 1][1]));
+      if (d2 > hw * hw * 2.6) continue;
+      const d = Math.sqrt(d2) + fbm2(x * 0.017 + 7, z * 0.017 - 3, 3) * hw * 0.32;
+      const k = 1 - smoothstep(hw * gz.wall, hw, d);
+      if (k > 0) h = Math.min(h, lerp(h, gz.floor + fbm2(x * 0.05, z * 0.05, 2) * 1.5, k * k * (3 - 2 * k)));
+    }
     return h;
   }
 
@@ -364,13 +375,27 @@ export class World {
         .replace('#include <map_fragment>', `
           vec3 tn = normalize(vTNrm);
           float steep = smoothstep(0.42, 0.8, 1.0 - tn.y);
-          vec2 sideW = abs(tn.x) > abs(tn.z) ? vTWorld.zy : vTWorld.xy;
+          vec2 bw = abs(tn.xz); bw /= bw.x + bw.y + 1e-4;
+          vec2 sideW = bw.x > bw.y ? vTWorld.zy : vTWorld.xy;
           vec2 sideUv = sideW / vec2(9.0, 5.6);
-          diffuseColor *= mix(texture2D(map, vMapUv), texture2D(map, sideUv), steep);
+          vec4 sideTex = texture2D(map, vTWorld.zy / vec2(9.0, 5.6)) * bw.x + texture2D(map, vTWorld.xy / vec2(9.0, 5.6)) * bw.y;
+          diffuseColor *= mix(texture2D(map, vMapUv), sideTex, steep);
           float wob = tNoise(vTWorld.xz * 0.02) * 6.0 + tNoise(vTWorld.xz * 0.11) * 1.5;
-          float band = tNoise(vec2((vTWorld.y + wob) * 0.45, 0.5)) * 0.6 + tNoise(vec2((vTWorld.y + wob) * 1.7, 3.1)) * 0.4;
+          float yy = vTWorld.y + wob;
+          float band = tNoise(vec2(yy * 0.45, 0.5)) * 0.6 + tNoise(vec2(yy * 1.7, 3.1)) * 0.4;
           float crack = smoothstep(0.67, 0.7, tNoise(sideW * vec2(0.45, 0.07)));
-          diffuseColor.rgb *= mix(1.0, (0.7 + band * 0.6) * (1.0 - crack * 0.28), steep);`)
+          float fiss = smoothstep(0.74, 0.8, tNoise(sideW * vec2(0.9, 0.045) + 17.0));
+          // ledges of harder rock every few metres: a lit lip, and a shadow under it
+          float lf = fract(yy / 7.3 + tNoise(sideW * 0.03) * 0.7);
+          float lip = smoothstep(0.0, 0.05, lf) * (1.0 - smoothstep(0.05, 0.14, lf));
+          float under = smoothstep(0.84, 1.0, lf);
+          // big patches of warmer and cooler rock, and moss where the face is a little less sheer
+          float tone = tNoise(sideW * 0.011) * 0.65 + tNoise(sideW * 0.047) * 0.35;
+          vec3 rockMul = mix(vec3(0.88, 0.94, 1.03), vec3(1.1, 0.99, 0.84), tone) * (0.7 + band * 0.58);
+          rockMul *= (1.0 - crack * 0.3 - fiss * 0.22) * (1.0 + lip * 0.2 - under * 0.3);
+          float moss = smoothstep(0.58, 0.82, tNoise(sideW * 0.085 + 5.0)) * (1.0 - smoothstep(0.55, 0.9, 1.0 - tn.y)) * steep;
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * rockMul, steep);
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.17, 0.22, 0.11), moss * 0.5);`)
         .replace('#include <normal_fragment_begin>', 'vec2 tNUv = steep > 0.5 ? sideUv : vNormalMapUv;\n' + THREE.ShaderChunk.normal_fragment_begin.replaceAll('vNormalMapUv', 'tNUv'))
         .replace('#include <normal_fragment_maps>', THREE.ShaderChunk.normal_fragment_maps.replaceAll('vNormalMapUv', 'tNUv'));
     };

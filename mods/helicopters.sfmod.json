@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "helicopters",
   "name": "Helicopters",
-  "version": "1.5",
+  "version": "1.6",
   "author": "Sixth Front",
   "battles": [
     "normal",
@@ -2314,7 +2314,7 @@
     "    let low = agl < floor * 0.6;",
     "    for (const tt of [1.5, 3, 5]) {",
     "      _p.copy(v.vel).multiplyScalar(tt).add(p);",
-    "      if (_p.y < world.heightAt(_p.x, _p.z) + floor) { low = true; break; }",
+    "      if (_p.y < (A.floorAt ? A.floorAt(_p.x, _p.z) : world.heightAt(_p.x, _p.z)) + floor) { low = true; break; }",
     "    }",
     "    if (low) {",
     "      v.aim.y = Math.max(v.aim.y, agl < floor * 0.4 ? 0.8 : 0.5);",

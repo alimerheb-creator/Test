@@ -177,7 +177,11 @@ picking a card installs and switches it on for you and restarts on its map. Avia
 - **AVIATION**: an air war on 3 km maps (about six times the normal one): **Highlands** (mountains and green
   valleys), **Dune Sea** (desert dunes and mesas), **Fjordland** (fjords, glaciers and snowy peaks) and **Sea
   Canyons** (sheer, layered cliffs standing in the sea with narrow channels between them, made for flying low between
-  the walls, with a low afternoon sun straight down the channels). Everyone
+  the walls, with a low afternoon sun straight down the channels) and **Pine Gorge** (a pine-forested plateau cut by
+  a river canyon a hundred metres deep, with its two forks, waterfalls pouring off the rim and four stone arch bridges
+  you can fly under). The land is full of detail when you fly low: pine forests along the rims and on the mesa tops,
+  crags and ledges with pines growing out of them on the cliff faces, layered rock with moss in its cracks, boulders
+  at the foot of the cliffs, waterfalls with spray and mist lying in the channels. Everyone
   flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side, about four jets
   to every bomber. Twenty aircraft: for Vanguard the F-16C, F/A-18E, F-35A and F-22A fighters, the A-10C and
   F-15E for ground attack, and the B-17G, B-52H, B-1B and B-2A bombers; for Onyx the MiG-29, Su-27, Su-35S and
