@@ -391,7 +391,7 @@ export class HUD {
       const pct = Math.max(0, v.health / v.maxHealth);
       this.el.vhp.style.width = pct * 100 + '%';
       this._set('vhpn', this.el.vhpNum, String(Math.ceil(pct * 100)));
-      const w = g.playerCtl.tankWeapon === 0 ? '120MM CANNON' : `COAX MG  ${v.coax.reloading ? 'RELOADING' : v.coax.mag}`;
+      const w = g.playerCtl.tankWeapon === 0 ? v.gunName || '120MM CANNON' : `COAX MG  ${v.coax.reloading ? 'RELOADING' : v.coax.mag}`;
       this._set('vw', this.el.vweap, w);
       this.el.vreload.style.width = (g.playerCtl.tankWeapon === 0 ? clamp(1 - v.reload / VEHICLES.tank.reload, 0, 1) : 1) * 100 + '%';
     } else if (P.state === 'alive') {

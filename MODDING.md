@@ -350,6 +350,7 @@ spawned by the engine. Optional extras for vehicles of your own (the Naval mod's
 | `blastDist(x, y, z)` | How far a point is from the hull; explosions use it instead of the distance to `pos` (for long vehicles) |
 | `ownHud: true` | The engine doesn't draw its tank sight while you drive it |
 | `label` | Short name in the squad list and over its head (default `TANK`) |
+| `gunName` | A tank's main gun on the HUD (default `120MM CANNON`) |
 | `markerHeight` | Height of that marker above `pos` |
 | `mpFlags()`, `mpEncode(arr, offset, q)`, `mpApply(a, b, t, dt, newest, nowMs)` | With the Multiplayer mod: extra state bits, writing fields 6–10 and 12 of the vehicle's snapshot record, and showing a vehicle someone else drives (`a` and `b` are the two records around the drawn moment, `t` the mix) |
 
