@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "tank-warfare",
   "name": "Tank Warfare",
-  "version": "1.3",
+  "version": "1.4",
   "author": "Sixth Front",
   "description": "A battle type: pick TANKS on the main menu. Everyone commands a tank, you and every bot, on Iron Steppe, a wide open map of farms, a rail depot and the crossroads town of Karsk. The class cards are your four crew slots from the RESEARCH screen: you drive your own tank as the one you picked (M60A3 to M1A2 SEPv3, T-62M to T-90M), with its armour, speed, reload and gun and the modifications you fitted. A destroyed tank comes back at the HQ a few seconds later. Matchmaking: the bot tanks carry the armour and gun of tanks within one rank of yours. V (SMOKE on a phone) fires smoke grenades: missiles can't lock on to you in the smoke.",
   "battle": {
@@ -1331,7 +1331,7 @@
     "// a bot climbing into a tank gets one of the tanks within a rank of yours (the Career's matchmaking)",
     "api.on('enterVehicle', (e) => {",
     "  const v = e.vehicle, s = e.soldier, C = g.__career;",
-    "  if (!v || !v.isBattleTank || v.reserved || !s || s === g.player || !C || !C.matchItem) return;",
+    "  if (!v || !v.isBattleTank || v.reserved || !s || s === g.player || !C || !C.matchItem || g.__mission) return;",
     "  const it = C.matchItem('tank', v.team), b = (it && it.fx) || {};",
     "  const full = v.health >= v.maxHealth;",
     "  v.cBonus = b; v.cItem = it;",

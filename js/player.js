@@ -393,6 +393,13 @@ export class PlayerController {
     if (this.s) this._setVM();
   }
 
+  // The sleeves and gloves on the first-person arms (a mod puts you in another army's uniform; null: the default)
+  setSleeves(sleeve = null, glove = null) {
+    const M = vmMats();
+    M.sleeve.color.set(sleeve ?? 0x5f5e44);
+    M.glove.color.set(glove ?? 0x2e2a25);
+  }
+
   // Keep the weapon in your hands lit like the world around it (mods can switch to night)
   setViewmodelLight(scale) {
     for (const [light, base] of this.vmLights) light.intensity = base * scale;

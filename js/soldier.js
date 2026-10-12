@@ -146,13 +146,91 @@ function rifleParts(T, team) {
   ];
 }
 
+// A bolt-action service rifle of the world wars, in the same space: wooden stock nearly to the muzzle, blued steel
+function eraRifleParts() {
+  const wood = 0x6a4527, steel = 0x26282b;
+  return [
+    { s: [0.04, 0.1, 0.22], p: [0, 0.0, 0.2], r: [0.12, 0, 0], c: wood, rr: 0.012 },             // butt
+    { s: [0.042, 0.108, 0.02], p: [0, -0.012, 0.31], r: [0.12, 0, 0], c: 0x3a2a1a, rr: 0.006 },   // butt plate
+    { s: [0.034, 0.055, 0.12], p: [0, 0.02, 0.04], c: wood, rr: 0.012 },                          // wrist
+    { s: [0.036, 0.05, 0.44], p: [0, 0.04, -0.24], c: wood, rr: 0.012 },                          // fore-end
+    { s: [0.03, 0.022, 0.18], p: [0, 0.074, -0.3], c: wood, rr: 0.008 },                          // handguard
+    { s: [0.03, 0.03, 0.2], p: [0, 0.075, -0.06], c: steel, rr: 0.008 },                          // receiver
+    cyl(0.011, 0.011, 0.32, [0, 0.07, -0.43], steel, [Math.PI / 2, 0, 0], 0, 8),                   // barrel
+    { s: [0.05, 0.01, 0.01], p: [0.03, 0.08, 0.02], c: steel, rr: 0.003 },                        // bolt handle
+    { s: [0.016, 0.016, 0.016], p: [0.055, 0.08, 0.02], c: steel, rr: 0.006 },                    // bolt knob
+    { s: [0.012, 0.012, 0.07], p: [0, -0.005, -0.03], c: steel, rr: 0.004 },                       // trigger guard
+    { s: [0.01, 0.02, 0.01], p: [0, 0.092, -0.57], c: steel, rr: 0.003 },                          // front sight
+    { s: [0.006, 0.07, 0.4], p: [0, -0.02, -0.14], r: [0.03, 0, 0], c: 0x5b4a33, rr: 0.002 },      // sling
+  ];
+}
+
+// Period kit for armies before body armour (TEAMS[team].gear): webbing over the tunic instead of a plate carrier
+function eraKit(T, gear) {
+  const w = T.vest, can = 0x4f5245;
+  const out = [
+    { geo: (() => { const g = new THREE.CylinderGeometry(0.163, 0.161, 0.045, 16); g.scale(1, 1, 0.72); return g; })(), p: [0, 0.03, 0], c: w, k: 0.4 },
+    { s: [0.045, 0.02, 0.27], p: [-0.1, 0.455, 0], r: [0, 0, 0.16], c: w, rr: 0.008 },
+    { s: [0.045, 0.02, 0.27], p: [0.1, 0.455, 0], r: [0, 0, -0.16], c: w, rr: 0.008 },
+    { s: [0.04, 0.34, 0.014], p: [-0.08, 0.27, -0.126], r: [0.12, 0, 0.1], c: w, rr: 0.006 },
+    { s: [0.04, 0.34, 0.014], p: [0.08, 0.27, -0.126], r: [0.12, 0, -0.1], c: w, rr: 0.006 },
+    { s: [0.04, 0.38, 0.014], p: [0, 0.27, 0.124], r: [-0.08, 0, 0], c: w, rr: 0.006 },
+    // ammunition pouches on the belt, the haversack and the water bottle on the hips, the entrenching tool behind
+    ...[-0.1, -0.035, 0.035, 0.1].map((x) => ({ s: [0.055, 0.075, 0.05], p: [x, 0.07, -0.135], c: w, k: 0.4, rr: 0.01 })),
+    { s: [0.16, 0.14, 0.06], p: [-0.13, 0.0, 0.1], r: [0, 0.5, 0], c: w, k: 0.4, rr: 0.02 },
+    cyl(0.038, 0.038, 0.12, [0.155, 0.01, 0.06], 0x4c4d3e, null, 0, 10),
+    { s: [0.07, 0.17, 0.03], p: [0.02, 0.02, 0.13], c: 0x5a4a35, rr: 0.01 },
+  ];
+  if (gear === 'stahlhelm' || gear === 'stahlhelm16') {
+    // the fluted gas mask can and the bread bag
+    out.push(cyl(0.045, 0.045, 0.24, [0.07, 0.16, 0.16], can, [0, 0, 0.5], 0, 12), { s: [0.15, 0.13, 0.05], p: [0.12, 0.0, 0.08], r: [0, -0.5, 0], c: 0x6d6a55, k: 0.4, rr: 0.02 });
+  } else if (gear === 'brodie') {
+    // the small box respirator in its haversack on the chest
+    out.push({ s: [0.17, 0.15, 0.07], p: [0, 0.27, -0.155], c: w, k: 0.4, rr: 0.02 });
+  } else {
+    // a pack high on the back
+    out.push({ s: [0.2, 0.19, 0.08], p: [0, 0.32, 0.165], c: w, k: 0.5, rr: 0.03 });
+  }
+  return out;
+}
+
+// Period helmets: the British Brodie, the German Stahlhelm (M1916 with its lugs, or the later shape), the American
+// M1, the Soviet SSh-40 and the French Adrian
+function eraHelmet(gear, c, hx, hy, hz) {
+  const dome = (r, sx, sy, sz, cut, p) => ({ geo: (() => { const g = new THREE.SphereGeometry(r, 16, 9, 0, Math.PI * 2, 0, Math.PI * cut); g.scale(sx, sy, sz); return g; })(), p, c });
+  const skirt = (r0, r1, h, p, sz) => ({ geo: (() => { const g = new THREE.CylinderGeometry(r0, r1, h, 18, 1, true); g.scale(1, 1, sz); return g; })(), p, c });
+  const disc = (r, h, p, sz) => ({ geo: (() => { const g = new THREE.CylinderGeometry(r, r * 1.03, h, 20); g.scale(1, 1, sz); return g; })(), p, c });
+  const strap = (x) => ({ s: [0.008, 0.11, 0.01], p: [hx + x, hy - 0.03, hz], c: 0x3a3226, rr: 0.003 });
+  switch (gear) {
+    case 'brodie':
+      return [dome(0.118, 1, 0.68, 1.06, 0.5, [hx, hy + 0.062, hz]), disc(0.2, 0.012, [hx, hy + 0.06, hz], 1.12), strap(-0.1), strap(0.1)];
+    case 'stahlhelm':
+    case 'stahlhelm16': {
+      const out = [dome(0.125, 1, 0.98, 1.1, 0.55, [hx, hy + 0.028, hz + 0.005]), skirt(0.13, 0.152, 0.075, [hx, hy - 0.012, hz + 0.012], 1.12),
+        { s: [0.17, 0.012, 0.05], p: [hx, hy + 0.012, hz - 0.142], r: [0.32, 0, 0], c, rr: 0.004 }];
+      if (gear === 'stahlhelm16') out.push(cyl(0.015, 0.015, 0.03, [hx - 0.128, hy + 0.04, hz + 0.02], c, [0, 0, Math.PI / 2], 0, 8), cyl(0.015, 0.015, 0.03, [hx + 0.128, hy + 0.04, hz + 0.02], c, [0, 0, Math.PI / 2], 0, 8));
+      return out;
+    }
+    case 'm1':
+      return [dome(0.13, 1, 0.92, 1.08, 0.56, [hx, hy + 0.026, hz + 0.008]), skirt(0.132, 0.137, 0.024, [hx, hy + 0.006, hz + 0.008], 1.08), strap(-0.112), strap(0.112)];
+    case 'ssh40':
+      return [dome(0.128, 1, 0.95, 1.06, 0.6, [hx, hy + 0.026, hz + 0.008]), skirt(0.129, 0.142, 0.042, [hx, hy - 0.006, hz + 0.008], 1.06),
+        { s: [0.026, 0.026, 0.006], p: [hx, hy + 0.07, hz - 0.137], r: [0.5, 0, 0], c: 0xa82222, rr: 0.003 }];
+    case 'adrian':
+      return [dome(0.122, 1, 0.9, 1.08, 0.55, [hx, hy + 0.03, hz]), { s: [0.02, 0.05, 0.22], p: [hx, hy + 0.13, hz], c, rr: 0.008 }, disc(0.155, 0.01, [hx, hy + 0.012, hz + 0.01], 1.25)];
+    default:
+      return [];
+  }
+}
+
 function gloveParts(at, c) {
   return [{ s: [0.058, 0.088, 0.09], p: at, c, rr: 0.022 }];
 }
 
 // Upper body (torso, kit, head, arms and the gun in the given pose).
 function upperBody(T, team, skin, pose) {
-  const glove = 0x2b2825;
+  const gear = T.gear && T.gear !== 'modern' ? T.gear : null;
+  const glove = gear ? skin : 0x2b2825;
   const vest = T.vest, top = T.top, helm = T.helmet, dark = 0x1a1b1d;
   const patch = new THREE.Color(T.hex).lerp(new THREE.Color(0x3a3a36), 0.45).getHex();
   const torsoProfile = [
@@ -164,6 +242,7 @@ function upperBody(T, team, skin, pose) {
   const parts = [
     { geo: tg, p: [0, 0, 0], c: top, k: 1 },
     ball(0.068, 1, 1, 1, [-0.195, 0.43, 0], top, 1), ball(0.068, 1, 1, 1, [0.195, 0.43, 0], top, 1),
+    ...(gear ? eraKit(T, gear) : [
     // plate carrier, cummerbund, straps
     { s: [0.33, 0.34, 0.06], p: [0, 0.27, -0.122], c: vest, k: 0.7, rr: 0.025 },
     { s: [0.33, 0.36, 0.055], p: [0, 0.28, 0.118], c: vest, k: 0.7, rr: 0.025 },
@@ -187,11 +266,13 @@ function upperBody(T, team, skin, pose) {
     { s: [0.27, 0.06, 0.14], p: [0, 0.43, 0.212], c: vest, k: 0.8, rr: 0.025 },
     { s: [0.035, 0.15, 0.09], p: [-0.155, 0.22, 0.212], c: vest, k: 1, rr: 0.014 },
     { s: [0.035, 0.15, 0.09], p: [0.155, 0.22, 0.212], c: vest, k: 1, rr: 0.014 },
+    ]),
     // neck and head
     cyl(0.052, 0.058, 0.13, [hx * 0.5, 0.55, hz * 0.5 - 0.005], skin),
     ball(0.1, 0.9, 1.08, 1.02, [hx, hy, hz], skin),
-    ball(0.07, 1.0, 0.8, 1.0, [hx, hy - 0.055, hz - 0.03], team === 1 ? 0x1d1e21 : skin),
-    { s: [0.022, 0.042, 0.03], p: [hx, hy - 0.005, hz - 0.1], r: [0.25, 0, 0], c: team === 1 ? 0x1d1e21 : skin, rr: 0.009 },
+    ball(0.07, 1.0, 0.8, 1.0, [hx, hy - 0.055, hz - 0.03], team === 1 && !gear ? 0x1d1e21 : skin),
+    { s: [0.022, 0.042, 0.03], p: [hx, hy - 0.005, hz - 0.1], r: [0.25, 0, 0], c: team === 1 && !gear ? 0x1d1e21 : skin, rr: 0.009 },
+    ...(gear ? eraHelmet(gear, helm, hx, hy, hz) : [
     { geo: (() => { const g = new THREE.CylinderGeometry(0.099, 0.097, 0.032, 14, 1, true, Math.PI - 0.95, 1.9); g.scale(0.92, 1, 1.04); return g; })(), p: [hx, hy + 0.02, hz], c: 0x101215 },
     // helmet with rails, NVG mount, counterweight and headset
     { geo: (() => { const g = new THREE.SphereGeometry(0.128, 16, 9, 0, Math.PI * 2, 0, Math.PI * 0.56); g.scale(1, 0.92, 1.1); return g; })(), p: [hx, hy + 0.03, hz + 0.01], c: helm, k: 1 },
@@ -203,6 +284,7 @@ function upperBody(T, team, skin, pose) {
     cyl(0.046, 0.046, 0.036, [hx - 0.112, hy - 0.01, hz + 0.005], dark, [0, 0, Math.PI / 2]),
     cyl(0.046, 0.046, 0.036, [hx + 0.112, hy - 0.01, hz + 0.005], dark, [0, 0, Math.PI / 2]),
     cyl(0.005, 0.005, 0.1, [hx - 0.09, hy - 0.06, hz - 0.06], dark, [0.9, 0, 0.3], 0, 5),
+    ]),
   ];
   // arms and gun
   const RS = [0.2, 0.425, 0], LS = pose === 'aim' ? [-0.185, 0.43, -0.045] : [-0.2, 0.425, 0];
@@ -220,7 +302,7 @@ function upperBody(T, team, skin, pose) {
       M.makeRotationFromEuler(new THREE.Euler(-0.5, 0.85, 0.35, 'YXZ'));
       M.setPosition(0.13, 0.31, -0.2);
     }
-    for (const p of rifleParts(T, team)) parts.push({ ...p, m: M });
+    for (const p of (gear ? eraRifleParts() : rifleParts(T, team))) parts.push({ ...p, m: M });
     RH = new THREE.Vector3(0, 0.005, 0.012).applyMatrix4(M).toArray();
     LH = new THREE.Vector3(0, 0.025, -0.305).applyMatrix4(M).toArray();
   }
@@ -234,43 +316,49 @@ function upperBody(T, team, skin, pose) {
     parts.push(seg(E, W, 0.046, 0.034, top, 1));
     parts.push(...gloveParts(H, glove));
   }
+  // period uniforms are plain cloth: the camouflage pattern only as a faint weave
+  if (gear) for (const p of parts) if (p.k) p.k *= T.camo ?? 0.25;
   return merge(parts);
 }
 
 function modelGeos(team, skin) {
-  const key = `${team}:${skin}`;
+  const T = TEAMS[team], gear = T.gear && T.gear !== 'modern' ? T.gear : null;
+  // the uniform is part of the key: a mod can dress a team in another army's kit (Career Mode's world wars)
+  const key = `${team}:${skin}:${gear || ''}:${T.top}:${T.pants}:${T.helmet}:${T.vest}:${T.camo ?? ''}`;
   if (GEO.has(key)) return GEO.get(key);
-  const T = TEAMS[team];
-  const boot = team === 0 ? 0x6b5a42 : 0x1f1e1d, dark = 0x1a1b1d, belt = 0x2f2b24;
+  const boot = gear ? 0x2e241a : team === 0 ? 0x6b5a42 : 0x1f1e1d, dark = 0x1a1b1d, belt = 0x2f2b24;
+  const K = gear ? T.camo ?? 0.25 : 1;
+  const plain = (parts) => { if (gear) for (const p of parts) if (p.k) p.k *= K; return parts; };
   const pg = new THREE.LatheGeometry([[0.0001, -0.12], [0.12, -0.11], [0.163, -0.05], [0.17, 0.03], [0.156, 0.11], [0.0001, 0.115]].map(([x, y]) => new THREE.Vector2(x, y)), 14);
   pg.scale(1, 1, 0.68);
   const beltG = new THREE.CylinderGeometry(0.168, 0.168, 0.05, 16); beltG.scale(1, 1, 0.72);
-  const pelvis = merge([
+  const pelvis = merge(plain([
     { geo: pg, p: [0, 0, 0], c: T.pants, k: 1 },
     { geo: beltG, p: [0, 0.08, 0], c: belt },
     { s: [0.05, 0.04, 0.012], p: [0, 0.08, -0.122], c: 0x8a8578, rr: 0.004 },
     { s: [0.1, 0.11, 0.06], p: [-0.1, 0.0, 0.11], c: T.vest, k: 0.7, rr: 0.02 },
-  ]);
-  const thigh = (side) => merge([
+  ]));
+  const thigh = (side) => merge(plain([
     { geo: taper(0.09, 0.064, 0.44, 10), p: [0, 0, 0], c: T.pants, k: 1 },
     { s: [0.03, 0.12, 0.1], p: [side * 0.083, -0.21, 0], c: T.pants, k: 1, rr: 0.01 },
     { s: [0.034, 0.03, 0.105], p: [side * 0.085, -0.15, 0], c: T.pants, rr: 0.008 },
-    ...(side > 0 ? [
+    ...(gear ? [] : side > 0 ? [
       { s: [0.042, 0.15, 0.075], p: [0.092, -0.12, 0], c: dark, rr: 0.012 },
       { s: [0.03, 0.06, 0.036], p: [0.092, -0.02, 0.012], r: [0.25, 0, 0], c: 0x141516, rr: 0.008 },
       cyl(0.075, 0.075, 0.025, [0.012, -0.2, 0], dark, null, 0, 12),
     ] : [
       { s: [0.04, 0.1, 0.055], p: [-0.09, -0.11, -0.01], c: T.vest, k: 0.7, rr: 0.012 },
     ]),
-  ]);
-  const shin = merge([
+  ]));
+  const shin = merge(plain([
     { geo: taper(0.066, 0.05, 0.36, 10), p: [0, 0, 0], c: T.pants, k: 1 },
-    { s: [0.1, 0.11, 0.05], p: [0, -0.035, -0.06], c: dark, rr: 0.022 },
+    // knee pads (modern), or puttees / leggings wound round the shins
+    gear ? { geo: taper(0.064, 0.056, 0.2, 10), p: [0, -0.14, 0], c: T.puttees ?? T.pants, k: 0.5 } : { s: [0.1, 0.11, 0.05], p: [0, -0.035, -0.06], c: dark, rr: 0.022 },
     cyl(0.06, 0.058, 0.13, [0, -0.34, 0.005], boot),
     { s: [0.1, 0.075, 0.25], p: [0, -0.43, -0.055], c: boot, rr: 0.032 },
     { s: [0.106, 0.024, 0.262], p: [0, -0.468, -0.055], c: 0x1b1917, rr: 0.01 },
-  ]);
-  const rifle = merge(rifleParts(T, team));
+  ]));
+  const rifle = merge(gear ? eraRifleParts() : rifleParts(T, team));
   const g = {
     pelvis, thighL: thigh(-1), thighR: thigh(1), shin, rifle,
     aim: upperBody(T, team, skin, 'aim'), low: upperBody(T, team, skin, 'low'),
@@ -417,6 +505,16 @@ export class Soldier {
 
   dispose() {
     this.game.scene.remove(this.model.root);
+  }
+
+  // Rebuilds the body from the team's current uniform (a mod changed TEAMS: Career Mode's period armies)
+  redress() {
+    const old = this.model;
+    if (!old) return;
+    const visible = old.root.visible;
+    this.game.scene.remove(old.root);
+    this._buildModel();
+    this.model.root.visible = visible;
   }
 
   setClass(id) {

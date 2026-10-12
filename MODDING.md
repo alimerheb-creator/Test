@@ -96,7 +96,7 @@ Start your own from [`mods/TEMPLATE.sfmod.json`](mods/TEMPLATE.sfmod.json).
 ```
 
 Only `name` is required. `id` defaults to the name. Importing a file with the same id replaces the old
-version and keeps its on/off state. Files can be up to 512 KB.
+version and keeps its on/off state. Files can be up to 1 MB.
 
 ## Weapons, gadgets, projectiles and classes
 
@@ -262,6 +262,15 @@ Points for `kill`, `headshot`, `assist`, `capture`, `neutralize`, `revive`, `res
 
 A list of up to two teams: first yours, then the enemy. Fields: `name` (16 chars) and uniform colours
 `helmet`, `top`, `pants`, `vest`, `tank`. The HUD always shows friendlies in blue and enemies in red.
+
+For an army of the world wars, `gear` dresses the team in period kit instead of plate carriers and rail helmets:
+`brodie` (British), `stahlhelm16` (German, 1916, with the side lugs), `stahlhelm` (German, later), `m1`
+(American), `ssh40` (Soviet) or `adrian` (French), with webbing in the `vest` colour, leggings in `puttees` and
+a wooden rifle. `camo` (0 to 1) is how much of the camouflage pattern shows on the cloth (period wool: 0.2).
+
+```json
+"teams": [ { "name": "TOMMIES", "gear": "brodie", "helmet": "#5b5a3f", "top": "#7a6c47", "pants": "#75684a", "vest": "#9a8a62", "camo": 0.2 } ]
+```
 
 ### `difficulty`
 

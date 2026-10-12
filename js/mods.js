@@ -23,7 +23,7 @@ const STORAGE_KEY = 'sixthfront.mods';      // before 1.9.1: one big entry holdi
 const INDEX_KEY = 'sixthfront.modlist';     // which mods are installed, on or off, and their order (small)
 const TEXT_PREFIX = 'sixthfront.modtext.';  // one entry per mod file, written only when the file changes
 const STORE_PREFIX = 'sixthfront.moddata.';
-const MAX_MOD_BYTES = 512 * 1024;
+const MAX_MOD_BYTES = 1024 * 1024;
 const MAX_CLASSES = 8;
 const GUN_MODELS = ['ar', 'smg', 'lmg', 'sniper', 'pistol', 'shotgun'];
 // How far from the centre map objects may go: the map's size can change, so these are read when used
@@ -120,7 +120,10 @@ const SCHEMA = {
     name: str(24), health: num(1, 100000), speed: num(0.5, 60), reverse: num(0, 40), turnRate: num(0.05, 6),
     turretSpeed: num(0.05, 10), reload: num(0.1, 60), botReload: num(0.1, 60), respawn: num(1, 600), perTeam: num(0, 2, true),
   },
-  team: { name: str(16), helmet: color, top: color, pants: color, vest: color, tank: color },
+  team: {
+    name: str(16), helmet: color, top: color, pants: color, vest: color, tank: color,
+    gear: oneOf(['modern', 'brodie', 'stahlhelm', 'stahlhelm16', 'm1', 'ssh40', 'adrian']), puttees: color, camo: num(0, 1),
+  },
   difficulty: { label: str(16), reaction: pair(0, 5), aimError: num(0, 1), turn: num(0.2, 30), spreadMul: num(0, 10), burst: pair(1, 50), dmgMul: num(0, 10) },
   atmosphere: {
     preset: oneOf(Object.keys(ATMOSPHERE_PRESETS)),
@@ -268,7 +271,7 @@ export function slugify(s) {
 // Parse and sanity-check a mod file's text. Throws with a readable message.
 export function parseMod(text) {
   if (typeof text !== 'string') throw new Error('Mod file is empty.');
-  if (text.length > MAX_MOD_BYTES) throw new Error('Mod file is too large (max 512 KB).');
+  if (text.length > MAX_MOD_BYTES) throw new Error('Mod file is too large (max 1 MB).');
   let mod;
   try {
     mod = JSON.parse(text.replace(/^﻿/, ''));
@@ -288,7 +291,7 @@ const KNOWN_SECTIONS = new Set(['format', 'id', 'name', 'version', 'author', 'de
 export const NORMAL_BATTLE = 'normal';
 // Mods every game runs (the Career progression): the game installs and switches them on itself, and they
 // can't be switched off or removed
-export const CORE_MODS = ['career', 'armory', 'helicopters'];
+export const CORE_MODS = ['career', 'armory', 'helicopters', 'campaign'];
 
 // ---------------------------------------------------------------- manager
 export class ModManager {

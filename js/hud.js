@@ -417,7 +417,7 @@ export class HUD {
       }
       const gd = P.gadget.recharge && P.gadgetCd > 0 ? `${P.gadget.name} ${Math.ceil(P.gadgetCd)}s` : `${P.gadget.name} ×${P.gadgetAmmo}`;
       this._set('gd', this.el.gadget, `[3] ${gd}`);
-      this._set('nd', this.el.nades, `[G] FRAG ×${P.grenades}`);
+      this._set('nd', this.el.nades, `[G] ${this.nadeName || 'FRAG'} ×${P.grenades}`);
     }
     const hpMax = RULES.playerHealth;
     const hp = P.state === 'alive' ? Math.max(0, P.health) : 0;

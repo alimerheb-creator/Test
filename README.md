@@ -134,6 +134,36 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   vibration, and adjustable look sensitivity and button size. When you're down, a button lets you give up
   and redeploy.
 
+## Career Mode
+
+**CAREER MODE** on the main menu is a story campaign for each kind of battle: infantry, tanks, aviation and
+naval. Each one runs from the First World War through the Second to the present day, two missions per era. A
+mission picks its own battle, map, armies and weather, puts you in your seat and plays out a script: radio
+calls (read aloud if you switch RADIO VOICE on), objectives, waves, and the crew or section fighting beside
+you. Finishing a mission opens the next one and pays research points, silver and gold into the RESEARCH
+screen, with up to three stars for how well it went.
+
+- **Aviation**: a Sopwith Camel burning observation balloons over Ypres, and saving Lt. May from the Red
+  Baron; aboard the B-17G "Lucky Lady" over Schweinfurt, where you move between the six gun positions (tail,
+  ball turret, both waist guns, top and chin turrets) as the crew call the fighters while the other gunners
+  keep firing, then fly the bomb run through the Norden sight; escorting the bombers in a P-51D; an F/A-18E
+  against a Tu-22M3 raid on a carrier group; an F-16 Wild Weasel against SAM sites.
+- **Tanks**: a Mark IV at Cambrai and the first tank-against-tank fight at Villers-Bretonneux; T-34s at
+  Prokhorovka and Shermans holding a Normandy crossroads; an M1A1 at 73 Easting and a last stand in Karsk.
+  Each era's tanks have their own models, guns and armour (front, side and rear).
+- **Naval**: HMS Lion in the battlecruisers' run to the south at Jutland (Indefatigable and Queen Mary blow
+  up; flood Q magazine in time or Lion goes the same way) and Rizzo's MAS boat sinking the Szent István on
+  silent electric motors; HMS Rodney against the crippled Bismarck, and the destroyer Johnston laying smoke
+  and charging the Japanese fleet off Samar; a frigate in Operation Praying Mantis, and a surface action
+  group's missile duel in the Norwegian Sea. Twenty-three period warships, from dreadnoughts with tripod masts
+  to escort carriers, and a new open-sea map, North Sea.
+- **Infantry**: over the top on the first day of the Somme, and behind the creeping barrage at Vimy Ridge;
+  Easy Company taking the guns at Brécourt Manor, and holding Pavlov's house in Stalingrad; a downed
+  helicopter crew and a last stand in Karsa's market square. The world-war armies wear their own uniforms
+  (Brodie, Stahlhelm, M1 and SSh-40 helmets, webbing instead of plate carriers) and carry the Lee-Enfield,
+  Gewehr 98, Lewis gun, M1 Garand, Thompson, BAR, Kar98k, MP 40, MG 42, PPSh-41 and others, each with its own
+  first-person model.
+
 ## Battle types
 
 The **BATTLE** picker on the main menu chooses what kind of battle you fight. Each one is a mod with its own map;
@@ -212,8 +242,8 @@ picking a card installs and switches it on for you and restarts on its map. Avia
 - **NAVAL**: battleships (Iowa / Sovetsky Soyuz: nine 406 mm guns in three turrets that fire together, eight
   Harpoons, four Phalanx guns), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates
   (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats, nine ships a side. Maps: **Sapphire Strait**
-  (rocky islands), **Iron Harbor** (a grey port between two coasts) and **Arctic Passage** (pack ice and
-  icebergs). Modes: **Conquest** (buoys), **Fleet Battle** (no flags, sink the enemy fleet) and **Strike** (shell
+  (rocky islands), **Iron Harbor** (a grey port between two coasts), **Arctic Passage** (pack ice and
+  icebergs) and **North Sea** (open water, grey swell). Modes: **Conquest** (buoys), **Fleet Battle** (no flags, sink the enemy fleet) and **Strike** (shell
   the enemy's shore installations while their coastal batteries shoot back). Pick your ship on the deploy
   screen. W/S set the engine telegraph and A/D the rudder, you aim with the mouse (or a drag) and the guns
   elevate themselves to land where you aim. 1/2/3 switch between guns, torpedoes (a dashed line shows where they

@@ -2,9 +2,9 @@
   "format": "sixthfront-mod",
   "id": "naval",
   "name": "Naval",
-  "version": "1.6",
+  "version": "1.7",
   "author": "Sixth Front",
-  "description": "A battle type: pick NAVAL on the main menu, then a map (Sapphire Strait, Iron Harbor, Arctic Passage) and a mode (Conquest, Fleet Battle, Strike). Everyone commands a warship: battleships (Iowa / Sovetsky Soyuz), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats. Guns elevate by themselves to land where you aim (G switches HE and AP shells), missiles need a lock, torpedoes run straight. Hits start fires, flood compartments and knock out the engine, the rudder or the guns: R calls the damage control party. The bigger ships carry Phalanx CIWS guns that shoot down incoming missiles with a roar of tracers. Matchmaking: the bots sail only the classes within one rank of your best ship (a patrol boat captain meets patrol boats and corvettes). Every ship has decoy launchers (SPACE, or DECOY on a phone) that pull incoming missiles away and a smoke screen (V, or SMOKE) to hide in: no missile locks on you in it. Missiles also miss sometimes, more often against small, fast boats.",
+  "description": "A battle type: pick NAVAL on the main menu, then a map (Sapphire Strait, Iron Harbor, Arctic Passage, North Sea) and a mode (Conquest, Fleet Battle, Strike). Everyone commands a warship: battleships (Iowa / Sovetsky Soyuz), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats. Guns elevate by themselves to land where you aim (G switches HE and AP shells), missiles need a lock, torpedoes run straight. Hits start fires, flood compartments and knock out the engine, the rudder or the guns: R calls the damage control party. The bigger ships carry Phalanx CIWS guns that shoot down incoming missiles with a roar of tracers. Matchmaking: the bots sail only the classes within one rank of your best ship (a patrol boat captain meets patrol boats and corvettes). Every ship has decoy launchers (SPACE, or DECOY on a phone) that pull incoming missiles away and a smoke screen (V, or SMOKE) to hide in: no missile locks on you in it. Missiles also miss sometimes, more often against small, fast boats.",
   "battle": {
     "name": "NAVAL",
     "blurb": "Warships, three seas",
@@ -25,6 +25,11 @@
         "id": "arctic-passage",
         "name": "ARCTIC PASSAGE",
         "blurb": "Pack ice and icebergs"
+      },
+      {
+        "id": "north-sea",
+        "name": "NORTH SEA",
+        "blurb": "Open water, grey swell"
       }
     ],
     "modes": [
@@ -863,6 +868,143 @@
       ],
       "props": [],
       "randomProps": false
+    },
+    "north-sea": {
+      "name": "NORTH SEA",
+      "size": {
+        "play": 900,
+        "world": 1700,
+        "inner": 1000,
+        "fine": 6
+      },
+      "water": 0,
+      "terrain": {
+        "seed": 5150,
+        "hills": 0.3,
+        "bumps": 0.15,
+        "mountains": 0.12,
+        "valley": 0,
+        "level": -26
+      },
+      "islands": [
+        [
+          -600,
+          610,
+          105,
+          30,
+          0.45
+        ],
+        [
+          600,
+          -610,
+          105,
+          30,
+          0.45
+        ]
+      ],
+      "vegetation": {
+        "trees": 0,
+        "bushes": 0.1,
+        "rocks": 0.8,
+        "grass": 0.4
+      },
+      "palette": {
+        "grass": "#6f7a63",
+        "grass2": "#5f6957",
+        "dirt": "#7a7266",
+        "rock": "#5f625f",
+        "town": "#8d8a84",
+        "road": "#55534f",
+        "sea": "#1f4b5c",
+        "shallows": "#2f6c70"
+      },
+      "atmosphere": {
+        "preset": "overcast",
+        "horizon": "#aab7be",
+        "skyTop": "#6a7c89",
+        "ground": "#5d6c74",
+        "hemiGround": "#3f4d55",
+        "fogNear": 260,
+        "fogFar": 2100,
+        "clouds": 0.85,
+        "sunIntensity": 1.7
+      },
+      "hq": [
+        {
+          "x": 0,
+          "z": 820
+        },
+        {
+          "x": 0,
+          "z": -820
+        }
+      ],
+      "flags": [
+        {
+          "id": "A",
+          "name": "DOGGER",
+          "x": -420,
+          "z": 300,
+          "radius": 62,
+          "height": 40,
+          "flat": 10
+        },
+        {
+          "id": "B",
+          "name": "FISHER",
+          "x": 420,
+          "z": 300,
+          "radius": 62,
+          "height": 40,
+          "flat": 10
+        },
+        {
+          "id": "C",
+          "name": "THE DEEP",
+          "x": 0,
+          "z": 0,
+          "radius": 62,
+          "height": 40,
+          "flat": 10
+        },
+        {
+          "id": "D",
+          "name": "HORNS REEF",
+          "x": -420,
+          "z": -300,
+          "radius": 62,
+          "height": 40,
+          "flat": 10
+        },
+        {
+          "id": "E",
+          "name": "SKAGEN",
+          "x": 420,
+          "z": -300,
+          "radius": 62,
+          "height": 40,
+          "flat": 10
+        }
+      ],
+      "roads": [],
+      "buildings": [
+        [
+          -600,
+          610,
+          2,
+          2,
+          3
+        ],
+        [
+          600,
+          -610,
+          2,
+          2,
+          3
+        ]
+      ],
+      "props": [],
+      "randomProps": false
     }
   },
   "script": [
@@ -976,7 +1118,7 @@
     "  });",
     "}",
     "// per-map data: shore targets, icebergs, C-RAM sites",
-    "const MAPDATA = {\"sapphire-strait\":{\"strike\":[[\"command\",0,-560,520],[\"cram\",0,-515,560],[\"radar\",0,540,500],[\"fuel\",0,-120,560],[\"battery\",0,290,290],[\"battery\",0,-180,120],[\"command\",1,560,-520],[\"cram\",1,515,-560],[\"radar\",1,-540,-500],[\"fuel\",1,120,-560],[\"battery\",1,-290,-290],[\"battery\",1,180,-120]]},\"iron-harbor\":{\"strike\":[[\"command\",0,-860,560],[\"cram\",0,-800,470],[\"radar\",0,860,470],[\"fuel\",0,330,560],[\"battery\",0,-420,650],[\"battery\",0,-260,330],[\"command\",1,860,-560],[\"cram\",1,800,-470],[\"radar\",1,-860,-470],[\"fuel\",1,-330,-560],[\"battery\",1,420,-650],[\"battery\",1,260,-330]]},\"arctic-passage\":{\"strike\":[[\"command\",0,-700,650],[\"cram\",0,-640,590],[\"radar\",0,750,380],[\"fuel\",0,-760,700],[\"battery\",0,-560,620],[\"battery\",0,690,300],[\"command\",1,700,-650],[\"cram\",1,640,-590],[\"radar\",1,-750,-380],[\"fuel\",1,760,-700],[\"battery\",1,560,-620],[\"battery\",1,-690,-300]],\"ice\":[[-300,420,40,18],[250,380,35,16],[-120,180,30,14],[400,60,45,20],[-420,-60,45,20],[120,-180,30,14],[-250,-380,35,16],[300,-420,40,18],[0,600,28,12],[0,-600,28,12],[-650,250,38,16],[650,-250,38,16],[-150,60,30,13],[150,-60,30,13]]}};",
+    "const MAPDATA = {\"sapphire-strait\":{\"strike\":[[\"command\",0,-560,520],[\"cram\",0,-515,560],[\"radar\",0,540,500],[\"fuel\",0,-120,560],[\"battery\",0,290,290],[\"battery\",0,-180,120],[\"command\",1,560,-520],[\"cram\",1,515,-560],[\"radar\",1,-540,-500],[\"fuel\",1,120,-560],[\"battery\",1,-290,-290],[\"battery\",1,180,-120]]},\"iron-harbor\":{\"strike\":[[\"command\",0,-860,560],[\"cram\",0,-800,470],[\"radar\",0,860,470],[\"fuel\",0,330,560],[\"battery\",0,-420,650],[\"battery\",0,-260,330],[\"command\",1,860,-560],[\"cram\",1,800,-470],[\"radar\",1,-860,-470],[\"fuel\",1,-330,-560],[\"battery\",1,420,-650],[\"battery\",1,260,-330]]},\"north-sea\":{\"strike\":[[\"command\",0,-610,640],[\"cram\",0,-560,600],[\"radar\",0,-660,560],[\"fuel\",0,-540,660],[\"battery\",0,-520,560],[\"battery\",0,-650,650],[\"command\",1,610,-640],[\"cram\",1,560,-600],[\"radar\",1,660,-560],[\"fuel\",1,540,-660],[\"battery\",1,520,-560],[\"battery\",1,650,-650]]},\"arctic-passage\":{\"strike\":[[\"command\",0,-700,650],[\"cram\",0,-640,590],[\"radar\",0,750,380],[\"fuel\",0,-760,700],[\"battery\",0,-560,620],[\"battery\",0,690,300],[\"command\",1,700,-650],[\"cram\",1,640,-590],[\"radar\",1,-750,-380],[\"fuel\",1,760,-700],[\"battery\",1,560,-620],[\"battery\",1,-690,-300]],\"ice\":[[-300,420,40,18],[250,380,35,16],[-120,180,30,14],[400,60,45,20],[-420,-60,45,20],[120,-180,30,14],[-250,-380,35,16],[300,-420,40,18],[0,600,28,12],[0,-600,28,12],[-650,250,38,16],[650,-250,38,16],[-150,60,30,13],[150,-60,30,13]]}};",
     "",
     "// ================================================================ C-RAM / CIWS (shared by the battle mods)",
     "// A radar-guided 20 mm six-barrel gatling (Phalanx on ships, C-RAM on a trailer on the ground). Nobody aims it:",
@@ -2104,7 +2246,7 @@
     "// ---------------------------------------------------------------- every frame",
     "api.on('tick', (dt) => {",
     "  // the host's page decides when each side strikes and at what",
-    "  if (SK.host() && SK.targets && (g.state === 'playing' || g.state === 'deploy') && !g.mode.over) {",
+    "  if (SK.host() && SK.targets && (g.state === 'playing' || g.state === 'deploy') && !g.mode.over && !g.__mission) {",
     "    for (const team of [0, 1]) {",
     "      SK.next[team] -= dt;",
     "      if (SK.next[team] > 0) continue;",
@@ -3168,6 +3310,9 @@
     "  }",
     "}",
     "NAV.Ship = Ship;",
+    "// the model kit, for other mods' ships (Career Mode's dreadnoughts and destroyers): the same hull lines, parts",
+    "// and paint, so they sink, burn and turn to wrecks like these",
+    "NAV.kit = { merge, hullGeo, railParts, hullNumber, turret, B, C, S, AXZ, MAT, WRECK, FLAGMAT, HULL, SUP, DARK, GUNC, GLASS, keep };",
     "",
     "const lerpYaw = (a, b, t) => a + wrap(b - a) * t;",
     "// slab test against a box given by its min and max corners",
@@ -4027,7 +4172,7 @@
     "};",
     "",
     "// ---------------------------------------------------------------- bot captains",
-    "const RANGE = { battleship: 1700, cruiser: 1550, destroyer: 1500, frigate: 1350, corvette: 1250, patrol: 800 };",
+    "const RANGE = NAV.RANGE = { battleship: 1700, cruiser: 1550, destroyer: 1500, frigate: 1350, corvette: 1250, patrol: 800 };",
     "NAV.botCaptain = (Bn, ship, dt) => {",
     "  const s = Bn.s, T = ship.type;",
     "  const ai = ship.ai || (ship.ai = { think: 0, scan: 0, target: null, goal: null, orbit: rand(0, 6.28), side: Math.random() < 0.5 ? 1 : -1, torpT: rand(4, 9), mslT: rand(6, 12), reverseT: 0, stuckT: 0, pref: null, mode: 'gun' });",
