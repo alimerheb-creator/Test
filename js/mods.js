@@ -594,7 +594,7 @@ export class ModManager {
 
   _applyMap(map, log) {
     if (!isObj(map)) { log.push('map: expected an object'); return; }
-    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'palette', 'atmosphere'];
+    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'fields', 'palette', 'atmosphere'];
     if (map.palette !== undefined) {
       if (!isObj(map.palette)) log.push('map.palette: expected an object like { "grass": "#c9b48a" }');
       else { const p = {}; applyFields(p, map.palette, SCHEMA.palette, 'map.palette', {}, log); TERRAIN.palette = p; }
@@ -637,6 +637,18 @@ export class ModManager {
           floor: clamp(Number.isFinite(Number(gz.floor)) ? Number(gz.floor) : -10, -80, 300),
           wall: clamp(Number(gz.wall) || 0.7, 0.25, 0.95),
         }));
+      }
+    }
+    if (map.fields !== undefined) {
+      const F = map.fields;
+      if (F === null) TERRAIN.fields = null;
+      else if (!isObj(F) || !Array.isArray(F.colors) || !F.colors.length) log.push('map.fields: expected { "size": 140, "colors": ["#8a8a52", ...], "hedge": "#3c4a2a" } or null');
+      else {
+        const colors = F.colors.slice(0, 8).filter((c) => { const [ok, , msg] = coerce(colorStr, c, 'map.fields.colors'); if (msg) log.push(msg); return ok; });
+        const hedge = F.hedge === undefined ? '#3a4628' : F.hedge;
+        const [hok, , hmsg] = coerce(colorStr, hedge, 'map.fields.hedge');
+        if (hmsg) log.push(hmsg);
+        if (colors.length) TERRAIN.fields = { size: clamp(Number(F.size) || 140, 30, 600), colors, hedge: hok ? hedge : '#3a4628', angle: clamp(Number(F.angle) || 20, -90, 90) };
       }
     }
     for (const k of Object.keys(map)) if (!known.includes(k) && !k.startsWith('_')) log.push(`map.${k}: unknown setting (ignored)`);

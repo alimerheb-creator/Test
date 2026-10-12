@@ -326,6 +326,8 @@ export class World {
 
     const nor = geo.attributes.normal.array;
     const col = new Float32Array(count * 3);
+    // farmland: open, level ground away from towns, roads, water and rock
+    const FIELDS = TERRAIN.fields, farm = FIELDS ? new Float32Array(count) : null;
     // the ground's colours (a map can repaint them: desert sand, snow, ...)
     const P = TERRAIN.palette || {};
     const grassA = new THREE.Color(P.grass || 0x7a7446), grassB = new THREE.Color(P.grass2 || 0x5b6538), dirt = new THREE.Color(P.dirt || 0x8e7657);
@@ -356,19 +358,42 @@ export class World {
         c.lerp(seabed, smoothstep(0, 6, this.water - y));
       }
       col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
+      if (farm) {
+        let f = smoothstep(0.035, 0.012, slope) * smoothstep(80, 60, y);
+        if (this.water !== null) f *= smoothstep(1.5, 4, y - this.water);
+        for (const z0 of this.flatZones) if (z0.town > 0.5) f *= smoothstep(z0.r0 * 0.8, z0.r1 + 30, Math.hypot(x - z0.x, z0.z - z));
+        if (Math.abs(x) < PLAY_HALF + 40 && Math.abs(z) < PLAY_HALF + 40) {
+          let dm = Infinity;
+          for (const s of segs) { const d2 = segDist2(x, z, s[0], s[1], s[2], s[3]); if (d2 < dm) dm = d2; }
+          f *= smoothstep(4, 9, Math.sqrt(dm));
+        }
+        farm[k] = f;
+      }
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    if (farm) geo.setAttribute('farm', new THREE.BufferAttribute(farm, 1));
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: this.tex.ground, normalMap: this.tex.groundN, roughness: 0.96, metalness: 0 });
     mat.normalScale.set(0.9, 0.9);
     // cliffs: steep ground takes its texture from the side instead of smearing it down the face, and shows
     // layers of rock, wavering and broken by cracks
     mat.onBeforeCompile = (sh) => {
       sh.vertexShader = sh.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vTWorld; varying vec3 vTNrm;')
-        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNrm = normal;');
+        .replace('#include <common>', '#include <common>\nvarying vec3 vTWorld; varying vec3 vTNrm;' + (FIELDS ? '\nattribute float farm; varying float vFarm;' : ''))
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNrm = normal;' + (FIELDS ? ' vFarm = farm;' : ''));
+      if (FIELDS) {
+        const cols = FIELDS.colors.map((c) => new THREE.Color(c));
+        while (cols.length < 8) cols.push(cols[cols.length % FIELDS.colors.length].clone());
+        const a = (FIELDS.angle * Math.PI) / 180;
+        sh.uniforms.uField = { value: cols };
+        sh.uniforms.uFieldN = { value: FIELDS.colors.length };
+        sh.uniforms.uFieldRot = { value: new THREE.Vector4(Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a)) };
+        sh.uniforms.uFieldSize = { value: FIELDS.size };
+        sh.uniforms.uHedge = { value: new THREE.Color(FIELDS.hedge) };
+      }
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
           varying vec3 vTWorld; varying vec3 vTNrm;
+          ${FIELDS ? '#define T_FIELDS\n varying float vFarm; uniform vec3 uField[8]; uniform float uFieldN; uniform vec4 uFieldRot; uniform float uFieldSize; uniform vec3 uHedge;' : ''}
           float tHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
           float tNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
             return mix(mix(tHash(i), tHash(i + vec2(1.0, 0.0)), f.x), mix(tHash(i + vec2(0.0, 1.0)), tHash(i + vec2(1.0, 1.0)), f.x), f.y); }`)
@@ -379,7 +404,29 @@ export class World {
           vec2 sideW = bw.x > bw.y ? vTWorld.zy : vTWorld.xy;
           vec2 sideUv = sideW / vec2(9.0, 5.6);
           vec4 sideTex = texture2D(map, vTWorld.zy / vec2(9.0, 5.6)) * bw.x + texture2D(map, vTWorld.xy / vec2(9.0, 5.6)) * bw.y;
-          diffuseColor *= mix(texture2D(map, vMapUv), sideTex, steep);
+          vec4 topTex = texture2D(map, vMapUv);
+          diffuseColor *= mix(topTex, sideTex, steep);
+          #ifdef T_FIELDS
+          if (vFarm > 0.01) {
+            // farmland: plots in rows on a grid turned to the land, each its own crop, ploughed in furrows, with
+            // hedgerows along some of their edges
+            vec2 fp = mat2(uFieldRot.x, uFieldRot.y, uFieldRot.z, uFieldRot.w) * vTWorld.xz / vec2(uFieldSize, uFieldSize * 0.62);
+            fp.x += tHash(vec2(floor(fp.y), 3.7)) * 1.7;
+            vec2 cell = floor(fp), ff = fract(fp);
+            float split = step(0.5, tHash(cell + 7.1));
+            float sub = floor(ff.x * (1.0 + split * 2.0));
+            ff.x = fract(ff.x * (1.0 + split * 2.0));
+            float hh = tHash(cell + vec2(sub * 0.37, sub * 1.3));
+            vec3 fc = uField[int(min(floor(hh * uFieldN), 7.0))];
+            float fur = 0.9 + 0.1 * sin((ff.x + hh) * 6.2831 * (10.0 + hh * 14.0));
+            float ex = min(ff.x, 1.0 - ff.x) * uFieldSize / (1.0 + split * 2.0), ez = min(ff.y, 1.0 - ff.y) * uFieldSize * 0.62;
+            float hedge = (1.0 - smoothstep(1.0, 2.6, min(ex, ez))) * step(0.35, tHash(cell + 1.3));
+            float lane = 1.0 - smoothstep(0.4, 1.2, ez);
+            vec3 fcol = fc * fur * (0.75 + dot(topTex.rgb, vec3(0.3))) * (1.0 - lane * 0.12);
+            fcol = mix(fcol, uHedge, hedge * 0.85);
+            diffuseColor.rgb = mix(diffuseColor.rgb, fcol, vFarm * (1.0 - steep));
+          }
+          #endif
           float wob = tNoise(vTWorld.xz * 0.02) * 6.0 + tNoise(vTWorld.xz * 0.11) * 1.5;
           float yy = vTWorld.y + wob;
           float band = tNoise(vec2(yy * 0.45, 0.5)) * 0.6 + tNoise(vec2(yy * 1.7, 3.1)) * 0.4;
@@ -399,7 +446,7 @@ export class World {
         .replace('#include <normal_fragment_begin>', 'vec2 tNUv = steep > 0.5 ? sideUv : vNormalMapUv;\n' + THREE.ShaderChunk.normal_fragment_begin.replaceAll('vNormalMapUv', 'tNUv'))
         .replace('#include <normal_fragment_maps>', THREE.ShaderChunk.normal_fragment_maps.replaceAll('vNormalMapUv', 'tNUv'));
     };
-    mat.customProgramCacheKey = () => 'terrain-cliffs';
+    mat.customProgramCacheKey = () => (FIELDS ? 'terrain-fields' : 'terrain-cliffs');
     this.terrain = new THREE.Mesh(geo, mat);
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);

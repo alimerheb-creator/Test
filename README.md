@@ -137,28 +137,44 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 ## Career Mode
 
 **CAREER MODE** on the main menu is a story campaign for each kind of battle: infantry, tanks, aviation and
-naval. Each one runs from the First World War through the Second to the present day, two missions per era. A
+naval. Each one runs from the First World War through the Second to the present day, two or more missions per era. A
 mission picks its own battle, map, armies and weather, puts you in your seat and plays out a script: radio
 calls (read aloud if you switch RADIO VOICE on), objectives, waves, and the crew or section fighting beside
 you. Finishing a mission opens the next one and pays research points, silver and gold into the RESEARCH
 screen, with up to three stars for how well it went.
 
 - **Aviation**: a Sopwith Camel burning observation balloons over Ypres, and saving Lt. May from the Red
-  Baron; aboard the B-17G "Lucky Lady" over Schweinfurt, where you move between the six gun positions (tail,
-  ball turret, both waist guns, top and chin turrets) as the crew call the fighters while the other gunners
-  keep firing, then fly the bomb run through the Norden sight; escorting the bombers in a P-51D; an F/A-18E
-  against a Tu-22M3 raid on a carrier group; an F-16 Wild Weasel against SAM sites.
+  Baron; aboard the B-17G "Lucky Lady" over Schweinfurt, in a bomber stream of hundreds of Fortresses in their
+  combat boxes, contrails overhead, flak bursting among them, one now and then falling out burning: when the
+  crew calls for a gun you **leave yours and go to it on your feet** (E, or the LEAVE GUN button) through the
+  inside of the bomber — the waist with its spent cases on the floor, past the ball turret's hatch and the
+  radio room, along the bomb bay catwalk between the bombs, crawling under the flight deck to the nose, or down
+  the tail tunnel under the tailplane's spars — and take it (E again); then the bomb run through the Norden sight
+  in the nose; **STRAGGLER**, limping home on two engines out of the box while the gunners are hit one by one,
+  a fire breaks out in the radio room (go and put it out) and the ball turret's feed jams; **THE DAMBUSTERS**, a
+  Lancaster at night over the reservoir with the bouncing mine: down to sixty feet over the black water (two
+  spotlights under her meet on the water when you're there), the dam's towers in the sight's pegs, the mine
+  skipping away across the lake through the searchlights and the red and green flak, and the dam breaking and
+  flooding the valley; escorting the bombers in a P-51D; an F/A-18E against a Tu-22M3 raid on a carrier group;
+  an F-16 Wild Weasel against SAM sites.
 - **Tanks**: a Mark IV at Cambrai and the first tank-against-tank fight at Villers-Bretonneux; T-34s at
-  Prokhorovka and Shermans holding a Normandy crossroads; an M1A1 at 73 Easting and a last stand in Karsk.
+  Prokhorovka, Shermans holding a Normandy crossroads, and **BREAKTHROUGH TO BASTOGNE**, "Cobra King" fighting
+  through Assenois and the woods to the surrounded 101st Airborne in the snow; an M1A1 at 73 Easting and a last
+  stand in Karsk. Winter missions cover the map in snow: white fields with the steep slopes and tracks showing
+  through, snow-laden pines, no grass, and snow falling.
   Each era's tanks have their own models, guns and armour (front, side and rear).
 - **Naval**: HMS Lion in the battlecruisers' run to the south at Jutland (Indefatigable and Queen Mary blow
   up; flood Q magazine in time or Lion goes the same way) and Rizzo's MAS boat sinking the Szent István on
-  silent electric motors; HMS Rodney against the crippled Bismarck, and the destroyer Johnston laying smoke
-  and charging the Japanese fleet off Samar; a frigate in Operation Praying Mantis, and a surface action
+  silent electric motors; HMS Rodney against the crippled Bismarck, the destroyer Johnston laying smoke
+  and charging the Japanese fleet off Samar, and **THE MIGHTY HOOD**: HMS Prince of Wales with Hood against the
+  Bismarck and Prinz Eugen along the Denmark Strait's pack ice, where Hood blows up and you fight on alone with
+  jamming turrets, hit the Bismarck and break off under smoke; a frigate in Operation Praying Mantis, and a surface action
   group's missile duel in the Norwegian Sea. Twenty-three period warships, from dreadnoughts with tripod masts
   to escort carriers, and a new open-sea map, North Sea.
 - **Infantry**: over the top on the first day of the Somme, and behind the creeping barrage at Vimy Ridge;
-  Easy Company taking the guns at Brécourt Manor, and holding Pavlov's house in Stalingrad; a downed
+  Easy Company taking the guns at Brécourt Manor, holding Pavlov's house in Stalingrad, and **THE BOIS JACQUES**,
+  Easy Company's foxholes in the snowy woods outside Bastogne under the shells bursting in the treetops (get down
+  in your hole); a downed
   helicopter crew and a last stand in Karsa's market square. The world-war armies wear their own uniforms
   (Brodie, Stahlhelm, M1 and SSh-40 helmets, webbing instead of plate carriers) and carry the Lee-Enfield,
   Gewehr 98, Lewis gun, M1 Garand, Thompson, BAR, Kar98k, MP 40, MG 42, PPSh-41 and others, each with its own
@@ -179,7 +195,10 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   Canyons** (sheer, layered cliffs standing in the sea with narrow channels between them, made for flying low between
   the walls, with a low afternoon sun straight down the channels) and **Pine Gorge** (a pine-forested plateau cut by
   a river canyon a hundred metres deep, with its two forks, waterfalls pouring off the rim and four stone arch bridges
-  you can fly under). The land is full of detail when you fly low: pine forests along the rims and on the mesa tops,
+  you can fly under) and **Schweinfurt** (the bombers' map: patchwork farmland with hedges and lanes, villages
+  with red roofs and church spires, the town on its river, the ball-bearing works with their sawtooth halls and
+  chimneys, a reservoir in the hills held back by a masonry dam with two towers, and a deck of cloud below the
+  bombers). The land is full of detail when you fly low: pine forests along the rims and on the mesa tops,
   crags and ledges with pines growing out of them on the cliff faces, layered rock with moss in its cracks, boulders
   at the foot of the cliffs, waterfalls with spray and mist lying in the channels. Everyone
   flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side, about four jets
