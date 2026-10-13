@@ -31,7 +31,8 @@ const UP = `uniform sampler2D tLow; uniform sampler2D tHigh; uniform vec2 texel;
   }`;
 
 // Sun shafts: the bright parts of the picture near the sun smeared out from it, so whatever stands in front of the
-// sun (a cliff, a wing, a cloud) casts beams of shadow through the light (quarter resolution)
+// sun (a cliff, a wing, a cloud) casts beams of shadow through the light (quarter resolution). Only the white light
+// of the sky makes beams: a strongly coloured bright thing near the sun (a fireball) doesn't
 const RAYS = `uniform sampler2D tSrc; uniform vec2 sunPos; uniform float aspect;
   varying vec2 vUv;
   void main(){
@@ -39,7 +40,9 @@ const RAYS = `uniform sampler2D tSrc; uniform vec2 sunPos; uniform float aspect;
     float w = 1.0; vec3 acc = vec3(0.0);
     for (int i = 0; i < 32; i++) {
       vec2 q = uv - sunPos; q.x *= aspect;
-      acc += min(texture2D(tSrc, uv).rgb, vec3(6.0)) * w * smoothstep(0.55, 0.04, length(q));
+      vec3 c = min(texture2D(tSrc, uv).rgb, vec3(6.0));
+      float hi = max(c.r, max(c.g, c.b)), sat = (hi - min(c.r, min(c.g, c.b))) / max(hi, 1e-4);
+      acc += c * w * smoothstep(0.55, 0.04, length(q)) * (1.0 - smoothstep(0.18, 0.45, sat));
       w *= 0.955; uv += d;
     }
     gl_FragColor = vec4(acc * (1.0 / 16.0), 1.0);

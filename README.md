@@ -125,9 +125,15 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
   sliding, prone, out-of-bounds timer.
 - **Graphics**: HDR rendering with bloom, sun glare and lens ghosts, ACES tone mapping with colour grading,
-  film grain and vignette, image-based reflections, normal-mapped walls and ground, wind-blown grass and trees
-  (layered firs, leafy broadleaf crowns, weathered boulders), textured smoke, MSAA and soft shadows. Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on
-  phones and High on desktop).
+  film grain and vignette, image-based reflections, normal-mapped walls and ground, wind-blown grass and trees,
+  textured smoke, MSAA and soft shadows. From Medium up: firs made of sprays of needles and broadleaf trees of
+  leaf clusters (with barked trunks and shadows the shape of the foliage), weathered and lichened boulders;
+  buildings with window frames and sills, glass that reflects the sky, mullions, shutters, string courses,
+  cornices and coping, a darker plinth, dressed stone at the corners, iron balconies, downpipes and air
+  conditioners, water tanks and aerials on the roofs (all of it goes with the wall it is on); explosions with a
+  billowing fireball, a ring of dust blown out along the ground, sparks and embers, a column of smoke that hangs
+  for a while and a scorch mark left behind, and broken lumps of masonry or earth flying out trailing dust.
+  Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on phones and High on desktop).
 - **Mobile controls**: virtual stick, drag-to-look, and a context button that appears when you can act
   (hold to **revive** a downed teammate with a progress ring, enter or exit a tank, detonate C-4). There are
   also buttons for prone, sprint (latches on), map and scoreboard, plus aim assist, optional auto-fire,
@@ -155,22 +161,32 @@ screen, with up to three stars for how well it went.
   Lancaster at night over the reservoir with the bouncing mine: down to sixty feet over the black water (two
   spotlights under her meet on the water when you're there), the dam's towers in the sight's pegs, the mine
   skipping away across the lake through the searchlights and the red and green flak, and the dam breaking and
-  flooding the valley; escorting the bombers in a P-51D; an F/A-18E against a Tu-22M3 raid on a carrier group;
+  flooding the valley; escorting the bombers in a P-51D; **THEIR FINEST HOUR**, a Spitfire over Kent on Battle of
+  Britain Day, 15 September 1940: head-on into a raid of Heinkel He 111s with their Messerschmitt Bf 109E escort,
+  your section making pass after pass with the other squadrons and Bader's Big Wing until the raid breaks up
+  before London; an F/A-18E against a Tu-22M3 raid on a carrier group;
   an F-16 Wild Weasel against SAM sites.
 - **Tanks**: a Mark IV at Cambrai and the first tank-against-tank fight at Villers-Bretonneux; T-34s at
   Prokhorovka, Shermans holding a Normandy crossroads, and **BREAKTHROUGH TO BASTOGNE**, "Cobra King" fighting
-  through Assenois and the woods to the surrounded 101st Airborne in the snow; an M1A1 at 73 Easting and a last
-  stand in Karsk. Winter missions cover the map in snow: white fields with the steep slopes and tracks showing
-  through, snow-laden pines, no grass, and snow falling.
+  through Assenois and the woods to the surrounded 101st Airborne in the snow; **SUPERCHARGE**, a Sherman of the
+  9th Armoured Brigade at El Alamein: up a cleared lane through the minefield between the lamps behind a creeping
+  barrage, then at dawn straight at the screen of 88s and PAK guns on the Rahman track with the sun rising
+  behind them, and the Panzer III and IV counterattack; an M1A1 at 73 Easting and a last stand in Karsk. Winter
+  missions cover the map in snow: white fields with the steep slopes and tracks showing through, snow on the
+  tops of the branches, no grass, and snow falling; desert missions turn it into the Western Desert: sand and
+  stony ridges, no trees or grass, the buildings gone, dust blowing over the ground.
   Each era's tanks have their own models, guns and armour (front, side and rear).
 - **Naval**: HMS Lion in the battlecruisers' run to the south at Jutland (Indefatigable and Queen Mary blow
   up; flood Q magazine in time or Lion goes the same way) and Rizzo's MAS boat sinking the Szent István on
   silent electric motors; HMS Rodney against the crippled Bismarck, the destroyer Johnston laying smoke
   and charging the Japanese fleet off Samar, and **THE MIGHTY HOOD**: HMS Prince of Wales with Hood against the
   Bismarck and Prinz Eugen along the Denmark Strait's pack ice, where Hood blows up and you fight on alone with
-  jamming turrets, hit the Bismarck and break off under smoke; a frigate in Operation Praying Mantis, and a surface action
-  group's missile duel in the Norwegian Sea. Twenty-three period warships, from dreadnoughts with tripod masts
-  to escort carriers, and a new open-sea map, North Sea.
+  jamming turrets, hit the Bismarck and break off under smoke; **THE RIVER PLATE**, HMS Ajax with Achilles and
+  Exeter against the Admiral Graf Spee: close in from the east while Exeter takes her 11-inch shells, lose both
+  after turrets to one hit, fire your torpedoes, then break off under smoke and shadow her to Montevideo; a
+  frigate in Operation Praying Mantis, and a surface action group's missile duel in the Norwegian Sea.
+  Twenty-five period warships, from dreadnoughts with tripod masts to escort carriers, and a new open-sea map,
+  North Sea.
 - **Infantry**: over the top on the first day of the Somme, and behind the creeping barrage at Vimy Ridge;
   Easy Company taking the guns at Brécourt Manor, holding Pavlov's house in Stalingrad, and **THE BOIS JACQUES**,
   Easy Company's foxholes in the snowy woods outside Bastogne under the shells bursting in the treetops (get down
