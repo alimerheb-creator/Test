@@ -143,7 +143,7 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 ## Career Mode
 
 **CAREER MODE** on the main menu is a story campaign for each kind of battle: infantry, tanks, aviation and
-naval. Each one runs from the First World War through the Second to the present day, two or more missions per era. A
+naval. Each one runs from the First World War through the Second and the Cold War to the present day, in four chapters. A
 mission picks its own battle, map, armies and weather, puts you in your seat and plays out a script: radio
 calls (read aloud if you switch RADIO VOICE on), objectives, waves, and the crew or section fighting beside
 you. Finishing a mission opens the next one and pays research points, silver and gold into the RESEARCH
@@ -164,14 +164,28 @@ screen, with up to three stars for how well it went.
   flooding the valley; escorting the bombers in a P-51D; **THEIR FINEST HOUR**, a Spitfire over Kent on Battle of
   Britain Day, 15 September 1940: head-on into a raid of Heinkel He 111s with their Messerschmitt Bf 109E escort,
   your section making pass after pass with the other squadrons and Bader's Big Wing until the raid breaks up
-  before London; an F/A-18E against a Tu-22M3 raid on a carrier group;
-  an F-16 Wild Weasel against SAM sites.
+  before London; **ELEVEN DAYS OF CHRISTMAS**, a B-52D leading "Lilac" cell over Hanoi on the first night of
+  Linebacker II in 1972: the SA-2s coming up in pairs with their long flames (chaff when the EWO calls one close),
+  the radar navigator's "HACK!" to ripple forty-two bombs onto the Yen Vien rail yards, the post-target turn into
+  the worst of the SAMs, and a MiG-21 coming in from behind for your tail gunner's four .50s; **HORSE SOLDIERS**, a
+  B-52H with twenty GPS-guided JDAMs over the Darya Suf valley in Afghanistan in November 2001, with Green Berets
+  and General Dostum's horse cavalry below: the controller on the ridge reads out the aim points and the attack
+  headings that keep the bombs off his own side, your crew calls IN when you're lined up, he clears you hot, and
+  the JDAMs fly to their coordinates (a panel shows the target, attack headings, your heading and the release
+  zone); then the horsemen charge the Taliban trenches early and your bombs have to land before they do, and the
+  village of Bai Beche is no-strike; an F/A-18E against a Tu-22M3 raid on a carrier group (easier now: the
+  bombers come from much further off, launch fewer missiles and none at you in the first minute, and you have
+  AMRAAMs); an F-16 Wild Weasel against SAM sites.
 - **Tanks**: a Mark IV at Cambrai and the first tank-against-tank fight at Villers-Bretonneux; T-34s at
   Prokhorovka, Shermans holding a Normandy crossroads, and **BREAKTHROUGH TO BASTOGNE**, "Cobra King" fighting
   through Assenois and the woods to the surrounded 101st Airborne in the snow; **SUPERCHARGE**, a Sherman of the
   9th Armoured Brigade at El Alamein: up a cleared lane through the minefield between the lamps behind a creeping
   barrage, then at dawn straight at the screen of 88s and PAK guns on the Rahman track with the sun rising
-  behind them, and the Panzer III and IV counterattack; an M1A1 at 73 Easting and a last stand in Karsk. Winter
+  behind them, and the Panzer III and IV counterattack; **THE VALLEY OF TEARS**, an Israeli Centurion "Sho't Kal"
+  on the Golan Heights in October 1973: fight from earth ramps on the ridge (hull-down, only the turret shows;
+  move to another when the Syrian artillery finds yours), stop the T-55s and T-62s and the MTU-20 bridge-layers
+  before they put bridges over the anti-tank ditch, and hold until Ben-Hanan's tanks arrive; an M1A1 at 73
+  Easting and a last stand in Karsk. Winter
   missions cover the map in snow: white fields with the steep slopes and tracks showing through, snow on the
   tops of the branches, no grass, and snow falling; desert missions turn it into the Western Desert: sand and
   stony ridges, no trees or grass, the buildings gone, dust blowing over the ground.
@@ -184,17 +198,24 @@ screen, with up to three stars for how well it went.
   jamming turrets, hit the Bismarck and break off under smoke; **THE RIVER PLATE**, HMS Ajax with Achilles and
   Exeter against the Admiral Graf Spee: close in from the east while Exeter takes her 11-inch shells, lose both
   after turrets to one hit, fire your torpedoes, then break off under smoke and shadow her to Montevideo; a
-  frigate in Operation Praying Mantis, and a surface action group's missile duel in the Norwegian Sea.
-  Twenty-five period warships, from dreadnoughts with tripod masts to escort carriers, and a new open-sea map,
+  **OPERATION TRIDENT**, the Indian Navy's missile boats against Karachi on the night of 4 December 1971: INS
+  Nirghat, an Osa-class boat with four Styx missiles, sinks the destroyer Khaibar (whose gunners fire at the
+  missiles, thinking they're aircraft), helps sink the minesweeper Muhafiz while Nipat blows up an ammunition
+  freighter, sets the Kemari oil tanks burning and runs for home before dawn; a frigate in Operation Praying
+  Mantis, and a surface action group's missile duel in the Norwegian Sea.
+  Twenty-nine period warships, from dreadnoughts with tripod masts to escort carriers, and a new open-sea map,
   North Sea.
 - **Infantry**: over the top on the first day of the Somme, and behind the creeping barrage at Vimy Ridge;
   Easy Company taking the guns at Brécourt Manor, holding Pavlov's house in Stalingrad, and **THE BOIS JACQUES**,
   Easy Company's foxholes in the snowy woods outside Bastogne under the shells bursting in the treetops (get down
   in your hole); a downed
-  helicopter crew and a last stand in Karsa's market square. The world-war armies wear their own uniforms
-  (Brodie, Stahlhelm, M1 and SSh-40 helmets, webbing instead of plate carriers) and carry the Lee-Enfield,
-  Gewehr 98, Lewis gun, M1 Garand, Thompson, BAR, Kar98k, MP 40, MG 42, PPSh-41 and others, each with its own
-  first-person model.
+  helicopter crew and a last stand in Karsa's market square; **HUE CITY**, a Marine squad leader in the Tet
+  Offensive, February 1968: across the street into the Treasury behind the Ontos's recoilless rifles, M72 LAWs to
+  blow holes in the walls, across the square in the smoke to the Provincial Headquarters, tear down the enemy's
+  flag and run up the Stars and Stripes, and hold it against the counterattack. The armies of the old wars wear
+  their own uniforms (Brodie, Stahlhelm, M1, SSh-40 and the North Vietnamese pith helmet, webbing instead of
+  plate carriers) and carry the Lee-Enfield, Gewehr 98, Lewis gun, M1 Garand, Thompson, BAR, Kar98k, MP 40,
+  MG 42, PPSh-41, M16A1, M60, AK-47, RPD and others, each with its own first-person model.
 
 ## Battle types
 

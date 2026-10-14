@@ -122,7 +122,7 @@ const SCHEMA = {
   },
   team: {
     name: str(16), helmet: color, top: color, pants: color, vest: color, tank: color,
-    gear: oneOf(['modern', 'brodie', 'stahlhelm', 'stahlhelm16', 'm1', 'ssh40', 'adrian']), puttees: color, camo: num(0, 1),
+    gear: oneOf(['modern', 'brodie', 'stahlhelm', 'stahlhelm16', 'm1', 'ssh40', 'adrian', 'pith']), puttees: color, camo: num(0, 1),
   },
   difficulty: { label: str(16), reaction: pair(0, 5), aimError: num(0, 1), turn: num(0.2, 30), spreadMul: num(0, 10), burst: pair(1, 50), dmgMul: num(0, 10) },
   atmosphere: {

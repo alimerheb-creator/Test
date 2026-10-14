@@ -195,7 +195,7 @@ function eraKit(T, gear) {
 }
 
 // Period helmets: the British Brodie, the German Stahlhelm (M1916 with its lugs, or the later shape), the American
-// M1, the Soviet SSh-40 and the French Adrian
+// M1, the Soviet SSh-40, the French Adrian and the North Vietnamese pith helmet
 function eraHelmet(gear, c, hx, hy, hz) {
   const dome = (r, sx, sy, sz, cut, p) => ({ geo: (() => { const g = new THREE.SphereGeometry(r, 16, 9, 0, Math.PI * 2, 0, Math.PI * cut); g.scale(sx, sy, sz); return g; })(), p, c });
   const skirt = (r0, r1, h, p, sz) => ({ geo: (() => { const g = new THREE.CylinderGeometry(r0, r1, h, 18, 1, true); g.scale(1, 1, sz); return g; })(), p, c });
@@ -216,6 +216,10 @@ function eraHelmet(gear, c, hx, hy, hz) {
     case 'ssh40':
       return [dome(0.128, 1, 0.95, 1.06, 0.6, [hx, hy + 0.026, hz + 0.008]), skirt(0.129, 0.142, 0.042, [hx, hy - 0.006, hz + 0.008], 1.06),
         { s: [0.026, 0.026, 0.006], p: [hx, hy + 0.07, hz - 0.137], r: [0.5, 0, 0], c: 0xa82222, rr: 0.003 }];
+    case 'pith':
+      // the North Vietnamese pressed-fibre sun helmet: a high dome, a broad brim all round, the star badge in front
+      return [dome(0.136, 1, 0.82, 1.1, 0.5, [hx, hy + 0.04, hz + 0.004]), disc(0.18, 0.014, [hx, hy + 0.036, hz + 0.004], 1.12),
+        { s: [0.03, 0.03, 0.006], p: [hx, hy + 0.085, hz - 0.15], r: [0.45, 0, 0], c: 0xc8a43a, rr: 0.008 }, strap(-0.11), strap(0.11)];
     case 'adrian':
       return [dome(0.122, 1, 0.9, 1.08, 0.55, [hx, hy + 0.03, hz]), { s: [0.02, 0.05, 0.22], p: [hx, hy + 0.13, hz], c, rr: 0.008 }, disc(0.155, 0.01, [hx, hy + 0.012, hz + 0.01], 1.25)];
     default:
