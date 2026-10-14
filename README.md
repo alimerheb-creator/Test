@@ -174,8 +174,10 @@ screen, with up to three stars for how well it went.
   the JDAMs fly to their coordinates (a panel shows the target, attack headings, your heading and the release
   zone); then the horsemen charge the Taliban trenches early and your bombs have to land before they do, and the
   village of Bai Beche is no-strike; an F/A-18E against a Tu-22M3 raid on a carrier group (easier now: the
-  bombers come from much further off, launch fewer missiles and none at you in the first minute, and you have
-  AMRAAMs); an F-16 Wild Weasel against SAM sites.
+  carrier is further south and the raid swings round before it turns in, so you have time to get out to it; the
+  Su-35 escorts carry one radar missile each and their missiles hurt you about half as much; the Backfires
+  are easier to bring down and have to come closer to launch; you carry six AMRAAMs and two Sidewinders, and
+  three wingmen fight with you); an F-16 Wild Weasel against SAM sites.
 - **Tanks**: a Mark IV at Cambrai and the first tank-against-tank fight at Villers-Bretonneux; T-34s at
   Prokhorovka, Shermans holding a Normandy crossroads, and **BREAKTHROUGH TO BASTOGNE**, "Cobra King" fighting
   through Assenois and the woods to the surrounded 101st Airborne in the snow; **SUPERCHARGE**, a Sherman of the
