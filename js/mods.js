@@ -23,7 +23,7 @@ const STORAGE_KEY = 'sixthfront.mods';      // before 1.9.1: one big entry holdi
 const INDEX_KEY = 'sixthfront.modlist';     // which mods are installed, on or off, and their order (small)
 const TEXT_PREFIX = 'sixthfront.modtext.';  // one entry per mod file, written only when the file changes
 const STORE_PREFIX = 'sixthfront.moddata.';
-const MAX_MOD_BYTES = 1024 * 1024;
+const MAX_MOD_BYTES = 4 * 1024 * 1024;
 const MAX_CLASSES = 8;
 const GUN_MODELS = ['ar', 'smg', 'lmg', 'sniper', 'pistol', 'shotgun'];
 // How far from the centre map objects may go: the map's size can change, so these are read when used
@@ -122,7 +122,7 @@ const SCHEMA = {
   },
   team: {
     name: str(16), helmet: color, top: color, pants: color, vest: color, tank: color,
-    gear: oneOf(['modern', 'brodie', 'stahlhelm', 'stahlhelm16', 'm1', 'ssh40', 'adrian', 'pith']), puttees: color, camo: num(0, 1),
+    gear: oneOf(['modern', 'brodie', 'stahlhelm', 'stahlhelm16', 'm1', 'ssh40', 'adrian', 'pith', 'pickelhaube', 'slouch', 'boonie', 'cap', 'ushanka', 'kabalak', 'type90', 'turban', 'beret', 'none']), puttees: color, camo: num(0, 1), rifle: oneOf(['bolt', 'ak', 'black', 'smg']),
   },
   difficulty: { label: str(16), reaction: pair(0, 5), aimError: num(0, 1), turn: num(0.2, 30), spreadMul: num(0, 10), burst: pair(1, 50), dmgMul: num(0, 10) },
   atmosphere: {
@@ -271,7 +271,7 @@ export function slugify(s) {
 // Parse and sanity-check a mod file's text. Throws with a readable message.
 export function parseMod(text) {
   if (typeof text !== 'string') throw new Error('Mod file is empty.');
-  if (text.length > MAX_MOD_BYTES) throw new Error('Mod file is too large (max 1 MB).');
+  if (text.length > MAX_MOD_BYTES) throw new Error('Mod file is too large (max 4 MB).');
   let mod;
   try {
     mod = JSON.parse(text.replace(/^﻿/, ''));

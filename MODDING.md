@@ -96,7 +96,7 @@ Start your own from [`mods/TEMPLATE.sfmod.json`](mods/TEMPLATE.sfmod.json).
 ```
 
 Only `name` is required. `id` defaults to the name. Importing a file with the same id replaces the old
-version and keeps its on/off state. Files can be up to 1 MB.
+version and keeps its on/off state. Files can be up to 4 MB.
 
 ## Weapons, gadgets, projectiles and classes
 

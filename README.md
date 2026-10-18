@@ -207,17 +207,51 @@ screen, with up to three stars for how well it went.
   Mantis, and a surface action group's missile duel in the Norwegian Sea.
   Twenty-nine period warships, from dreadnoughts with tripod masts to escort carriers, and a new open-sea map,
   North Sea.
-- **Infantry**: over the top on the first day of the Somme, and behind the creeping barrage at Vimy Ridge;
-  Easy Company taking the guns at Brécourt Manor, holding Pavlov's house in Stalingrad, and **THE BOIS JACQUES**,
-  Easy Company's foxholes in the snowy woods outside Bastogne under the shells bursting in the treetops (get down
-  in your hole); a downed
-  helicopter crew and a last stand in Karsa's market square; **HUE CITY**, a Marine squad leader in the Tet
-  Offensive, February 1968: across the street into the Treasury behind the Ontos's recoilless rifles, M72 LAWs to
-  blow holes in the walls, across the square in the smoke to the Provincial Headquarters, tear down the enemy's
-  flag and run up the Stars and Stripes, and hold it against the counterattack. The armies of the old wars wear
-  their own uniforms (Brodie, Stahlhelm, M1, SSh-40 and the North Vietnamese pith helmet, webbing instead of
-  plate carriers) and carry the Lee-Enfield, Gewehr 98, Lewis gun, M1 Garand, Thompson, BAR, Kar98k, MP 40,
-  MG 42, PPSh-41, M16A1, M60, AK-47, RPD and others, each with its own first-person model.
+- **Infantry**: ten missions in each of the four wars.
+  **1914–1918**: **MONS**, the regulars of the BEF on the canal bank, fifteen aimed rounds a minute against the
+  German columns, Dease's Vickers gun at the Nimy bridge, then the order to retire; **ANZAC COVE**, out of the boats
+  at dawn on the wrong beach, up the scrub-covered cliffs to Plugge's Plateau, and Mustafa Kemal's counter-attack;
+  **FORT VAUX**, sandbag barricades in the dark galleries under the fort against grenades and flamethrowers, and
+  Raynal's last pigeon; **OVER THE TOP** on the first day of the Somme; **THE CREEPING BARRAGE** at Vimy Ridge;
+  **CAPORETTO**, with Rommel's mountain troops through the mist up Monte Matajur: get above the Italian positions
+  and they surrender; **PASSCHENDAELE**, the duckboards and the mud (it slows you down) to the concrete pillboxes on
+  the Meetcheele spur, bombs through the loopholes; **KAISERSCHLACHT**, a German stormtrooper through the fog past
+  the British outposts to storm Manchester Hill; **BELLEAU WOOD**, across the wheat field (lie down in it and you're
+  hard to hit) into the wood; **SERGEANT YORK**, behind the German lines to a battalion headquarters, the machine
+  guns on the ridge, Lieutenant Endriss's bayonet charge, and the prisoners marched back.
+  **1939–1945**: **THE RAATE ROAD**, Finnish ski troops in the snowy forest blowing up the Soviet column's field
+  kitchens and blocking the breakout; **EDSON'S RIDGE**, a night on Guadalcanal under the flares, banzai charges, and
+  the fall back to the last knoll; **PAVLOV'S HOUSE**; **MONTE CASSINO**, the Poles on Point 593 and up to the ruined
+  abbey, the flag on the rubble and the Kraków trumpet call; **PEGASUS BRIDGE**, out of the glider at 00:16, the
+  pillbox, "Ham and Jam", the PIAT against the tank at the T-junction and Lord Lovat's piper; **BRÉCOURT MANOR**;
+  **A BRIDGE TOO FAR**, Frost's paratroopers in the houses at Arnhem bridge against Gräbner's armoured cars and
+  half-tracks; **THE BOIS JACQUES**; **IWO JIMA**, up Suribachi's black ash with satchel charges for the caves, and the
+  flag on the crater rim; **THE REICHSTAG**, across the Königsplatz and into the building, holding the hall while
+  the Victory Banner goes up.
+  **The Cold War**: **FOX HILL** at the Chosin Reservoir at thirty below, the bugles in the night and the Corsairs at
+  dawn; **PORK CHOP HILL**, up behind the barrage to the bunkers on the crest; **DIEN BIEN PHU**, Bigeard's
+  paratroopers on Éliane 2; **IA DRANG**, the Hueys into LZ X-Ray, the lost platoon and "Broken Arrow"; **LONG TAN**,
+  in the rubber trees in the monsoon rain, the ammunition drop and the APCs at dusk; **AMMUNITION HILL**, trench by
+  trench in the night; **HUE CITY**; **GOOSE GREEN**, the gorse gully under Darwin Hill; **MOUNT TUMBLEDOWN**, sangar
+  to sangar in the crags and the bayonet charge; **HILL 3234**, the 9th Company's twelve hours in Afghanistan.
+  **Since 1991**: **MEDAK POCKET**, UN peacekeepers who may only fire back, and a roadblock where you mustn't fire at
+  all; **BLACK HAWK DOWN**, to the crash site in Mogadishu, the night round the wreck and the Mogadishu Mile;
+  **TAKUR GHAR**, out of a burning Chinook onto a snowy summit; **NASIRIYAH**, the Saddam Canal bridge and the wounded;
+  **DEBECKA PASS**, Javelins against T-55s; **FALLUJAH**, house by house, and the Hell House; **SANGIN**, the district
+  centre under siege; **WANAT**, ammunition up to Topside; **KAMDESH**, taking Combat Outpost Keating back; **MOSUL**,
+  drones dropping grenades, a car bomb, and the ruins of the al-Nuri mosque.
+  The ground is made for each battle: hills, ridges and mountains raised, canals and trenches dug with water in
+  them, jungle and elephant grass, a rubber plantation, Flanders mud with flooded shell holes, black volcanic ash, a
+  bombed city, walled compounds; illumination flares light the night battles. Every army wears its own uniform
+  and headgear (the Pickelhaube, the Brodie, the Adrian, the Stahlhelm, slouch hats and kabalaks, the M1, the
+  SSh-40, Japanese and Chinese helmets and fur caps, pith helmets, red berets, UN blue helmets, turbans, and modern
+  helmets and plate carriers) and carries its own weapons, each with its own first-person model: the Lee-Enfield,
+  Lebel, Gewehr 98, Springfield, M1917, Carcano, Mauser, Arisaka, Mosin-Nagant, Chauchat, Lewis, MG 08/15, MP 18,
+  Suomi, PPSh, Thompson, Sten, Bren, BAR, DP-27, Type 96, M1 Garand, M1 carbine, MP 40, MG 42, MAT-49, Owen, Uzi,
+  FN FAL and SLR, GPMG, M16, M60, AK-47, AK-74, RPK, PKM, C7, M4, L85, M249 and M240, with PIATs, LAWs, AT4s,
+  SMAWs, Javelins, M79s and satchel charges. Men charging or firing on the run hit less often than men lying in a
+  trench, and each time you are hit and carried back the mission goes a little easier on you. In the ground missions
+  before 1991 the map's shipping containers and concrete barriers are gone.
 
 ## Battle types
 
