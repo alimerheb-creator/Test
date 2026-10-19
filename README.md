@@ -147,7 +147,8 @@ naval. Each one runs from the First World War through the Second and the Cold Wa
 mission picks its own battle, map, armies and weather, puts you in your seat and plays out a script: radio
 calls (read aloud if you switch RADIO VOICE on), objectives, waves, and the crew or section fighting beside
 you. Finishing a mission opens the next one and pays research points, silver and gold into the RESEARCH
-screen, with up to three stars for how well it went.
+screen, with up to three stars for how well it went. Fail a mission and the next try at it goes a little easier on you,
+each time, up to four times; win it and it goes back to normal.
 
 - **Aviation**: a Sopwith Camel burning observation balloons over Ypres, and saving Lt. May from the Red
   Baron; aboard the B-17G "Lucky Lady" over Schweinfurt, in a bomber stream of hundreds of Fortresses in their
@@ -178,20 +179,38 @@ screen, with up to three stars for how well it went.
   Su-35 escorts carry one radar missile each and their missiles hurt you about half as much; the Backfires
   are easier to bring down and have to come closer to launch; you carry six AMRAAMs and two Sidewinders, and
   three wingmen fight with you); an F-16 Wild Weasel against SAM sites.
-- **Tanks**: a Mark IV at Cambrai and the first tank-against-tank fight at Villers-Bretonneux; T-34s at
-  Prokhorovka, Shermans holding a Normandy crossroads, and **BREAKTHROUGH TO BASTOGNE**, "Cobra King" fighting
-  through Assenois and the woods to the surrounded 101st Airborne in the snow; **SUPERCHARGE**, a Sherman of the
-  9th Armoured Brigade at El Alamein: up a cleared lane through the minefield between the lamps behind a creeping
-  barrage, then at dawn straight at the screen of 88s and PAK guns on the Rahman track with the sun rising
-  behind them, and the Panzer III and IV counterattack; **THE VALLEY OF TEARS**, an Israeli Centurion "Sho't Kal"
-  on the Golan Heights in October 1973: fight from earth ramps on the ridge (hull-down, only the turret shows;
-  move to another when the Syrian artillery finds yours), stop the T-55s and T-62s and the MTU-20 bridge-layers
-  before they put bridges over the anti-tank ditch, and hold until Ben-Hanan's tanks arrive; an M1A1 at 73
-  Easting and a last stand in Karsk. Winter
-  missions cover the map in snow: white fields with the steep slopes and tracks showing through, snow on the
-  tops of the branches, no grass, and snow falling; desert missions turn it into the Western Desert: sand and
-  stony ridges, no trees or grass, the buildings gone, dust blowing over the ground.
-  Each era's tanks have their own models, guns and armour (front, side and rear).
+- **Tanks**: ten missions in each of the four wars.
+  **1914–1918**: **FLERS**, the first tanks in history, D17 "Dinnaken" up the High Street (its engine stalls now and
+  then); **BERRY-AU-BAC**, the French Schneiders across open ground under the German guns; **BULLECOURT**, Mark IIs in
+  the snow crushing gaps in the wire for the Australians; **FRAY BENTOS**, ditched in a shell hole and holding out
+  for three days; **CAMBRAI**, and the first tank-against-tank fight at Villers-Bretonneux; **HAMEL**, Monash's
+  93 minutes, crushing the machine-gun posts in Vaire Wood and the village under your tracks; **SOISSONS**, the
+  Renault FTs in the wheat; **MUSICAL BOX**, a Whippet alone behind the lines at Amiens, machine-gunning a field
+  battery and a camp; **SAINT-MIHIEL**, Patton's FTs.
+  **1939–1945**: **STONNE**, the Char B1 "Eure" in the village; **RASEINIAI**, one KV-2 holding a German division's
+  road for a day, and the pioneers who come at night with charges for the tracks; **MTSENSK**, Katukov's T-34
+  ambushes against Guderian's panzers; **STEEL, STEEL, STEEL** at Prokhorovka; **SUPERCHARGE** at El Alamein; **HOLD
+  THE CROSSROADS** in Normandy; **FIREFLY**, the Sherman Firefly in the orchard waiting for Wittmann's Tigers to come
+  side-on; **ARRACOURT**, Shermans in the fog against the new Panthers; **BREAKTHROUGH TO BASTOGNE**; **COLOGNE
+  CATHEDRAL**, a Pershing round the side streets of the bombed city to the Panther in the square.
+  **The Cold War**: **THE BOWLING ALLEY**, Pershings at night on the Taegu road; **THE HOOK**, Centurions dug in on a
+  Korean ridge firing over the infantry; **ASAL UTTAR**, Indian Centurions hidden in the sugar cane and the Pattons
+  bogged in the flooded fields; **CHAWINDA**, one Pakistani regiment against an armoured division; **ABU-AGEILA**,
+  Sharon's night attack in the Sinai; **THE VALLEY OF TEARS**; **BASANTAR**, the Poona Horse across the minefields;
+  **THE CHINESE FARM**, Sagger teams in the irrigation ditches; **DEZFUL**, the Iranian armoured division in the
+  Iraqi trap; **SULTAN YACOUB**, Israeli tanks cut off in a Lebanese valley at night.
+  **Since 1991**: **KHAFJI**, Qatari and Saudi tanks in the streets; **73 EASTING**; **MEDINA RIDGE**, M1A1s
+  against the Republican Guard's dug-in tanks at long range; **BASRA**, Challengers on the canal bank; **OBJECTIVE
+  PEACH**, the Euphrates bridge and the night counter-attack; **THUNDER RUN**, up Highway 8 into Baghdad; **FALLUJAH**,
+  Abrams with the Marines against the strongpoints; **WADI SALUKI**, Merkavas against Hezbollah's Kornet teams on
+  the ridges; **MOSUL**, holding the hospital until the relief column gets through car bombs and drones; and a last
+  stand in Karsk.
+  Each era's tanks have their own models, guns (fast and flat-shooting in the modern ones, slow and arching in
+  the old ones) and armour (front, side and rear), the infantry on both sides carry their own era's weapons and
+  wear their own uniforms, machine-gun posts can be crushed under the tracks, and the earth ramps give you a
+  hull-down position where only your turret shows. Winter missions cover the map in snow, desert missions turn
+  it into sand and stony ridges, the town missions build a city of flat-roofed houses or bombed ruins. An enemy
+  crew can't mend a holed tank in the middle of a fight; yours still patches itself up slowly when it's left alone.
 - **Naval**: HMS Lion in the battlecruisers' run to the south at Jutland (Indefatigable and Queen Mary blow
   up; flood Q magazine in time or Lion goes the same way) and Rizzo's MAS boat sinking the Szent István on
   silent electric motors; HMS Rodney against the crippled Bismarck, the destroyer Johnston laying smoke

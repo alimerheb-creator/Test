@@ -286,6 +286,7 @@ export class UI {
           if (!res.ok) throw new Error(String(res.status));
           const idx = await res.json();
           this.examples = Array.isArray(idx.mods) ? idx.mods.filter((m) => m && typeof m.file === 'string' && /^[\w.-]+$/.test(m.file)) : [];
+          if (this.game.mods.noteShipped) this.game.mods.noteShipped(this.examples);
         } catch (e) {
           this.examples = [];
         }

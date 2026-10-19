@@ -379,7 +379,13 @@ export class ModManager {
     let ok = true;
     for (const m of this.list) {
       if (m.savedText === m.text) continue;
-      if (KV.set(TEXT_PREFIX + m.id, m.text)) m.savedText = m.text; else ok = false;
+      if (KV.set(TEXT_PREFIX + m.id, m.text)) m.savedText = m.text;
+      else {
+        ok = false;
+        // (a mod that ships with the game: the older copy still in storage would be loaded instead of this one at the
+        // next start, or when the page restarts for a new map, so it goes; the game's own folder has the new one)
+        if (this.shipped && this.shipped.has(m.id)) { KV.remove(TEXT_PREFIX + m.id); m.savedText = null; }
+      }
     }
     // mods whose file couldn't be read back stay listed, so a later start can still recover them
     const mods = this.list.map((m) => ({ id: m.id, on: !!m.enabled }));
@@ -403,6 +409,7 @@ export class ModManager {
     let idx = null;
     try { const r = await fetch('mods/index.json'); if (r.ok) idx = await r.json(); } catch (e) { idx = null; }
     const files = idx && Array.isArray(idx.mods) ? idx.mods : [];
+    this.noteShipped(files);
     for (const x of this.missing.slice()) {
       const f = files.find((m) => m && slugify(m.id || m.name) === x.id && typeof m.file === 'string' && /^[\w.-]+$/.test(m.file));
       if (!f) continue;
@@ -416,6 +423,12 @@ export class ModManager {
       } catch (e) { /* offline: stays listed for next time */ }
     }
     this._save();
+  }
+
+  // the mods that ship in the game's own folder (they can always be fetched again)
+  noteShipped(files) {
+    this.shipped = this.shipped || new Set();
+    for (const m of files || []) if (m && (m.id || m.name)) this.shipped.add(slugify(m.id || m.name));
   }
 
   _entry(text, enabled) {
