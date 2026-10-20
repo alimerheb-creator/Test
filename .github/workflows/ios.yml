@@ -28,7 +28,8 @@ concurrency:
 
 jobs:
   ipa:
-    runs-on: macos-15
+    # (the Intel Macs: the Apple-silicon pool kept running out of machines and cancelling the job unstarted)
+    runs-on: macos-15-intel
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
