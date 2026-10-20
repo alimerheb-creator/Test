@@ -548,11 +548,13 @@ In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, 
 In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke screen, R damage control, G HE/AP shells.
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
 down, 1/2/3 weapons, Space flares, E ejects.
-In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, 1/2/3 weapons, Space flares,
-E ejects. The Cobra is a sharp, hard pull: flick the mouse far up (or snap the stick back) from level flight
+In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, Q/E rudder (yaw the nose left
+and right for fine aiming), 1/2/3 weapons, Space flares, F spots, J ejects. Every aircraft's ailerons, elevators and
+rudder move with the controls (cut from the wing, the tailplane and the fin, and shot off with them). The Cobra is a sharp, hard pull: flick the mouse far up (or snap the stick back) from level flight
 in a Su-27, Su-35S, Su-57, MiG-29 or F-22A. On a phone: drag anywhere to steer (a quick, long swipe up throws a
 Cobra), the slider on the left is the throttle, the big round button fires, and the buttons are named for flying
-(GUN / MISSILE / BOMBS, FLARES, CAMERA, ZOOM, SPOT, EJECT at the top left). Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
+(GUN / MISSILE / BOMBS, FLARES, CAMERA, ZOOM, SPOT, EJECT at the top left), and the two RUDDER buttons at the bottom
+yaw the nose. Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around,
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
 commander's seat, in a helicopter the pilot's seat behind the gunner, beside the co-pilot in the Ka-52).
