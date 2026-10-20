@@ -150,35 +150,44 @@ you. Finishing a mission opens the next one and pays research points, silver and
 screen, with up to three stars for how well it went. Fail a mission and the next try at it goes a little easier on you,
 each time, up to four times; win it and it goes back to normal.
 
-- **Aviation**: a Sopwith Camel burning observation balloons over Ypres, and saving Lt. May from the Red
-  Baron; aboard the B-17G "Lucky Lady" over Schweinfurt, in a bomber stream of hundreds of Fortresses in their
-  combat boxes, contrails overhead, flak bursting among them, one now and then falling out burning: when the
-  crew calls for a gun you **leave yours and go to it on your feet** (E, or the LEAVE GUN button) through the
-  inside of the bomber — the waist with its spent cases on the floor, past the ball turret's hatch and the
-  radio room, along the bomb bay catwalk between the bombs, crawling under the flight deck to the nose, or down
-  the tail tunnel under the tailplane's spars — and take it (E again); then the bomb run through the Norden sight
-  in the nose; **STRAGGLER**, limping home on two engines out of the box while the gunners are hit one by one,
-  a fire breaks out in the radio room (go and put it out) and the ball turret's feed jams; **THE DAMBUSTERS**, a
-  Lancaster at night over the reservoir with the bouncing mine: down to sixty feet over the black water (two
-  spotlights under her meet on the water when you're there), the dam's towers in the sight's pegs, the mine
-  skipping away across the lake through the searchlights and the red and green flak, and the dam breaking and
-  flooding the valley; escorting the bombers in a P-51D; **THEIR FINEST HOUR**, a Spitfire over Kent on Battle of
-  Britain Day, 15 September 1940: head-on into a raid of Heinkel He 111s with their Messerschmitt Bf 109E escort,
-  your section making pass after pass with the other squadrons and Bader's Big Wing until the raid breaks up
-  before London; **ELEVEN DAYS OF CHRISTMAS**, a B-52D leading "Lilac" cell over Hanoi on the first night of
-  Linebacker II in 1972: the SA-2s coming up in pairs with their long flames (chaff when the EWO calls one close),
-  the radar navigator's "HACK!" to ripple forty-two bombs onto the Yen Vien rail yards, the post-target turn into
-  the worst of the SAMs, and a MiG-21 coming in from behind for your tail gunner's four .50s; **HORSE SOLDIERS**, a
-  B-52H with twenty GPS-guided JDAMs over the Darya Suf valley in Afghanistan in November 2001, with Green Berets
-  and General Dostum's horse cavalry below: the controller on the ridge reads out the aim points and the attack
-  headings that keep the bombs off his own side, your crew calls IN when you're lined up, he clears you hot, and
-  the JDAMs fly to their coordinates (a panel shows the target, attack headings, your heading and the release
-  zone); then the horsemen charge the Taliban trenches early and your bombs have to land before they do, and the
-  village of Bai Beche is no-strike; an F/A-18E against a Tu-22M3 raid on a carrier group (easier now: the
-  carrier is further south and the raid swings round before it turns in, so you have time to get out to it; the
-  Su-35 escorts carry one radar missile each and their missiles hurt you about half as much; the Backfires
-  are easier to bring down and have to come closer to launch; you carry six AMRAAMs and two Sidewinders, and
-  three wingmen fight with you); an F-16 Wild Weasel against SAM sites.
+- **Aviation**: ten missions in each of the four wars.
+  **1914–1918**: **THE FOKKER SCOURGE**, Immelmann's wingman in an Eindecker, diving on the B.E.2cs from behind
+  where the observer can't shoot; **THE AIRSHIP OVER CUFFLEY**, a B.E.2c at night over London with the new
+  incendiary bullets: spraying SL 11's length does nothing, a whole drum into one place sets her alight, and London
+  watches her fall; **BLOODY APRIL**, Sopwith Pups escorting B.E.2s over Arras against Richthofen's red Albatros;
+  **THE GOTHAS**, the long climb after the daylight bombers over the City (nobody shot one down that day);
+  **BALLOON BUSTERS** over Ypres; **THE DAWN RAID**, Bishop alone over a German aerodrome, catching the Albatros as
+  they lift off; **THE RED BARON**; **THE PIAVE**, Baracca's SPADs strafing the Austro-Hungarian columns at the
+  pontoon bridges, low through the ground fire; **CHÂTEAU-THIERRY**, the 94th Aero's SPADs keeping JG I's Fokker
+  D.VIIs off the American balloons; **AMIENS**, S.E.5as with Cooper bombs on the field guns and the Somme bridges.
+  **1939–1945**: **THEIR FINEST HOUR**; **PEARL HARBOR**, Welch and Taylor's P-40s up from Haleiwa against the Vals
+  over battleship row; **MIDWAY**, an SBD of Scouting Six following the destroyer Arashi to the Kidō Butai and
+  diving on the Kaga, the radioman firing aft; **DAMBUSTERS**; **THE FLYING TANK**, Il-2s laying PTAB bomblets along
+  the panzer columns at Kursk, the gunner holding off the Focke-Wulfs; the B-17 missions (**BANDITS AT SIX**,
+  **BOMBS AWAY**, **STRAGGLER**, **LITTLE FRIENDS**); **THE SWALLOW**, an Me 262 of JG 7 with R4M rockets against a
+  box of Fortresses, then home to an airfield the Mustangs are circling.
+  **The Cold War**: **MIG ALLEY**, McConnell's Sabre against the MiG-15s, never across the Yalu, with twenty minutes
+  of fuel; **OPERATION FOCUS**, a Mirage under the radar to Bir Gifgafa, bombs on the runway and the cannon on the
+  MiGs parked in rows; **OPERATION BOLO**, Olds's Phantoms (no gun, just missiles) pretending to be F-105s until the
+  MiG-21s come up through the cloud; **THUD RIDGE**, an F-105D down the ridge to the Thai Nguyen steel works through
+  the SA-2s and the 57 mm guns, MiG-17s waiting; **SANDY ONE**, a Skyraider over Roger Locher after 23 days on the
+  run, clearing the guns round him and covering the Jolly Green in the hover; **MANSOURA**, an Egyptian MiG-21
+  against the Phantoms and Neshers coming for the runway; **GULF OF SIDRA**, an F-14 that mustn't fire first, until
+  the Su-22 does; **MOLE CRICKET 19**, an F-16 over the Bekaa with Python 3s; **SAN CARLOS**, a Sea Harrier cutting
+  off the Daggers and Skyhawks before they reach the ships; and **ELEVEN DAYS OF CHRISTMAS**.
+  **Since 1991**: **TASK FORCE NORMANDY**, Apaches fifty feet over the desert, Hellfires on the radars at H-hour;
+  **THE FIRST NIGHT**, an F-117 over Baghdad with two laser-guided bombs, the whole city's guns firing blind;
+  **WILD WEASEL**; **HOG HEAVEN**, an A-10 on the Republican Guard's dug-in tanks under the oil smoke;
+  **ALLIED FORCE**, an F-15C with AMRAAMs against the MiG-29s heading for Tuzla; **HORSE SOLDIERS**; **ANACONDA**,
+  Apaches over Hell's Halfpipe in the Shahi-Kot, never hovering where the RPGs can find you; **ODYSSEY DAWN**, a B-2
+  with sixteen JDAMs down a row of hardened aircraft shelters; **THE RED SEA**, a Super Hornet against a swarm of
+  Shahed drones and cruise missiles; and **VAMPIRE, VAMPIRE**.
+  Thirty more aircraft for them, each at real size with its own engine, guns and markings, from the Fokker E.III
+  to the F-117: the B.E.2c, Albatros D.III, Pup, Nieuport 17, SPAD XIII, Fokker D.VII, S.E.5a and Gotha; the P-40,
+  Zero, Val, Dauntless, Il-2 and Me 262; the F-86, MiG-15, MiG-17, F-4C and F-4E, F-105, A-1, Mirage III, Nesher,
+  Dagger, F-14 (its wings sweep with speed), Su-22, MiG-23, Sea Harrier and A-4; and the Shahed drone. Missiles
+  are as good as they were: the 1960s Sidewinder has to be fired from behind and mostly misses, the AIM-9L locks
+  head-on; and bombs, rockets and missiles are one load a sortie.
 - **Tanks**: ten missions in each of the four wars.
   **1914–1918**: **FLERS**, the first tanks in history, D17 "Dinnaken" up the High Street (its engine stalls now and
   then); **BERRY-AU-BAC**, the French Schneiders across open ground under the German guns; **BULLECOURT**, Mark IIs in
@@ -211,21 +220,36 @@ each time, up to four times; win it and it goes back to normal.
   hull-down position where only your turret shows. Winter missions cover the map in snow, desert missions turn
   it into sand and stony ridges, the town missions build a city of flat-roofed houses or bombed ruins. An enemy
   crew can't mend a holed tank in the middle of a fight; yours still patches itself up slowly when it's left alone.
-- **Naval**: HMS Lion in the battlecruisers' run to the south at Jutland (Indefatigable and Queen Mary blow
-  up; flood Q magazine in time or Lion goes the same way) and Rizzo's MAS boat sinking the Szent István on
-  silent electric motors; HMS Rodney against the crippled Bismarck, the destroyer Johnston laying smoke
-  and charging the Japanese fleet off Samar, and **THE MIGHTY HOOD**: HMS Prince of Wales with Hood against the
-  Bismarck and Prinz Eugen along the Denmark Strait's pack ice, where Hood blows up and you fight on alone with
-  jamming turrets, hit the Bismarck and break off under smoke; **THE RIVER PLATE**, HMS Ajax with Achilles and
-  Exeter against the Admiral Graf Spee: close in from the east while Exeter takes her 11-inch shells, lose both
-  after turrets to one hit, fire your torpedoes, then break off under smoke and shadow her to Montevideo; a
-  **OPERATION TRIDENT**, the Indian Navy's missile boats against Karachi on the night of 4 December 1971: INS
-  Nirghat, an Osa-class boat with four Styx missiles, sinks the destroyer Khaibar (whose gunners fire at the
-  missiles, thinking they're aircraft), helps sink the minesweeper Muhafiz while Nipat blows up an ammunition
-  freighter, sets the Kemari oil tanks burning and runs for home before dawn; a frigate in Operation Praying
-  Mantis, and a surface action group's missile duel in the Norwegian Sea.
-  Twenty-nine period warships, from dreadnoughts with tripod masts to escort carriers, and a new open-sea map,
-  North Sea.
+- **Naval**: ten missions in each of the four wars.
+  **1914–1918**: **HELIGOLAND BIGHT**, Beatty's battlecruisers storming into the Bight after Tyrwhitt's destroyers;
+  **U-9**, Weddigen's submarine sinking Aboukir, Hogue and Cressy one after another as each stops for the last;
+  **CORONEL**, Cradock's old cruisers against von Spee at sunset; **EMDEN BEACHED AND KNOCKED OUT**, HMAS Sydney at
+  the Cocos Islands; **THE FALKLAND ISLANDS**, Invincible and Inflexible running down Scharnhorst and Gneisenau;
+  **THE DOGGER BANK**, Lion's damage control while Blücher is finished off; **THE RUN TO THE SOUTH** at Jutland;
+  **THE Q-SHIP**, Campbell's Farnborough taking the torpedo, the panic party in the boat, the hidden guns behind the
+  screens; **ZEEBRUGGE**, Vindictive alongside the mole under the guns while the blockships go into the canal; **THE
+  PREMUDA RAID**.
+  **1939–1945**: **THE RIVER PLATE**; **DUNKIRK**, HMS Gallant alongside the East Mole loading troops under the
+  Stukas; **CAPE MATAPAN**, Warspite's guns at point-blank range on the Italian cruisers in the searchlight;
+  **THE MIGHTY HOOD**; **SINK THE BISMARCK**; **WASHINGTON AND KIRISHIMA**, Lee's radar-directed sixteen-inch guns off
+  Savo Island while the Japanese shell the South Dakota; **CONVOY ONS 5**, a corvette's radar, Asdic and Hedgehog
+  in the night the wolf packs broke; **NORTH CAPE**, the Scharnhorst run down in the Arctic dark; **SMALL BOYS,
+  ATTACK**; **THE SHIP THAT WOULD NOT DIE**, the destroyer Laffey on the radar picket line off Okinawa under
+  twenty-two kamikaze attacks.
+  **The Cold War**: **THE YANGTZE INCIDENT**, Amethyst's night escape past the batteries; **THE SITTING DUCKS**, US
+  destroyers anchored off Wolmi-do as bait for the Inchon guns; **BLACK SATURDAY**, practice depth charges on a
+  Soviet submarine off Cuba that turns out to carry a nuclear torpedo; **THE GULF OF TONKIN**, USS Maddox and the
+  torpedo boats; **THE BROWN WATER NAVY**, a river patrol boat on the Mekong; **LATAKIA**, the first missile battle at
+  sea, Israeli Sa'ar boats against Syrian Ossas; **OPERATION TRIDENT**; **CONQUEROR AND THE BELGRANO**, a nuclear
+  submarine's World War Two torpedoes; **BOMB ALLEY**, HMS Broadsword with Coventry off Pebble Island; **PRAYING
+  MANTIS**.
+  **Since 1991**: **THE BUBIYAN TURKEY SHOOT**, Lynx helicopters' Sea Skuas on the Iraqi fast attack craft; **SEA DART
+  AND THE SILKWORM**, HMS Gloucester saving USS Missouri; **THE BATTLESHIP**, Missouri's guns, and Iraqi soldiers on
+  Faylaka surrendering to a drone; **THE CRAB WAR**, ramming North Korean boats back over the Northern Limit Line;
+  **INS HANIT**, a C-802 from Beirut and the fight to save the ship; **THE LIFEBOAT**, the Maersk Alabama's
+  lifeboat and the SEAL snipers; **DAWN OF THE GULF OF ADEN**, Korean commandos retaking the Samho Jewelry;
+  **NINE HOURS IN THE RED SEA**, USS Carney against cruise missiles and drones from Yemen; **THE LAST DITCH**, a
+  destroyer's Phalanx as the very last defence; **SURFACE ACTION GROUP**.
 - **Infantry**: ten missions in each of the four wars.
   **1914–1918**: **MONS**, the regulars of the BEF on the canal bank, fifteen aimed rounds a minute against the
   German columns, Dease's Vickers gun at the Nimy bridge, then the order to retire; **ANZAC COVE**, out of the boats
