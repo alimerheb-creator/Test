@@ -224,9 +224,9 @@ export const DEFAULT_SETTINGS = {
 // Graphics presets. 'auto' picks medium on phones/tablets and high elsewhere.
 export const QUALITY = {
   low: { pixelRatio: 0.75, shadows: 0, shadowExtent: 70, post: false, msaa: 0, bloom: false, grass: 0 },
-  medium: { pixelRatio: 1.0, shadows: 1024, shadowExtent: 70, post: true, msaa: 0, bloom: true, grass: 4500 },
-  high: { pixelRatio: 1.5, shadows: 2048, shadowExtent: 90, post: true, msaa: 4, bloom: true, grass: 11000 },
-  ultra: { pixelRatio: 2.0, shadows: 4096, shadowExtent: 110, post: true, msaa: 4, bloom: true, grass: 20000 },
+  medium: { pixelRatio: 1.0, shadows: 1024, shadowExtent: 70, post: true, msaa: 0, bloom: true, grass: 4500, ao: 8 },
+  high: { pixelRatio: 1.5, shadows: 2048, shadowExtent: 90, post: true, msaa: 4, bloom: true, grass: 11000, ao: 12 },
+  ultra: { pixelRatio: 2.0, shadows: 4096, shadowExtent: 110, post: true, msaa: 4, bloom: true, grass: 20000, ao: 16 },
 };
 
 export const BOT_NAMES = [

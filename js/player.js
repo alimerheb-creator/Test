@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { MOVE, PLAY_HALF, SCORE, RULES } from './config.js';
 import { clamp, lerp, rand, wrapAngle, yawTo, dirFromAngles } from './util.js';
+import { gunTextures } from './textures.js';
 
 const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Vector3();
 const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _pc = new THREE.Vector3();
@@ -19,10 +20,19 @@ const seg = (p, a, b) => ease((p - a) / (b - a));
 
 // ---------------------------------------------------------------- viewmodel construction
 const VM_MATS = {};
+// steel and polymer get the grain textures and catch the sky in their reflections
+function gunMaterial(color, metalness, roughness, emissive) {
+  const T = gunTextures(), steel = metalness >= 0.3;
+  const m = new THREE.MeshStandardMaterial({ color, metalness: steel ? Math.max(metalness, 0.6) : metalness, roughness: Math.min(1, roughness * 1.25), emissive: emissive ?? 0x000000, emissiveIntensity: emissive != null ? 1.5 : 0 });
+  m.normalMap = steel ? T.metalN : T.polyN;
+  m.normalScale.set(0.45, 0.45);
+  m.roughnessMap = steel ? T.metalR : T.polyR;
+  return m;
+}
 function vmMats() {
   if (VM_MATS.metal) return VM_MATS;
-  VM_MATS.metal = new THREE.MeshStandardMaterial({ color: 0x44474c, roughness: 0.45, metalness: 0.3 });
-  VM_MATS.poly = new THREE.MeshStandardMaterial({ color: 0x2c2e31, roughness: 0.7, metalness: 0.05 });
+  VM_MATS.metal = gunMaterial(0x44474c, 0.3, 0.45);
+  VM_MATS.poly = gunMaterial(0x2c2e31, 0.05, 0.7);
   VM_MATS.tan = new THREE.MeshStandardMaterial({ color: 0x8a7a5c, roughness: 0.8 });
   VM_MATS.olive = new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 0.8 });
   VM_MATS.glove = new THREE.MeshStandardMaterial({ color: 0x2e2a25, roughness: 0.9 });
@@ -33,15 +43,44 @@ function vmMats() {
   return VM_MATS;
 }
 
+// A box with rounded edges (the highlights running along them are what make a part look machined instead of
+// blocky), its UVs in metres so the grain is the same size on every part. Cached by size
+const _rbCache = new Map();
+function roundedBox(sx, sy, sz, k = 0.2) {
+  const key = `${sx}|${sy}|${sz}|${k}`;
+  let geo = _rbCache.get(key);
+  if (geo) return geo;
+  const r = Math.min(Math.min(sx, sy, sz) * k, 0.006), h = [sx / 2, sy / 2, sz / 2], inner = h.map((v) => v - r);
+  geo = new THREE.BoxGeometry(sx, sy, sz, 3, 3, 3);
+  const pos = geo.attributes.position, nor = geo.attributes.normal, uv = geo.attributes.uv, c = [0, 0, 0], d = [0, 0, 0];
+  for (let i = 0; i < pos.count; i++) {
+    c[0] = pos.getX(i); c[1] = pos.getY(i); c[2] = pos.getZ(i);
+    const ax = Math.abs(nor.getX(i)) > 0.5 ? 0 : Math.abs(nor.getY(i)) > 0.5 ? 1 : 2;
+    let l2 = 0;
+    for (let a = 0; a < 3; a++) {
+      if (a !== ax && Math.abs(Math.abs(c[a]) - h[a]) > 1e-7) c[a] = Math.sign(c[a]) * inner[a]; // the inner grid lines go to where the rounding starts
+      const cl = Math.max(-inner[a], Math.min(inner[a], c[a]));
+      d[a] = c[a] - cl; c[a] = cl; l2 += d[a] * d[a];
+    }
+    const l = Math.sqrt(l2) || 1;
+    pos.setXYZ(i, c[0] + (d[0] / l) * r, c[1] + (d[1] / l) * r, c[2] + (d[2] / l) * r);
+    nor.setXYZ(i, d[0] / l, d[1] / l, d[2] / l);
+    const p = [pos.getX(i), pos.getY(i), pos.getZ(i)];
+    uv.setXY(i, p[ax === 0 ? 2 : 0] * 12.5, p[ax === 1 ? 2 : 1] * 12.5);
+  }
+  _rbCache.set(key, geo);
+  return geo;
+}
+
 function box(g, mat, sx, sy, sz, x, y, z, rx = 0, ry = 0, rz = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat);
+  const m = new THREE.Mesh(roundedBox(sx, sy, sz), mat);
   m.position.set(x, y, z);
   m.rotation.set(rx, ry, rz);
   g.add(m);
   return m;
 }
 function cyl(g, mat, r0, r1, len, x, y, z) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, len, 12), mat);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, len, 18), mat);
   m.rotation.x = Math.PI / 2;
   m.position.set(x, y, z);
   g.add(m);
@@ -50,7 +89,7 @@ function cyl(g, mat, r0, r1, len, x, y, z) {
 function limb(g, mat, a, b, t) {
   const d = new THREE.Vector3().subVectors(b, a);
   const len = d.length();
-  const m = new THREE.Mesh(new THREE.BoxGeometry(t, t, len), mat);
+  const m = new THREE.Mesh(roundedBox(t, t, len, 0.4), mat);
   m.position.copy(a).add(b).multiplyScalar(0.5);
   m.lookAt(b);
   g.add(m);
@@ -262,7 +301,7 @@ function finishViewmodel(g, parts, o) {
   lh.position.copy(lhBase);
   box(lh, M.glove, 0.06, 0.065, 0.1, -0.012, -0.02, 0);
   // The forearm runs from the wrist to an elbow that stays put, so it stretches as the hand moves
-  const forearm = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.062, 1), M.sleeve);
+  const forearm = new THREE.Mesh(roundedBox(0.062, 0.062, 1, 0.4), M.sleeve);
   g.add(forearm);
   const elbow = new THREE.Vector3(-0.16, -0.36, 0.16);
   g.add(lh);
@@ -303,20 +342,17 @@ function buildCustomViewmodel(model) {
   const matFor = (p) => {
     const k = `${p.color}|${p.metal}|${p.rough}|${p.emissive}`;
     if (!mats.has(k)) {
-      mats.set(k, new THREE.MeshStandardMaterial({
-        color: p.color, metalness: p.metal, roughness: p.rough,
-        emissive: p.emissive ?? 0x000000, emissiveIntensity: p.emissive != null ? 1.5 : 0,
-      }));
+      mats.set(k, gunMaterial(p.color, p.metal, p.rough, p.emissive));
     }
     return mats.get(k);
   };
   for (const p of model.parts) {
     let geo;
     const s = p.size;
-    if (p.shape === 'cylinder') { geo = new THREE.CylinderGeometry(s[0], s.length > 2 ? s[1] : s[0], s[s.length - 1], 12); geo.rotateX(Math.PI / 2); }
+    if (p.shape === 'cylinder') { geo = new THREE.CylinderGeometry(s[0], s.length > 2 ? s[1] : s[0], s[s.length - 1], 18); geo.rotateX(Math.PI / 2); }
     else if (p.shape === 'cone') { geo = new THREE.ConeGeometry(s[0], s[1] ?? s[0] * 2, 12); geo.rotateX(-Math.PI / 2); }
     else if (p.shape === 'sphere') geo = new THREE.SphereGeometry(s[0], 12, 8);
-    else geo = new THREE.BoxGeometry(s[0], s[1] ?? s[0], s[2] ?? s[0]);
+    else geo = roundedBox(s[0], s[1] ?? s[0], s[2] ?? s[0]);
     const mesh = new THREE.Mesh(geo, matFor(p));
     const rx = p.rot[0] * DEG, ry = p.rot[1] * DEG, rz = p.rot[2] * DEG;
     if (p.role) {

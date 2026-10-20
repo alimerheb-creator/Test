@@ -148,7 +148,7 @@ export class Game extends Emitter {
     this.world.setShadowQuality(Math.max(512, Q.shadows), Q.shadowExtent);
     if (needsRecompile) this.scene.traverse((o) => { if (o.material) o.material.needsUpdate = true; });
     this.grass.setCount(Math.round(Q.grass * VEGETATION.grass));
-    this.post.configure({ samples: Q.msaa, bloom: Q.bloom });
+    this.post.configure({ samples: Q.msaa, bloom: Q.bloom, ao: Q.ao });
     this.usePost = Q.post;
     this._resize();
   }
@@ -413,6 +413,7 @@ export class Game extends Emitter {
       const r = this.renderer;
       const pc = this.playerCtl;
       const showVM = (this.state === 'playing' || this.state === 'paused') && P.state === 'alive' && !P.vehicle && pc.vmRoot.visible;
+      if (showVM) { pc.vmScene.environment = this.scene.environment; pc.vmScene.environmentIntensity = this.scene.environmentIntensity ?? 0.55; }
       if (this.usePost) {
         this._postParams(dt);
         this.post.render(this.scene, cam, showVM ? { scene: pc.vmScene, cam: pc.vmCam } : null, this.fx);

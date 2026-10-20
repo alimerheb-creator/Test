@@ -45,7 +45,7 @@ export class Grass {
         pos.push(P.getX(i), P.getY(i), P.getZ(i));
         uv.push(U.getX(i), U.getY(i));
         const t = U.getY(i);
-        col.push(0.62 + t * 0.45, 0.66 + t * 0.38, 0.42 + t * 0.3);
+        col.push(0.5 + t * 0.42, 0.55 + t * 0.36, 0.36 + t * 0.24);
       }
       for (let i = 0; i < c.index.count; i++) idx.push(c.index.getX(i) + off);
       off += P.count;
@@ -74,7 +74,7 @@ export class Grass {
       uM: { value: M },
     };
     const mat = new THREE.MeshLambertMaterial({
-      map: game.world.tex.grass, vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, color: 0xb4bc70,
+      map: game.world.tex.grass, vertexColors: true, alphaTest: 0.45, side: THREE.DoubleSide, color: 0xa4aa68,
     });
     const U = this.uniforms;
     mat.onBeforeCompile = (shader) => {
@@ -123,7 +123,7 @@ export class Grass {
           transformed += vec3(wp.x, hs.x - 0.04, wp.y);
           #ifdef USE_COLOR
             float tint = fract(sin(dot(floor(wp * 0.35), vec2(12.9898, 78.233))) * 43758.5453);
-            vColor.rgb *= mix(vec3(0.85, 0.95, 0.7), vec3(1.12, 1.05, 0.78), tint);
+            vColor.rgb *= mix(vec3(0.82, 0.9, 0.72), vec3(1.06, 1.0, 0.76), tint);
           #endif`);
     };
     mat.customProgramCacheKey = () => 'grass';

@@ -204,7 +204,55 @@ export function makeTextures() {
   const grass = new THREE.CanvasTexture(gc);
   grass.colorSpace = THREE.SRGBColorSpace;
 
-  return { plaster, plasterN, concrete, concreteN, ground, groundN, metal, metalN, sandbag, glow, smoke, grass };
+  // Crate side (one per face): planks with dark gaps, a raised frame round the edge and a diagonal brace, the grain
+  // running along each board
+  const CB = 22;
+  const crateAt = (x, y) => {
+    const edge = x < CB || x >= S - CB || y < CB || y >= S - CB;
+    const brace = Math.abs((x - CB) - (S - CB - y)) < CB * 0.75 && !edge;
+    const along = edge ? (x < CB || x >= S - CB ? y : x) : brace ? x + y : x;
+    const across = edge ? (x < CB || x >= S - CB ? x : y) : brace ? x - y : y;
+    const board = edge ? 9 : brace ? 7 : Math.floor(y / (S / 5));
+    const gap = !edge && !brace && (y % (S / 5) < 2);
+    const seam = edge && (Math.abs(x - y) < 1.5 || Math.abs(x - (S - 1 - y)) < 1.5) && (x < CB || x >= S - CB) !== (y < CB || y >= S - CB);
+    const grain = pfbm(along / S * 0.6 + board * 0.37, across / S * 6 + board * 1.3, 4, 4);
+    const h = gap || seam ? 0 : (edge ? 0.85 : brace ? 0.7 : 0.45) + (grain - 0.5) * 0.12;
+    const b = gap || seam ? 0.32 : 0.78 + (grain - 0.5) * 0.4 + (hash2(board, 17) - 0.5) * 0.14 + (edge || brace ? 0.04 : 0);
+    return [h, b];
+  };
+  const crateH = heightField(S, (u, v, x, y) => crateAt(x, y)[0]);
+  const crate = tex(canvasFrom(S, (x, y, o) => { const b = crateAt(x, y)[1]; o[0] = clamp255(b * 255); o[1] = clamp255(b * 226); o[2] = clamp255(b * 186); }));
+  const crateN = tex(normalCanvas(S, crateH, 5), false);
+
+  // Grime for painted armour: mottled fading, streaks running down, and specks of chipped paint
+  const grime = tex(canvasFrom(128, (x, y, o) => {
+    const u = x / 128, v = y / 128;
+    let b = 0.55 + (pfbm(u, v, 4, 4) - 0.5) * 0.7 + (pfbm(u * 0.25, v * 3, 8, 3) - 0.5) * 0.35;
+    if (hash2(x * 3 + 11, y * 5 + 7) > 0.985) b += 0.35;
+    o[0] = o[1] = o[2] = clamp255(b * 255);
+  }), false);
+
+  return { plaster, plasterN, concrete, concreteN, ground, groundN, metal, metalN, sandbag, glow, smoke, grass, crate, crateN, grime };
+}
+
+// Fine surface grain for the weapon in your hands (UVs in metres, one tile every 8 cm): bead-blasted steel with
+// polished wear where hands rub it, and stippled polymer. Normal maps plus roughness maps (in the green channel)
+let GUN_TEX = null;
+export function gunTextures() {
+  if (GUN_TEX) return GUN_TEX;
+  const S = 128;
+  const grain = (x, y) => hash2(x * 7 + 3, y * 13 + 1);
+  const mh = heightField(S, (u, v, x, y) => pfbm(u, v, 8, 3) * 0.5 + grain(x, y) * 0.35);
+  const wear = heightField(S, (u, v) => pfbm(u + 0.37, v + 0.71, 3, 4));
+  const ph = heightField(S, (u, v, x, y) => pnoise(u * 42, v * 42, 42) * 0.7 + grain(x, y) * 0.3);
+  const rough = (h, lo, hi) => tex(canvasFrom(S, (x, y, o) => { const r = clamp255((lo + (hi - lo) * h(x, y)) * 255); o[0] = o[1] = o[2] = r; }), false);
+  GUN_TEX = {
+    metalN: tex(normalCanvas(S, mh, 1.6), false),
+    metalR: rough((x, y) => Math.min(1, Math.max(0, (wear[y * S + x] - 0.3) * 2.2)) * 0.8 + grain(x, y) * 0.2, 0.28, 0.62),
+    polyN: tex(normalCanvas(S, ph, 2.4), false),
+    polyR: rough((x, y) => ph[y * S + x], 0.62, 0.86),
+  };
+  return GUN_TEX;
 }
 
 // MeshStandardMaterial whose texture coordinates come from world position (triplanar-lite),

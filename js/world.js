@@ -1275,8 +1275,8 @@ export class World {
   _crate(x, z) {
     const y = this.heightAt(x, z);
     const s = 1 + this.rng() * 0.3;
-    this._prop('wood', x, y + s / 2, z, s, s, s, 0x7a5c3a, 'wood');
-    if (this.rng() < 0.4) this._prop('wood', x + 0.1, y + s * 1.5, z - 0.1, s * 0.9, s * 0.9, s * 0.9, 0x6e5234, 'wood');
+    this._prop('wood', x, y + s / 2, z, s, s, s, [0xb08a5c, 0xa07c50, 0x9a8a62][Math.floor(this.rng() * 3)], 'wood');
+    if (this.rng() < 0.4) this._prop('wood', x + 0.1, y + s * 1.5, z - 0.1, s * 0.9, s * 0.9, s * 0.9, 0x96784e, 'wood');
   }
 
   _wreck(x, z, rot) {
@@ -1375,7 +1375,7 @@ export class World {
       concrete: worldUVMaterial({ map: this.tex.concrete, normalMap: this.tex.concreteN, normalScale: 0.8, scale: 0.35 }),
       metal: worldUVMaterial({ map: this.tex.metal, normalMap: this.tex.metalN, normalScale: 0.9, scale: 0.4, roughness: 0.62, metalness: 0.35 }),
       sand: worldUVMaterial({ map: this.tex.sandbag, scale: 0.9, roughness: 1 }),
-      wood: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }),
+      wood: new THREE.MeshStandardMaterial({ color: 0xffffff, map: this.tex.crate, normalMap: this.tex.crateN, roughness: 0.88 }),
     };
     const m4 = new THREE.Matrix4(), col = new THREE.Color();
     const q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
