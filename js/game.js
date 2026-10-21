@@ -384,6 +384,9 @@ export class Game extends Emitter {
       this.mode.update(dt);
       this.buildings.update(dt);
       this.effects.update(dt);
+      // soft contact shadows under what's beyond the sun's shadow map (it reaches about its extent from the camera)
+      if (this.renderer.shadowMap.enabled) this.effects.updateBlobs(this.qualityPreset().shadowExtent, 420);
+      else this.effects.updateBlobs(0, 160);
       for (const s of this.soldiers) if (s.throwCd > 0) s.throwCd -= dt;
       this.audio.ambient(dt);
       this._engineSound();

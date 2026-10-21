@@ -86,6 +86,16 @@ function wakeTexture() {
   return t;
 }
 
+// A soft round shadow for things beyond the reach of the sun's shadow map
+function blobTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const x = c.getContext('2d'), g1 = x.createRadialGradient(32, 32, 4, 32, 32, 31);
+  g1.addColorStop(0, 'rgba(0,0,0,0.62)'); g1.addColorStop(0.6, 'rgba(0,0,0,0.38)'); g1.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g1; x.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
+
 // A scorch mark: soot darkest in the middle, ragged at the edge, with spatters thrown out
 function scorchTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -295,6 +305,15 @@ export class Effects {
     // Heat haze: sources for this frame (jet exhausts, ...) and short-lived ones (explosions); the post pass shimmers
     // the picture round them
     this.heatList = []; this.heatTimed = [];
+    // Contact shadows under soldiers and tanks too far away for the shadow map
+    this.blobMax = 160;
+    this.blobMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({
+      map: blobTexture(), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, fog: true,
+    }), this.blobMax);
+    this.blobMesh.count = 0;
+    this.blobMesh.frustumCulled = false;
+    this.blobMesh.renderOrder = 1;
+    scene.add(this.blobMesh);
     this.wakeMat = new THREE.MeshBasicMaterial({ map: wakeTexture(), vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler();
     this._p = new THREE.Vector3(); this._s = new THREE.Vector3();
@@ -355,6 +374,35 @@ export class Effects {
       this.fire.add(x + dx * 0.1 * i, y + dy * 0.1 * i, z + dz * 0.1 * i, dx * 3, dy * 3, dz * 3, 0.05, s, s * 0.5, 0xffc070, 1);
     }
     this.smoke.add(x, y, z, dx * 1.5 + rand(-0.3, 0.3), dy * 1.5 + 0.4, dz * 1.5 + rand(-0.3, 0.3), 0.6, 0.2, 0.9, 0x9a948a, 0.25);
+  }
+
+  // Soft shadows under the soldiers and tanks between near (where the sun's own shadows end) and far
+  updateBlobs(near, far) {
+    const g = this.game, c = g.camera.position, W = g.world, m = this.blobMesh;
+    let n = 0;
+    const put = (x, z, yaw, sx, sz, a) => {
+      if (n >= this.blobMax) return;
+      const y = W.heightAt(x, z) + 0.05;
+      if (W.water !== null && W.water !== undefined && y < W.water) return;
+      _qa.setFromAxisAngle(_up, yaw);
+      this._s.set(sx * a, 1, sz * a);
+      this._m.compose(_hv.set(x, y, z), _qa, this._s);
+      m.setMatrixAt(n++, this._m);
+    };
+    const band = (x, z) => { const d = Math.hypot(x - c.x, z - c.z); return d < near * 0.85 || d > far ? 0 : Math.min(1, (d - near * 0.85) / (near * 0.25)); };
+    for (const s of g.soldiers) {
+      if (s.state !== 'alive' || s.vehicle) continue;
+      const p = s.position || s.pos;
+      const a = band(p.x, p.z);
+      if (a > 0) put(p.x, p.z, 0, 1.1, 1.1, 0.6 + a * 0.4);
+    }
+    for (const v of g.vehicles) {
+      if (!v.alive || v.isAircraft || v.isShip || !v.pos || !v.hull || !v.hull.visible) continue;
+      const a = band(v.pos.x, v.pos.z);
+      if (a > 0) put(v.pos.x, v.pos.z, v.yaw || 0, 4.4, 7.6, 0.6 + a * 0.4);
+    }
+    m.count = n;
+    if (n) m.instanceMatrix.needsUpdate = true;
   }
 
   // Hot air at (x, y, z), radius r metres, strength k (about 0..1.5), for this frame only

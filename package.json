@@ -1,6 +1,6 @@
 {
   "name": "sixth-front",
-  "version": "1.26.8",
+  "version": "1.26.9",
   "private": true,
   "description": "Battlefield-style browser shooter built with three.js",
   "scripts": {
