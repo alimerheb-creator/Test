@@ -292,6 +292,9 @@ export class Effects {
     this.trackN = 0;
     // Ships' wakes: a strip of foam along each ship's track that spreads and fades behind it
     this.wakes = new Map();
+    // Heat haze: sources for this frame (jet exhausts, ...) and short-lived ones (explosions); the post pass shimmers
+    // the picture round them
+    this.heatList = []; this.heatTimed = [];
     this.wakeMat = new THREE.MeshBasicMaterial({ map: wakeTexture(), vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler();
     this._p = new THREE.Vector3(); this._s = new THREE.Vector3();
@@ -352,6 +355,13 @@ export class Effects {
       this.fire.add(x + dx * 0.1 * i, y + dy * 0.1 * i, z + dz * 0.1 * i, dx * 3, dy * 3, dz * 3, 0.05, s, s * 0.5, 0xffc070, 1);
     }
     this.smoke.add(x, y, z, dx * 1.5 + rand(-0.3, 0.3), dy * 1.5 + 0.4, dz * 1.5 + rand(-0.3, 0.3), 0.6, 0.2, 0.9, 0x9a948a, 0.25);
+  }
+
+  // Hot air at (x, y, z), radius r metres, strength k (about 0..1.5), for this frame only
+  heat(x, y, z, r, k) {
+    const c = this.game.camera.position;
+    if ((x - c.x) ** 2 + (y - c.y) ** 2 + (z - c.z) ** 2 > 160000 || this.heatList.length >= 48) return;
+    this.heatList.push({ x, y, z, r, k });
   }
 
   // A ship's wake: call every frame with its stern (x, z), heading, half its beam and how fast it goes (0..1 of its
@@ -515,6 +525,7 @@ export class Effects {
   // boiling up out of it and a column that hangs over the spot; on the ground also the blast ring of dust, earth and
   // clods thrown up trailing dirt, and a scorch mark
   explosion(x, y, z, scale = 1) {
+    if (this.heatTimed.length < 12) this.heatTimed.push({ x, y: y + 2 * scale, z, r: 7 * scale, k: 1.4, t: 0.8, d: 0.8 });
     const world = this.game.world, sea = world.water;
     if (sea !== null && y < sea + 1.2) { this.splash(x, sea, z, scale); this.flash(x, sea + 1, z, 30 * scale, 20 * scale, 0.12); return; }
     this.flash(x, y + 1, z, 60 * scale, 30 * scale, 0.22);
@@ -617,6 +628,7 @@ export class Effects {
 
   update(dt) {
     this.time = (this.time || 0) + dt;
+    for (let i = this.heatTimed.length - 1; i >= 0; i--) if ((this.heatTimed[i].t -= dt) <= 0) this.heatTimed.splice(i, 1);
     if (this.wakes.size) this._updateWakes();
     this.smoke.update(dt);
     this.fire.update(dt);

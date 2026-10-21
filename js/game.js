@@ -461,6 +461,25 @@ export class Game extends Emitter {
     const sl = this.world.sun, hzk = 0.035 * Math.min(4, sl.intensity) * (this.world.atmosphere && this.world.atmosphere.haze !== undefined ? +this.world.atmosphere.haze : 1);
     (fx.hazeCol || (fx.hazeCol = new THREE.Vector3())).set(sl.color.r * hzk, sl.color.g * hzk, sl.color.b * hzk);
     fx.hazeDist = Math.max(250, this.scene.fog ? this.scene.fog.far * 0.9 : 900);
+    // heat haze: the strongest sources on screen, as screen position, radius and strength
+    const E = this.effects, hs = [];
+    for (const h of E.heatList) hs.push(h);
+    for (const h of E.heatTimed) hs.push({ x: h.x, y: h.y, z: h.z, r: h.r * (1.2 - h.t / h.d * 0.4), k: h.k * (h.t / h.d) });
+    const cand = [];
+    for (const h of hs) {
+      _v.set(h.x, h.y, h.z);
+      const dist = _v.distanceTo(cam.position);
+      if (dist < 1 || dist > 450) continue;
+      _v.project(cam);
+      if (_v.z > 1 || Math.abs(_v.x) > 1.4 || Math.abs(_v.y) > 1.4) continue;
+      const r = (h.r * cam.projectionMatrix.elements[5] * 0.5) / dist, k = h.k * (1 - dist / 450);
+      if (r > 0.004) cand.push([_v.x * 0.5 + 0.5, _v.y * 0.5 + 0.5, Math.min(r, 0.6), k]);
+    }
+    cand.sort((a, b) => b[2] * b[3] - a[2] * a[3]);
+    fx.heat = fx.heat || Array.from({ length: 8 }, () => new THREE.Vector4());
+    fx.heatN = Math.min(8, cand.length);
+    for (let i = 0; i < fx.heatN; i++) fx.heat[i].set(...cand[i]);
+    E.heatList.length = 0;
     const blur = playing ? (this.motionBlur || 0) : 0;
     fx.blur = (fx.blur || 0) + (blur - (fx.blur || 0)) * Math.min(1, dt * 4);
   }

@@ -103,6 +103,7 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
   uniform vec2 sunPos; uniform float sunVis; uniform bool useBloom;
   uniform sampler2D tAO; uniform bool useAO; uniform float aoStrength; uniform sampler2D tDepth; uniform bool vmMask;
   uniform vec3 hazeCol; uniform vec3 sunDirW; uniform mat3 camRot; uniform mat4 projInvC;
+  uniform vec4 heat[8]; uniform int heatN;
   varying vec2 vUv;
   vec3 sfRRTFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
   vec3 sfAces(vec3 c){
@@ -115,6 +116,16 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
   float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
   void main(){
     vec2 uv = vUv;
+    // heat haze: the picture shimmers in the hot air round jet exhausts and explosions
+    vec2 hOff = vec2(0.0);
+    for (int i = 0; i < 8; i++) {
+      if (i >= heatN) break;
+      vec4 h = heat[i];
+      vec2 d = uv - h.xy; d.x *= aspect;
+      float f = 1.0 - smoothstep(h.z * 0.25, h.z, length(d));
+      if (f > 0.0) hOff += vec2(sin(uv.y * 170.0 + time * 13.0 + float(i) * 1.7), cos(uv.x * 150.0 - time * 11.0 + float(i))) * f * h.w;
+    }
+    uv += hOff * 0.0032;
     vec3 col;
     float ca = hurt * 0.006 + 0.0006;
     vec2 dir = (uv - 0.5) * ca;
@@ -193,6 +204,7 @@ export class PostFX {
       time: { value: 0 }, saturation: { value: 1.08 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
       sunPos: { value: new THREE.Vector2(-1, -1) }, sunVis: { value: 0 },
       tAO: { value: null }, useAO: { value: false }, aoStrength: { value: 0.85 }, tDepth: { value: null }, vmMask: { value: false },
+      heat: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) }, heatN: { value: 0 },
       hazeCol: { value: new THREE.Vector3() }, sunDirW: { value: new THREE.Vector3(0, 1, 0) }, camRot: { value: new THREE.Matrix3() }, projInvC: { value: new THREE.Matrix4() },
     });
     this.aoBlurMat = mat(AOBLUR, { tAO: { value: null }, tDepth: { value: null }, aoTexel: { value: new THREE.Vector2() }, near: { value: 0.1 }, far: { value: 1500 } });
@@ -336,6 +348,8 @@ export class PostFX {
       cu.rays.value = this.rtRays ? rays : 0;
     } else { cu.useBloom.value = false; cu.rays.value = 0; }
     cu.blur.value = fx.blur || 0;
+    cu.heatN.value = fx.heatN || 0;
+    if (fx.heat) for (let i = 0; i < cu.heatN.value; i++) cu.heat.value[i].copy(fx.heat[i]);
 
     cu.tScene.value = this.rtScene.texture;
     cu.time.value = (fx.time % 100);
