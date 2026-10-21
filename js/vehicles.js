@@ -194,6 +194,7 @@ export class Tank {
   }
 
   spawn() {
+    this._lastMark = null;
     const hq = HQS[this.team];
     const side = this.slot === 0 ? -1 : 1;
     // Park beside the HQ, relative to the way it faces (map mods can put HQs anywhere)
@@ -476,6 +477,9 @@ export class Tank {
     this.pos.x = clamp(this.pos.x, -lim, lim);
     this.pos.z = clamp(this.pos.z, -lim, lim);
     this._ground(dt);
+    // the tracks' prints in the dirt behind it, a pair every metre it actually moves
+    const lm = this._lastMark || (this._lastMark = { x: this.pos.x, z: this.pos.z });
+    if ((this.pos.x - lm.x) ** 2 + (this.pos.z - lm.z) ** 2 > 0.9) { lm.x = this.pos.x; lm.z = this.pos.z; this.game.effects.trackMark(this.pos.x, this.pos.z, this.yaw, 1.55); }
 
     // Stabilised turret
     const rel = wrapAngle(inp.aimYaw - this.turretYaw);

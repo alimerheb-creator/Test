@@ -46,6 +46,22 @@ function holeTexture() {
   return t;
 }
 
+// A tank track's print: the pads pressed into the dirt, darker grousers across it, soft at the edges
+function trackTexture() {
+  const c = document.createElement('canvas');
+  c.width = 32; c.height = 64;
+  const x = c.getContext('2d');
+  const g1 = x.createLinearGradient(0, 0, 32, 0);
+  g1.addColorStop(0, 'rgba(48,38,28,0)'); g1.addColorStop(0.18, 'rgba(48,38,28,0.55)'); g1.addColorStop(0.82, 'rgba(48,38,28,0.55)'); g1.addColorStop(1, 'rgba(48,38,28,0)');
+  x.fillStyle = g1; x.fillRect(0, 0, 32, 64);
+  x.fillStyle = 'rgba(26,20,14,0.45)';
+  for (let y = 2; y < 64; y += 8) x.fillRect(4, y, 24, 3);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
 // A scorch mark: soot darkest in the middle, ragged at the edge, with spatters thrown out
 function scorchTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -239,6 +255,17 @@ export class Effects {
     this.holeMesh.renderOrder = 1;
     scene.add(this.holeMesh);
     this.holeN = 0;
+    // Track marks left by tanks (the oldest give way to the newest)
+    this.trackMax = 600;
+    this.trackMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({
+      map: trackTexture(), transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
+    }), this.trackMax);
+    this.trackMesh.count = 0;
+    this.trackMesh.receiveShadow = true;
+    this.trackMesh.frustumCulled = false;
+    this.trackMesh.renderOrder = 1;
+    scene.add(this.trackMesh);
+    this.trackN = 0;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler();
     this._p = new THREE.Vector3(); this._s = new THREE.Vector3();
 
@@ -298,6 +325,27 @@ export class Effects {
       this.fire.add(x + dx * 0.1 * i, y + dy * 0.1 * i, z + dz * 0.1 * i, dx * 3, dy * 3, dz * 3, 0.05, s, s * 0.5, 0xffc070, 1);
     }
     this.smoke.add(x, y, z, dx * 1.5 + rand(-0.3, 0.3), dy * 1.5 + 0.4, dz * 1.5 + rand(-0.3, 0.3), 0.6, 0.2, 0.9, 0x9a948a, 0.25);
+  }
+
+  // The two tracks' prints under a tank at (x, z) heading yaw, its tracks off metres either side of the middle
+  trackMark(x, z, yaw, off, w = 0.62, len = 1.0) {
+    const W = this.game.world, e = 0.8;
+    if (W.water !== null && W.water !== undefined && W.heightAt(x, z) < W.water + 0.2) return;
+    const rx = Math.cos(yaw), rz = -Math.sin(yaw);
+    for (const side of [-1, 1]) {
+      const px = x + rx * off * side, pz = z + rz * off * side, py = W.heightAt(px, pz);
+      const nx = W.heightAt(px - e, pz) - W.heightAt(px + e, pz), nz = W.heightAt(px, pz - e) - W.heightAt(px, pz + e);
+      this._p.set(nx, 2 * e, nz).normalize();
+      this._q.setFromUnitVectors(_up, this._p);
+      _qa.setFromAxisAngle(_up, yaw);
+      this._q.multiply(_qa);
+      this._s.set(w, 1, len);
+      this._m.compose(_hv.set(px, py + 0.04, pz), this._q, this._s);
+      this.trackMesh.setMatrixAt(this.trackN % this.trackMax, this._m);
+      this.trackN++;
+    }
+    this.trackMesh.count = Math.min(this.trackN, this.trackMax);
+    this.trackMesh.instanceMatrix.needsUpdate = true;
   }
 
   // A bullet hole where a round struck something that stays put
@@ -564,6 +612,8 @@ export class Effects {
     this.scorchMesh.count = 0;
     this.holeN = 0;
     this.holeMesh.count = 0;
+    this.trackN = 0;
+    this.trackMesh.count = 0;
     this.debrisList.length = 0;
     this.tracers.length = 0;
     this.shake = 0;

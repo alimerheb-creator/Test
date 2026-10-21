@@ -2507,6 +2507,8 @@
     "const SUP = { 0: 0x8c959c, 1: 0x6f7378 };",
     "const DARK = 0x2c2f33, GUNC = 0x7d858b, GLASS = 0x1c2a33;",
     "const MAT = keep(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0.3, side: THREE.DoubleSide }));",
+    "// weathered steel: grime, rust streaks, plate seams, the waterline stain (the engine's shader, when it has one)",
+    "if (g.weatherMaterial) g.weatherMaterial(MAT, { scale: 1, rust: 0.55 });",
     "const WRECK = keep(new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x3a3532, roughness: 1, metalness: 0.1, side: THREE.DoubleSide }));",
     "const FLAGMAT = [0, 1].map((t) => keep(new THREE.MeshStandardMaterial({ color: TEAMS[t].hex, emissive: TEAMS[t].hex, emissiveIntensity: 0.25, side: THREE.DoubleSide })));",
     "",

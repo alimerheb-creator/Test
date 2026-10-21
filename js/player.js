@@ -560,6 +560,20 @@ export class PlayerController {
     this.petals.visible = false;
     this.vmFlash = new THREE.PointLight(0xffa860, 0, 1.6, 2);
     this.vmScene.add(this.vmFlash);
+    // spent cases thrown out of the ejection port, tumbling away to the right
+    const brass = new THREE.MeshStandardMaterial({ color: 0xd2a650, metalness: 0.85, roughness: 0.32 });
+    const hullRed = new THREE.MeshStandardMaterial({ color: 0x9a2a22, roughness: 0.6 });
+    const caseGeo = new THREE.CylinderGeometry(0.0045, 0.0048, 0.024, 8).rotateZ(Math.PI / 2);
+    const shellGeo = new THREE.CylinderGeometry(0.0095, 0.0095, 0.06, 10).rotateZ(Math.PI / 2);
+    this.cases = [];
+    for (let i = 0; i < 10; i++) {
+      const m = new THREE.Mesh(caseGeo, brass);
+      m.visible = false;
+      m.userData = { v: new THREE.Vector3(), w: new THREE.Vector3(), t: 0, small: caseGeo, big: shellGeo, brass, red: hullRed };
+      this.vmScene.add(m);
+      this.cases.push(m);
+    }
+    this.caseN = 0;
 
     // knife for melee
     const M = vmMats();
@@ -841,6 +855,7 @@ export class PlayerController {
           s.yaw += rand(-1, 1) * def.recoil[1];
           this.kick = Math.min(1.5, this.kick + (def.kind === 'bolt' ? 1.5 : 0.7));
           this.flashT = 0.045;
+          this._eject();
           this.flash.material.rotation = Math.random() * Math.PI;
           const fs = def.id === 'lmg' ? 0.3 : def.id === 'pistol' ? 0.16 : 0.24;
           this.flash.scale.set(fs, fs, fs);
@@ -1010,7 +1025,36 @@ export class PlayerController {
   }
 
   // ------------------------------------------------------------ camera & viewmodel
+  // A spent case from the ejection port (where it is on each built-in gun; modded guns: beside the bolt)
+  _eject() {
+    const vm = this.vm;
+    if (!vm || !this.cases || vm.kind === 'rpg' || vm.kind === 'ugl' || vm.kind === 'sniper' || vm.kind === 'crate' || vm.kind === 'c4') return;
+    const PORT = { ar: [0.03, 0.008, -0.02], smg: [0.028, 0.01, -0.07], lmg: [0.04, 0.0, -0.06], pistol: [0.016, 0.03, -0.06], shotgun: [0.03, 0.006, -0.02] };
+    const p = PORT[vm.kind] || (vm.parts.bolt ? [vm.parts.bolt.position.x + 0.03, vm.parts.bolt.position.y, vm.parts.bolt.position.z] : [0.03, 0.01, -0.03]);
+    const c = this.cases[this.caseN++ % this.cases.length], u = c.userData;
+    const shell = vm.kind === 'shotgun';
+    c.geometry = shell ? u.big : u.small;
+    c.material = shell ? u.red : u.brass;
+    vm.group.updateMatrixWorld(true);
+    c.position.set(p[0], p[1], p[2]);
+    vm.group.localToWorld(c.position);
+    c.quaternion.random();
+    u.v.set(rand(1.5, 2.3), rand(1.1, 1.7), rand(0.15, 0.55));
+    u.w.set(rand(-25, 25), rand(-25, 25), rand(-25, 25));
+    u.t = 0.7;
+    c.visible = true;
+  }
+
   updateCamera(dt) {
+    if (this.cases) for (const c of this.cases) {
+      const u = c.userData;
+      if (!c.visible) continue;
+      u.t -= dt;
+      if (u.t <= 0) { c.visible = false; continue; }
+      u.v.y -= 9.8 * dt;
+      c.position.addScaledVector(u.v, dt);
+      c.rotation.x += u.w.x * dt; c.rotation.y += u.w.y * dt; c.rotation.z += u.w.z * dt;
+    }
     const s = this.s, g = this.game, cam = this.camera;
     const shake = g.effects.shake;
     const sx = (Math.random() - 0.5) * shake * 0.03, sy = (Math.random() - 0.5) * shake * 0.03;

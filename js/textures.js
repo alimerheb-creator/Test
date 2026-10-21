@@ -293,3 +293,44 @@ export function worldUVMaterial({ map, normalMap = null, normalScale = 1, scale 
   m.customProgramCacheKey = () => (normalMap ? 'worlduv-n' : 'worlduv');
   return m;
 }
+
+// Weathered painted steel for ships and other big vehicles (mods call it through game.weatherMaterial): grime
+// mottling, rust streaks running down the sides from the deck edge and the fittings, welded plate seams on the
+// sides, a dark stain along the waterline (model y = 0) and a non-skid look on the decks; worked out in the model's
+// own space so it moves with it. o: { scale (1 = plates and streaks for a ship), rust (0..1), waterline: true }
+export function weatherMaterial(m, grime, o = {}) {
+  if (!grime || m.userData.weathered) return m;
+  m.userData.weathered = true;
+  const S = o.scale ?? 1, rust = o.rust ?? 0.6, wl = o.waterline !== false;
+  const prev = m.onBeforeCompile;
+  m.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.wGrime = { value: grime };
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vWN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = position; vWN = normal;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vWP; varying vec3 vWN; uniform sampler2D wGrime;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec3 wn = normalize(vWN), aw = abs(wn) + 1e-4; aw /= aw.x + aw.y + aw.z;
+        float wS = ${S.toFixed(3)};
+        float gn = texture2D(wGrime, vWP.zy * 0.11 * wS).r * aw.x + texture2D(wGrime, vWP.xz * 0.11 * wS).r * aw.y + texture2D(wGrime, vWP.xy * 0.11 * wS).r * aw.z;
+        diffuseColor.rgb *= 0.8 + 0.42 * gn;
+        float sideF = 1.0 - aw.y;
+        // rust weeping down the sides
+        float st = texture2D(wGrime, vec2((vWP.z + vWP.x * 0.7) * 0.6 * wS, vWP.y * 0.035 * wS)).r;
+        float streak = smoothstep(0.6, 0.92, st) * sideF;
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.82, 0.6, 0.44), streak * ${rust.toFixed(3)});
+        // the seams between the plates: horizontal strakes and vertical frames
+        float sy = fract(vWP.y / (1.3 / wS)), sz = fract((aw.x > aw.z ? vWP.z : vWP.x) / (2.6 / wS));
+        float seam = max(1.0 - smoothstep(0.0, 0.02, min(sy, 1.0 - sy)), 1.0 - smoothstep(0.0, 0.01, min(sz, 1.0 - sz))) * sideF;
+        diffuseColor.rgb *= 1.0 - seam * 0.13;
+        ${wl ? '// the waterline: a band of dark green-brown grime just above it\n        float wlb = smoothstep(-0.1, 0.05, vWP.y) * (1.0 - smoothstep(0.05, 0.75, vWP.y)) * sideF;\n        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.15, 0.11), wlb * 0.45);' : ''}
+        // decks: darker non-skid, worn lighter where the crew walk
+        float deckF = smoothstep(0.6, 0.9, wn.y);
+        diffuseColor.rgb *= mix(1.0, 0.82 + 0.3 * texture2D(wGrime, vWP.xz * 0.5 * wS).r, deckF);`)
+      .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor * (1.2 - 0.35 * gn), 0.25, 1.0);');
+  };
+  const key = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : null;
+  m.customProgramCacheKey = () => (key ? key() : '') + '|weather' + S + rust + wl;
+  m.needsUpdate = true;
+  return m;
+}

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { DEFAULT_SETTINGS, BOT_NAMES, CLASS_ORDER, CLASSES, HQS, QUALITY, VEHICLES, ATMOSPHERE, RULES, VEGETATION, PLAY_HALF } from './config.js';
 import { Emitter, loadSettings, saveSettings, rand, clamp } from './util.js';
 import { World } from './world.js';
+import { weatherMaterial } from './textures.js';
 import { Buildings } from './buildings.js';
 import { Effects } from './effects.js';
 import { GameAudio } from './audio.js';
@@ -63,6 +64,8 @@ export class Game extends Emitter {
     progress(0.1, 'Surveying terrain');
     await step();
     this.world = new World(this);
+    // weathered painted steel for mods' ships and vehicles (see textures.js)
+    this.weatherMaterial = (m, o) => weatherMaterial(m, this.world.tex && this.world.tex.grime, o);
     this.world.build();
     progress(0.45, 'Raising the town');
     await step();
