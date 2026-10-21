@@ -52,15 +52,18 @@ const RAYS = `uniform sampler2D tSrc; uniform vec2 sunPos; uniform float aspect;
 // by what's around it, so corners, the foot of a wall, the ground under a tank or a crate and the gaps between
 // sandbags go dark the way they do in daylight. Fades out with distance; the sky isn't touched
 const AO = `uniform sampler2D tDepth; uniform mat4 projInv; uniform float proj11; uniform float aspect; uniform float radius;
-  uniform vec2 texel; uniform float fadeFar; uniform float intensity;
+  uniform vec2 texel; uniform float fadeFar; uniform float intensity; uniform float hazeDist;
   varying vec2 vUv;
   vec3 vpos(vec2 uv){ float d = texture2D(tDepth, uv).r; vec4 p = projInv * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0); return p.xyz / p.w; }
   void main(){
     float d0 = texture2D(tDepth, vUv).r;
-    if (d0 >= 0.99999) { gl_FragColor = vec4(1.0); return; }
+    if (d0 >= 0.99999) { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); return; }
     vec3 P = vpos(vUv);
-    float dist = -P.z;
-    if (dist > fadeFar) { gl_FragColor = vec4(1.0); return; }
+    float dist = length(P);
+    // (green: how much air lies between the eye and this point, for the sunlit haze)
+    float hz = 1.0 - exp(-dist / hazeDist);
+    if (-P.z > fadeFar) { gl_FragColor = vec4(1.0, hz, 0.0, 1.0); return; }
+    dist = -P.z;
     vec3 px1 = vpos(vUv + vec2(texel.x, 0.0)), px0 = vpos(vUv - vec2(texel.x, 0.0));
     vec3 py1 = vpos(vUv + vec2(0.0, texel.y)), py0 = vpos(vUv - vec2(0.0, texel.y));
     vec3 dx = abs(px1.z - P.z) < abs(P.z - px0.z) ? px1 - P : P - px0;
@@ -77,7 +80,7 @@ const AO = `uniform sampler2D tDepth; uniform mat4 projInv; uniform float proj11
       occ += max(0.0, dot(N, v) / max(l, 1e-4) - 0.12) * (1.0 - smoothstep(radius, radius * 2.2, l));
     }
     float ao = clamp(1.0 - intensity * occ / float(SAMPLES), 0.0, 1.0);
-    gl_FragColor = vec4(vec3(mix(ao, 1.0, smoothstep(fadeFar * 0.55, fadeFar, dist))), 1.0);
+    gl_FragColor = vec4(mix(ao, 1.0, smoothstep(fadeFar * 0.55, fadeFar, dist)), hz, 0.0, 1.0);
   }`;
 
 // the AO's noise smoothed out without bleeding across edges (a 4x4 box weighted by how close each depth is)
@@ -91,7 +94,7 @@ const AOBLUR = `uniform sampler2D tAO; uniform sampler2D tDepth; uniform vec2 ao
       float w = max(0.0, 1.0 - abs(lin(texture2D(tDepth, uv).r) - z0) / (z0 * 0.06 + 0.05));
       sum += texture2D(tAO, uv).r * w; wsum += w;
     }
-    gl_FragColor = vec4(vec3(wsum > 0.0 ? sum / wsum : 1.0), 1.0);
+    gl_FragColor = vec4(wsum > 0.0 ? sum / wsum : 1.0, texture2D(tAO, vUv).g, 0.0, 1.0);
   }`;
 
 const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform sampler2D tRays; uniform float rays; uniform float blur;
@@ -99,6 +102,7 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
   uniform float saturation; uniform float hurt; uniform float lowHp; uniform float aspect;
   uniform vec2 sunPos; uniform float sunVis; uniform bool useBloom;
   uniform sampler2D tAO; uniform bool useAO; uniform float aoStrength; uniform sampler2D tDepth; uniform bool vmMask;
+  uniform vec3 hazeCol; uniform vec3 sunDirW; uniform mat3 camRot; uniform mat4 projInvC;
   varying vec2 vUv;
   vec3 sfRRTFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
   vec3 sfAces(vec3 c){
@@ -127,7 +131,15 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
       col.b = texture2D(tScene, uv - dir).b;
     }
     // (after the weapon in your hands is drawn the depth buffer holds only the weapon: it keeps its own shading)
-    if (useAO && !(vmMask && texture2D(tDepth, uv).r < 1.0)) col *= mix(1.0, texture2D(tAO, uv).r, aoStrength);
+    if (useAO && !(vmMask && texture2D(tDepth, uv).r < 1.0)) {
+      vec2 ah = texture2D(tAO, uv).rg;
+      col *= mix(1.0, ah.r, aoStrength);
+      // sunlit haze: the air between you and distant ground glows toward the sun (forward scattering), a little
+      // everywhere else
+      vec4 vd = projInvC * vec4(uv * 2.0 - 1.0, 1.0, 1.0);
+      float mu = max(dot(normalize(camRot * (vd.xyz / vd.w)), sunDirW), 0.0);
+      col += hazeCol * ah.g * (0.22 + pow(mu, 6.0) * 1.4 + pow(mu, 40.0) * 2.2);
+    }
     if (useBloom) col += texture2D(tBloom, uv).rgb * bloomStrength;
     if (rays > 0.001) col += texture2D(tRays, uv).rgb * rays * vec3(1.0, 0.86, 0.66);
     // Sun glare and lens ghosts
@@ -181,6 +193,7 @@ export class PostFX {
       time: { value: 0 }, saturation: { value: 1.08 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
       sunPos: { value: new THREE.Vector2(-1, -1) }, sunVis: { value: 0 },
       tAO: { value: null }, useAO: { value: false }, aoStrength: { value: 0.85 }, tDepth: { value: null }, vmMask: { value: false },
+      hazeCol: { value: new THREE.Vector3() }, sunDirW: { value: new THREE.Vector3(0, 1, 0) }, camRot: { value: new THREE.Matrix3() }, projInvC: { value: new THREE.Matrix4() },
     });
     this.aoBlurMat = mat(AOBLUR, { tAO: { value: null }, tDepth: { value: null }, aoTexel: { value: new THREE.Vector2() }, near: { value: 0.1 }, far: { value: 1500 } });
     this.aoMats = {};
@@ -199,7 +212,7 @@ export class PostFX {
   _aoMat(n) {
     return this.aoMats[n] || (this.aoMats[n] = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: AO, defines: { SAMPLES: n }, depthTest: false, depthWrite: false,
-      uniforms: { tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, proj11: { value: 1 }, aspect: { value: 1 }, radius: { value: 1.6 }, texel: { value: new THREE.Vector2() }, fadeFar: { value: 150 }, intensity: { value: 2.0 } },
+      uniforms: { tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, proj11: { value: 1 }, aspect: { value: 1 }, radius: { value: 1.6 }, texel: { value: new THREE.Vector2() }, fadeFar: { value: 150 }, intensity: { value: 2.0 }, hazeDist: { value: 900 } },
     }));
   }
 
@@ -274,6 +287,11 @@ export class PostFX {
       au.proj11.value = camera.projectionMatrix.elements[5];
       au.aspect.value = this.w / this.h;
       au.texel.value.set(1 / this.w, 1 / this.h);
+      au.hazeDist.value = fx.hazeDist || 900;
+      cu.projInvC.value.copy(camera.projectionMatrixInverse);
+      cu.camRot.value.setFromMatrix4(camera.matrixWorld);
+      if (fx.sunDir) cu.sunDirW.value.copy(fx.sunDir);
+      if (fx.hazeCol) cu.hazeCol.value.copy(fx.hazeCol); else cu.hazeCol.value.set(0, 0, 0);
       this._pass(am, this.rtAO);
       const bu = this.aoBlurMat.uniforms;
       bu.tAO.value = this.rtAO.texture; bu.tDepth.value = dt;

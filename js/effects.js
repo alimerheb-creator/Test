@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { rand, clamp } from './util.js';
 
 const _c = new THREE.Color(), _up = new THREE.Vector3(0, 1, 0), _qa = new THREE.Quaternion();
+const _fwdZ = new THREE.Vector3(0, 0, 1), _hv = new THREE.Vector3(), _hc = new THREE.Color();
 const _hash = (x, y, z) => { const v = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453; return v - Math.floor(v); };
 
 // A broken lump of masonry or earth: a box with its corners and faces knocked about (a corner moves the same way on
@@ -16,6 +17,33 @@ function chunkGeo() {
   }
   g.computeVertexNormals();
   return g;
+}
+
+// A bullet hole: a dark hole, a ring of chipped, paler material round it and a few cracks running out (alpha fades
+// at the edge). The instance colour tints it for what was hit
+function holeTexture() {
+  const S = 64, c = document.createElement('canvas');
+  c.width = c.height = S;
+  const x = c.getContext('2d');
+  const g1 = x.createRadialGradient(32, 32, 2, 32, 32, 30);
+  g1.addColorStop(0, 'rgba(200,196,188,0.95)'); g1.addColorStop(0.45, 'rgba(176,170,160,0.75)'); g1.addColorStop(1, 'rgba(150,146,138,0)');
+  x.fillStyle = g1;
+  x.beginPath();
+  for (let i = 0; i <= 24; i++) { const a = (i / 24) * Math.PI * 2, r = 17 + Math.random() * 11; x.lineTo(32 + Math.cos(a) * r, 32 + Math.sin(a) * r); }
+  x.fill();
+  x.strokeStyle = 'rgba(40,36,32,0.55)'; x.lineWidth = 1.2;
+  for (let i = 0; i < 5; i++) {
+    let a = Math.random() * Math.PI * 2, r = 7, px = 32 + Math.cos(a) * r, py = 32 + Math.sin(a) * r;
+    x.beginPath(); x.moveTo(px, py);
+    for (let k = 0; k < 4; k++) { a += (Math.random() - 0.5) * 0.8; r += 4 + Math.random() * 4; px = 32 + Math.cos(a) * r; py = 32 + Math.sin(a) * r; x.lineTo(px, py); }
+    x.stroke();
+  }
+  const g2 = x.createRadialGradient(32, 32, 0, 32, 32, 9);
+  g2.addColorStop(0, 'rgba(8,7,6,1)'); g2.addColorStop(0.55, 'rgba(22,20,18,1)'); g2.addColorStop(1, 'rgba(60,55,50,0)');
+  x.fillStyle = g2; x.beginPath(); x.arc(32, 32, 9, 0, Math.PI * 2); x.fill();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }
 
 // A scorch mark: soot darkest in the middle, ragged at the edge, with spatters thrown out
@@ -200,6 +228,17 @@ export class Effects {
     this.scorchMesh.renderOrder = 1;
     scene.add(this.scorchMesh);
     this.scorchN = 0;
+    // Bullet holes in walls, rocks, metal and the ground (the oldest give way to the newest)
+    this.holeMax = 220;
+    this.holeMesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({
+      map: holeTexture(), transparent: true, depthWrite: false, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+    }), this.holeMax);
+    this.holeMesh.count = 0;
+    this.holeMesh.receiveShadow = true;
+    this.holeMesh.frustumCulled = false;
+    this.holeMesh.renderOrder = 1;
+    scene.add(this.holeMesh);
+    this.holeN = 0;
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler();
     this._p = new THREE.Vector3(); this._s = new THREE.Vector3();
 
@@ -261,7 +300,30 @@ export class Effects {
     this.smoke.add(x, y, z, dx * 1.5 + rand(-0.3, 0.3), dy * 1.5 + 0.4, dz * 1.5 + rand(-0.3, 0.3), 0.6, 0.2, 0.9, 0x9a948a, 0.25);
   }
 
-  impact(x, y, z, nx, ny, nz, mat) {
+  // A bullet hole where a round struck something that stays put
+  hole(x, y, z, nx, ny, nz, mat) {
+    const H = { concrete: [0.13, 0xc8c2b6], plaster: [0.12, 0xe0d6c4], metal: [0.06, 0xb8bcc0], wood: [0.08, 0x9a7a52], rock: [0.11, 0xa8a29a], sand: [0.16, 0x6e5c44], dirt: [0.16, 0x5a4a38] }[mat];
+    if (!H) return;
+    this._p.set(nx, ny, nz);
+    if (this._p.lengthSq() < 1e-6) return;
+    this._p.normalize();
+    this._q.setFromUnitVectors(_fwdZ, this._p);
+    _qa.setFromAxisAngle(_fwdZ, rand(0, 6.283));
+    this._q.multiply(_qa);
+    const s = H[0] * rand(0.8, 1.25);
+    this._s.set(s, s, 1);
+    this._m.compose(this._p.multiplyScalar(0.012).add(_hv.set(x, y, z)), this._q, this._s);
+    const i = this.holeN % this.holeMax;
+    this.holeMesh.setMatrixAt(i, this._m);
+    this.holeMesh.setColorAt(i, _hc.set(H[1]));
+    this.holeN++;
+    this.holeMesh.count = Math.min(this.holeN, this.holeMax);
+    this.holeMesh.instanceMatrix.needsUpdate = true;
+    if (this.holeMesh.instanceColor) this.holeMesh.instanceColor.needsUpdate = true;
+  }
+
+  impact(x, y, z, nx, ny, nz, mat, hole = false) {
+    if (hole) this.hole(x, y, z, nx, ny, nz, mat);
     if (mat === 'water') {
       for (let i = 0; i < 5; i++) {
         this.smoke.add(x, y + 0.05, z, rand(-0.6, 0.6), rand(2.5, 5), rand(-0.6, 0.6), rand(0.4, 0.7), rand(0.1, 0.2), rand(0.4, 0.7), 0xe4edf0, 0.85, 9, 1);
@@ -500,6 +562,8 @@ export class Effects {
     this.blaze.clear();
     this.scorchN = 0;
     this.scorchMesh.count = 0;
+    this.holeN = 0;
+    this.holeMesh.count = 0;
     this.debrisList.length = 0;
     this.tracers.length = 0;
     this.shake = 0;

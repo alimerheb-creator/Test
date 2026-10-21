@@ -362,7 +362,8 @@ export class Combat {
       g.effects.impact(px - dir.x * 0.05, py - dir.y * 0.05, pz - dir.z * 0.05, -dir.x, -dir.y, -dir.z, 'metal');
       if (shooter.isPlayer) g.hud.hitmarker(false, false, true);
     } else if (wHit) {
-      g.effects.impact(px, py, pz, nx, ny, nz, mat);
+      // (no hole in a tree: it can fall)
+      g.effects.impact(px, py, pz, nx, ny, nz, mat, !(wh.box && wh.box.data && wh.box.data.tree !== undefined));
       g.audio.impact(px, py, pz, mat === 'metal');
     }
     if (tracer) g.effects.tracer(muzzle.x, muzzle.y, muzzle.z, px, py, pz, def.tracer || (shooter.team === 0 ? 0xffc46b : 0xff8a5a));

@@ -94,17 +94,32 @@ let _veg = null;
 function vegTextures() {
   if (_veg) return _veg;
   const rng = mulberry32(4242);
-  const mk = (w, h, draw) => {
+  // (cut-out foliage: the see-through pixels take the foliage's average colour, or the smaller mip levels seen from
+  // afar would average the leaves with black and the trees would go dark from the air)
+  const mk = (w, h, draw, cut = false) => {
     const c = document.createElement('canvas'); c.width = w; c.height = h;
-    draw(c.getContext('2d'), w, h);
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    const x = c.getContext('2d');
+    draw(x, w, h);
+    if (!cut) { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+    const src = x.getImageData(0, 0, w, h).data, out = new Uint8Array(w * h * 4);
+    let r = 0, gg = 0, b = 0, n = 0;
+    for (let i = 0; i < src.length; i += 4) if (src[i + 3] > 128) { r += src[i]; gg += src[i + 1]; b += src[i + 2]; n++; }
+    r = n ? r / n : 40; gg = n ? gg / n : 60; b = n ? b / n : 30;
+    for (let y = 0; y < h; y++) for (let k = 0; k < w; k++) {
+      const i = (y * w + k) * 4, o = ((h - 1 - y) * w + k) * 4, a = src[i + 3];
+      out[o] = a < 8 ? r : src[i]; out[o + 1] = a < 8 ? gg : src[i + 1]; out[o + 2] = a < 8 ? b : src[i + 2]; out[o + 3] = a;
+    }
+    const t = new THREE.DataTexture(out, w, h, THREE.RGBAFormat);
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;
+    t.needsUpdate = true;
     return t;
   };
   // the bottom-left corner of each foliage texture is solid: the trees' dark hearts are coloured from it
   const heart = (x, color) => { x.fillStyle = color; x.fillRect(0, 232, 24, 24); };
   // a fir spray: a twig up the middle, side shoots, needles all along them, the young growth at the tips lighter
   const needles = mk(256, 256, (x) => {
-    heart(x, '#22351f');
+    heart(x, '#2b4026');
     x.lineCap = 'round';
     const twig = (x0, y0, ang, len, side) => {
       const x1 = x0 + Math.cos(ang) * len, y1 = y0 + Math.sin(ang) * len;
@@ -123,10 +138,10 @@ function vegTextures() {
       if (!side) for (let i = 1; i < 7; i++) { const t = i / 7.4; for (const sd of [-1, 1]) twig(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, ang + sd * (0.7 + rng() * 0.2), len * (0.46 - t * 0.26), 1); }
     };
     twig(128, 252, -Math.PI / 2, 238, 0);
-  });
+  }, true);
   // a cluster of leaves on their twigs, each leaf with a lighter midrib
   const leaves = mk(256, 256, (x) => {
-    heart(x, '#2a4123');
+    heart(x, '#334c2a');
     x.strokeStyle = '#4b3b2b'; x.lineWidth = 2.4; x.lineCap = 'round';
     for (let i = 0; i < 7; i++) { x.beginPath(); x.moveTo(128, 252); x.quadraticCurveTo(128 + (rng() - 0.5) * 90, 170, 34 + rng() * 188, 24 + rng() * 130); x.stroke(); }
     for (let i = 0; i < 95; i++) {
@@ -139,7 +154,7 @@ function vegTextures() {
       x.strokeStyle = 'hsla(' + (80 + rng() * 20) + ',40%,' + (l + 15) + '%,0.55)'; x.lineWidth = 1;
       x.beginPath(); x.moveTo(cx - Math.cos(rot) * rx * 0.8, cy - Math.sin(rot) * rx * 0.8); x.lineTo(cx + Math.cos(rot) * rx * 0.8, cy + Math.sin(rot) * rx * 0.8); x.stroke();
     }
-  });
+  }, true);
   // bark: deep vertical fissures, grey-brown ridges, lighter flecks
   const bark = mk(64, 256, (x, w, h) => {
     x.fillStyle = '#5d4c3e'; x.fillRect(0, 0, w, h);
@@ -600,8 +615,17 @@ export class World {
           vec2 sideW = bw.x > bw.y ? vTWorld.zy : vTWorld.xy;
           vec2 sideUv = sideW / vec2(9.0, 5.6);
           vec4 sideTex = texture2D(map, vTWorld.zy / vec2(9.0, 5.6)) * bw.x + texture2D(map, vTWorld.xy / vec2(9.0, 5.6)) * bw.y;
-          vec4 topTex = texture2D(map, vMapUv);
+          // the ground texture at two scales, turned against each other and blended by a slow noise, so it
+          // doesn't repeat in a visible grid; then big patches of drier and greener, darker and paler ground
+          vec4 topA = texture2D(map, vMapUv);
+          vec4 topB = texture2D(map, mat2(0.8, -0.6, 0.6, 0.8) * vMapUv * 0.41 + 0.37);
+          float tMix = smoothstep(0.28, 0.72, tNoise(vTWorld.xz * 0.045));
+          vec4 topTex = mix(topA, topB, tMix * 0.65);
           diffuseColor *= mix(topTex, sideTex, steep);
+          float mac = tNoise(vTWorld.xz * 0.0061) * 0.55 + tNoise(vTWorld.xz * 0.023 + 11.0) * 0.3 + tNoise(vTWorld.xz * 0.09 + 3.0) * 0.15;
+          float dry = smoothstep(0.35, 0.8, tNoise(vTWorld.xz * 0.0105 + 41.0));
+          diffuseColor.rgb *= mix(vec3(0.84, 0.88, 0.86), vec3(1.1, 1.07, 0.98), mac);
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.12, 1.0, 0.78), dry * 0.35 * (1.0 - steep));
           #ifdef T_FIELDS
           if (vFarm > 0.01) {
             // farmland: plots in rows on a grid turned to the land, each its own crop, ploughed in furrows, with

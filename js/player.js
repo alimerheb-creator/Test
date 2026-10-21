@@ -40,17 +40,20 @@ function vmMats() {
   VM_MATS.lens = new THREE.MeshBasicMaterial({ color: 0x7fc4a8, transparent: true, opacity: 0.14, depthWrite: false });
   VM_MATS.dot = new THREE.MeshBasicMaterial({ color: 0xff3020 });
   VM_MATS.blade = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.25, metalness: 0.9 });
+  VM_MATS.dark = new THREE.MeshStandardMaterial({ color: 0x0e0f10, roughness: 0.6, metalness: 0.2 });
+  VM_MATS.rubber = new THREE.MeshStandardMaterial({ color: 0x1b1b1c, roughness: 0.95 });
+  VM_MATS.optic = new THREE.MeshStandardMaterial({ color: 0x14202c, roughness: 0.04, metalness: 0.9, envMapIntensity: 2 });
   return VM_MATS;
 }
 
 // A box with rounded edges (the highlights running along them are what make a part look machined instead of
 // blocky), its UVs in metres so the grain is the same size on every part. Cached by size
 const _rbCache = new Map();
-function roundedBox(sx, sy, sz, k = 0.2) {
-  const key = `${sx}|${sy}|${sz}|${k}`;
+function roundedBox(sx, sy, sz, k = 0.2, rmax = 0.006) {
+  const key = `${sx}|${sy}|${sz}|${k}|${rmax}`;
   let geo = _rbCache.get(key);
   if (geo) return geo;
-  const r = Math.min(Math.min(sx, sy, sz) * k, 0.006), h = [sx / 2, sy / 2, sz / 2], inner = h.map((v) => v - r);
+  const r = Math.min(Math.min(sx, sy, sz) * k, rmax), h = [sx / 2, sy / 2, sz / 2], inner = h.map((v) => v - r);
   geo = new THREE.BoxGeometry(sx, sy, sz, 3, 3, 3);
   const pos = geo.attributes.position, nor = geo.attributes.normal, uv = geo.attributes.uv, c = [0, 0, 0], d = [0, 0, 0];
   for (let i = 0; i < pos.count; i++) {
@@ -73,7 +76,7 @@ function roundedBox(sx, sy, sz, k = 0.2) {
 }
 
 function box(g, mat, sx, sy, sz, x, y, z, rx = 0, ry = 0, rz = 0) {
-  const m = new THREE.Mesh(roundedBox(sx, sy, sz), mat);
+  const m = new THREE.Mesh(mat === VM_MATS.glove ? roundedBox(sx, sy, sz, 0.42, 0.02) : roundedBox(sx, sy, sz), mat);
   m.position.set(x, y, z);
   m.rotation.set(rx, ry, rz);
   g.add(m);
@@ -86,10 +89,107 @@ function cyl(g, mat, r0, r1, len, x, y, z) {
   g.add(m);
   return m;
 }
+function cylY(g, mat, r, len, x, y, z, seg = 16) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg), mat);
+  m.position.set(x, y, z);
+  g.add(m);
+  return m;
+}
+function cylX(g, mat, r, len, x, y, z, seg = 16) {
+  const m = cylY(g, mat, r, len, x, y, z, seg);
+  m.rotation.z = Math.PI / 2;
+  return m;
+}
+// Rail teeth along a length of Picatinny rail
+function rail(g, M, w, y, z0, n, mat = M.metal) { for (let i = 0; i < n * 2.6; i++) box(g, mat, w, 0.005, 0.0052, 0, y, z0 - i * 0.01); }
+// A trigger guard and trigger under the grip
+function guard(g, M, z, y = -0.06) {
+  box(g, M.metal, 0.011, 0.006, 0.075, 0, y - 0.018, z - 0.05);
+  box(g, M.metal, 0.011, 0.034, 0.006, 0, y, z - 0.088);
+  box(g, M.dark, 0.006, 0.024, 0.007, 0, y + 0.008, z - 0.06, 0.25);
+}
+
+// The small parts that make each gun read as the real thing: rails, ports, sights, muzzle devices, guards, pads
+function detailGun(kind, g, parts, M) {
+  switch (kind) {
+    case 'ar': {
+      rail(g, M, 0.047, 0.06, 0.09, 12);
+      box(g, M.dark, 0.003, 0.02, 0.055, 0.029, 0.008, -0.02); // ejection port
+      box(g, M.metal, 0.012, 0.014, 0.03, 0.031, 0.024, 0.055); // forward assist
+      box(g, M.metal, 0.05, 0.012, 0.02, 0, 0.044, 0.118); // charging handle
+      box(g, M.metal, 0.05, 0.03, 0.09, 0, -0.046, -0.1); // magwell
+      guard(g, M, 0.07);
+      for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) box(g, M.dark, 0.003, 0.013, 0.032, sx * 0.0315, -0.002, -0.24 - i * 0.052); // handguard slots
+      rail(g, M, 0.045, 0.032, -0.212, 9, M.poly);
+      rail(g, M, 0.04, -0.036, -0.25, 7, M.poly);
+      box(g, M.metal, 0.028, 0.03, 0.035, 0, 0.012, -0.478); // gas block
+      box(g, M.metal, 0.01, 0.032, 0.012, 0, 0.043, -0.478); // front sight post
+      for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 2 + 0.4; box(g, M.dark, 0.004, 0.004, 0.045, Math.cos(a) * 0.0168, 0.005 + Math.sin(a) * 0.0168, -0.672); }
+      box(g, M.poly, 0.04, 0.018, 0.13, 0, 0.031, 0.22); // cheek riser
+      box(g, M.rubber, 0.05, 0.088, 0.018, 0, -0.016, 0.306); // butt pad
+      for (let i = 0; i < 4; i++) box(parts.mag, M.poly, 0.037, 0.007, 0.058, 0, 0.045 - i * 0.03, 0.002); // magazine ribs
+      break;
+    }
+    case 'smg': {
+      rail(g, M, 0.04, 0.041, 0.08, 7);
+      cylY(g, M.metal, 0.009, 0.2, -0.016, 0.04, -0.17).rotation.x = Math.PI / 2; // cocking tube
+      cylY(g, M.metal, 0.017, 0.022, 0, 0.012, -0.325).rotation.x = Math.PI / 2; // front sight hood
+      box(g, M.metal, 0.006, 0.03, 0.008, 0, 0.034, -0.325);
+      guard(g, M, 0.07);
+      for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) box(g, M.dark, 0.003, 0.012, 0.03, sx * 0.0285, -0.004, -0.18 - i * 0.045);
+      box(g, M.rubber, 0.03, 0.06, 0.016, 0, -0.012, 0.255); // butt pad
+      for (let i = 0; i < 5; i++) box(parts.mag, M.poly, 0.033, 0.006, 0.04, 0, 0.07 - i * 0.032, 0);
+      break;
+    }
+    case 'lmg': {
+      box(g, M.metal, 0.022, 0.012, 0.13, 0, 0.068, -0.45); // carry handle
+      for (const z of [-0.39, -0.51]) box(g, M.metal, 0.014, 0.025, 0.012, 0, 0.052, z);
+      for (let i = 0; i < 6; i++) cylY(g, M.dark, 0.0162, 0.006, 0, 0.008, -0.5 - i * 0.045).rotation.x = Math.PI / 2; // cooling rings
+      box(g, M.metal, 0.03, 0.006, 0.22, 0, 0.03, -0.62); // heat shield
+      for (let i = 0; i < 5; i++) box(g, M.dark, 0.022, 0.007, 0.018, 0, 0.031, -0.53 - i * 0.042);
+      guard(g, M, 0.1, -0.07);
+      box(g, M.rubber, 0.054, 0.09, 0.02, 0, -0.015, 0.365);
+      for (let i = 0; i < 3; i++) box(parts.mag, M.dark, 0.102, 0.004, 0.122, 0, 0.035 - i * 0.035, 0); // belt box ribs
+      break;
+    }
+    case 'sniper': {
+      cylY(g, M.metal, 0.013, 0.024, 0, 0.12, -0.07); // elevation turret
+      cylX(g, M.metal, 0.013, 0.024, 0.033, 0.088, -0.07); // windage turret
+      for (const z of [-0.16, 0.03]) { cylY(g, M.metal, 0.026, 0.014, 0, 0.088, z).rotation.x = Math.PI / 2; box(g, M.metal, 0.02, 0.03, 0.014, 0, 0.06, z); } // rings and bases
+      cylY(g, M.optic, 0.027, 0.002, 0, 0.088, -0.271).rotation.x = Math.PI / 2; // objective lens
+      cylY(g, M.optic, 0.023, 0.002, 0, 0.088, 0.126).rotation.x = Math.PI / 2; // eyepiece lens
+      for (const sx of [-1, 1]) box(g, M.dark, 0.004, 0.012, 0.03, sx * 0.02, 0.012, -0.82); // muzzle brake ports
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.013, 12, 8), M.metal);
+      knob.position.set(0.075, 0, 0);
+      parts.bolt.add(knob);
+      box(g, M.tan, 0.046, 0.025, 0.16, 0, 0.026, 0.27); // cheek piece
+      box(g, M.rubber, 0.054, 0.095, 0.02, 0, -0.03, 0.448);
+      guard(g, M, 0.08);
+      break;
+    }
+    case 'pistol': {
+      for (let i = 0; i < 6; i++) box(parts.slide, M.dark, 0.0315, 0.026, 0.003, 0, -0.002, 0.058 + i * 0.006); // slide serrations
+      box(parts.slide, M.dark, 0.004, 0.013, 0.032, 0.0153, 0.006, -0.012); // ejection port
+      box(g, M.poly, 0.012, 0.005, 0.05, 0, -0.04, -0.035);
+      box(g, M.poly, 0.012, 0.03, 0.006, 0, -0.027, -0.06);
+      box(g, M.dark, 0.006, 0.02, 0.006, 0, -0.028, -0.034, 0.2);
+      break;
+    }
+    case 'shotgun': {
+      box(g, M.metal, 0.008, 0.005, 0.46, 0, 0.037, -0.42); // vent rib
+      for (let i = 0; i < 6; i++) box(parts.pump, M.dark, 0.0605, 0.052, 0.005, 0, 0, -0.06 + i * 0.024); // pump grooves
+      guard(g, M, 0.07);
+      box(g, M.rubber, 0.052, 0.09, 0.02, 0, -0.02, 0.348);
+      box(g, M.dark, 0.003, 0.022, 0.06, 0.028, 0.006, -0.02); // ejection port
+      break;
+    }
+  }
+}
+
 function limb(g, mat, a, b, t) {
   const d = new THREE.Vector3().subVectors(b, a);
   const len = d.length();
-  const m = new THREE.Mesh(roundedBox(t, t, len, 0.4), mat);
+  const m = new THREE.Mesh(roundedBox(t, t, len, 0.45, 0.04), mat);
   m.position.copy(a).add(b).multiplyScalar(0.5);
   m.lookAt(b);
   g.add(m);
@@ -284,7 +384,44 @@ function buildViewmodel(kind) {
       sightY = 0.12; muzzleZ = -0.12; gripZ = 0.0; foreZ = -0.2; foreY = -0.1;
       break;
   }
+  detailGun(kind, g, parts, M);
   return finishViewmodel(g, parts, { kind, sightY, muzzleY, muzzleZ, gripZ, foreZ, foreY, offset, charge, port, boltTravel });
+}
+
+// The fixed parts of a viewmodel (everything but the moving parts, the left hand and the forearm) merged into one
+// mesh per material: dozens of little rail teeth and screws cost one draw call instead of one each
+const _mm = new THREE.Matrix4(), _mn = new THREE.Matrix3();
+function mergeStatic(g, keep) {
+  const groups = new Map();
+  for (const o of [...g.children]) {
+    if (!o.isMesh || o === keep || o.material.transparent || o.children.length) continue;
+    if (!groups.has(o.material)) groups.set(o.material, []);
+    groups.get(o.material).push(o);
+  }
+  for (const [mat, list] of groups) {
+    if (list.length < 2) continue;
+    const pos = [], nor = [], uv = [], idx = [];
+    for (const o of list) {
+      o.updateMatrix();
+      _mm.copy(o.matrix); _mn.getNormalMatrix(_mm);
+      const geo = o.geometry, P = geo.attributes.position, N = geo.attributes.normal, U = geo.attributes.uv, base = pos.length / 3;
+      const v = new THREE.Vector3();
+      for (let i = 0; i < P.count; i++) {
+        v.fromBufferAttribute(P, i).applyMatrix4(_mm); pos.push(v.x, v.y, v.z);
+        v.fromBufferAttribute(N, i).applyMatrix3(_mn).normalize(); nor.push(v.x, v.y, v.z);
+        uv.push(U ? U.getX(i) : 0, U ? U.getY(i) : 0);
+      }
+      if (geo.index) for (let i = 0; i < geo.index.count; i++) idx.push(geo.index.getX(i) + base);
+      else for (let i = 0; i < P.count; i++) idx.push(base + i);
+      g.remove(o);
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    out.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    out.setIndex(idx);
+    g.add(new THREE.Mesh(out, mat));
+  }
 }
 
 // Hands, forearms, the carried shotgun shell and the muzzle point, shared by built-in and modded guns
@@ -295,13 +432,21 @@ function finishViewmodel(g, parts, o) {
   // reach for magazines, charging handles and shells.
   const rh = new THREE.Vector3(0.0, -0.075, gripZ);
   box(g, M.glove, 0.055, 0.08, 0.1, rh.x + 0.012, rh.y, rh.z);
+  // the fingers round the front of the grip, the trigger finger along the frame and the thumb over the side
+  for (let i = 0; i < 3; i++) box(g, M.glove, 0.048, 0.018, 0.022, rh.x - 0.002, rh.y + 0.008 - i * 0.021, rh.z - 0.052 + i * 0.006);
+  box(g, M.glove, 0.017, 0.017, 0.052, rh.x - 0.01, rh.y + 0.034, rh.z - 0.075);
+  box(g, M.glove, 0.019, 0.019, 0.055, rh.x + 0.032, rh.y + 0.03, rh.z - 0.03);
+  box(g, M.poly, 0.05, 0.02, 0.06, rh.x + 0.012, rh.y + 0.005, rh.z + 0.02); // knuckle guard
   limb(g, M.sleeve, new THREE.Vector3(0.035, rh.y - 0.02, rh.z + 0.05), new THREE.Vector3(0.12, -0.2, 0.35), 0.075);
   const lhBase = new THREE.Vector3(0.0, foreY, foreZ);
   const lh = new THREE.Group();
   lh.position.copy(lhBase);
   box(lh, M.glove, 0.06, 0.065, 0.1, -0.012, -0.02, 0);
+  // fingers up the far side of the handguard, the thumb along the near side
+  for (let i = 0; i < 4; i++) box(lh, M.glove, 0.017, 0.05, 0.019, -0.044, 0.006, -0.036 + i * 0.023);
+  box(lh, M.glove, 0.018, 0.018, 0.06, 0.03, 0.01, -0.012);
   // The forearm runs from the wrist to an elbow that stays put, so it stretches as the hand moves
-  const forearm = new THREE.Mesh(roundedBox(0.062, 0.062, 1, 0.4), M.sleeve);
+  const forearm = new THREE.Mesh(roundedBox(0.062, 0.062, 1, 0.45, 0.03), M.sleeve);
   g.add(forearm);
   const elbow = new THREE.Vector3(-0.16, -0.36, 0.16);
   g.add(lh);
@@ -326,6 +471,7 @@ function finishViewmodel(g, parts, o) {
   }
   g.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; } });
   const vm = { group: g, muzzle, sightY, kind, offset, parts, lh, lhBase, shell, charge, port, boltTravel, forearm, elbow };
+  mergeStatic(g, forearm);
   placeForearm(vm);
   return vm;
 }
@@ -406,6 +552,14 @@ export class PlayerController {
     this.flash = new THREE.Sprite(fm);
     this.flash.scale.set(0.22, 0.22, 0.22);
     this.flash.visible = false;
+    // the flash's petals, seen from the side (three planes along the barrel), and its light on the gun and hands
+    const pm = new THREE.MeshBasicMaterial({ map: game.world.tex.glow, color: 0xffb46a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, side: THREE.DoubleSide, fog: false });
+    const pg = new THREE.PlaneGeometry(0.1, 0.34).rotateX(-Math.PI / 2).translate(0, 0, -0.15);
+    this.petals = new THREE.Group();
+    for (let i = 0; i < 3; i++) { const p = new THREE.Mesh(pg, pm); p.rotation.z = (i * Math.PI) / 3; this.petals.add(p); }
+    this.petals.visible = false;
+    this.vmFlash = new THREE.PointLight(0xffa860, 0, 1.6, 2);
+    this.vmScene.add(this.vmFlash);
 
     // knife for melee
     const M = vmMats();
@@ -422,7 +576,7 @@ export class PlayerController {
 
   // Mods may have changed weapon models: rebuild them on next use
   clearViewmodels() {
-    if (this.vm) { this.vm.muzzle.remove(this.flash); this.vmRoot.remove(this.vm.group); }
+    if (this.vm) { this.vm.muzzle.remove(this.flash); this.vm.muzzle.remove(this.petals); this.vmRoot.remove(this.vm.group); }
     this.vm = null;
     this.vmKey = null;
     this.vmCache = {};
@@ -492,6 +646,7 @@ export class PlayerController {
     this.vm = this.vmCache[key];
     this.vmRoot.add(this.vm.group);
     this.vm.muzzle.add(this.flash);
+    this.vm.muzzle.add(this.petals);
   }
 
   switchTo(slot) {
@@ -689,6 +844,8 @@ export class PlayerController {
           this.flash.material.rotation = Math.random() * Math.PI;
           const fs = def.id === 'lmg' ? 0.3 : def.id === 'pistol' ? 0.16 : 0.24;
           this.flash.scale.set(fs, fs, fs);
+          this.petals.rotation.z = Math.random() * Math.PI;
+          this.petals.scale.set(fs * 4, fs * 4, fs * rand(2.6, 4.4));
           g.effects.flash(muzzle.x, muzzle.y, muzzle.z, 5, 10, 0.05, 0xffb060);
         }
       }
@@ -860,6 +1017,9 @@ export class PlayerController {
     let fov = g.settings.fov;
     this.flashT -= dt;
     this.flash.visible = this.flashT > 0;
+    this.petals.visible = this.flashT > 0.015;
+    this.vmFlash.intensity = this.flashT > 0 ? 7 * (this.flashT / 0.045) : 0;
+    if (this.flashT > 0 && this.vm) this.vm.muzzle.getWorldPosition(this.vmFlash.position);
 
     if (s.state === 'alive' && s.vehicle) {
       const v = s.vehicle;

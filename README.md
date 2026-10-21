@@ -124,8 +124,8 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 - **Battlefield staples**: downed state and revives, squads with squad spawning, spotting, suppression,
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
   sliding, prone, out-of-bounds timer.
-- **Graphics**: HDR rendering with ambient occlusion (from Medium up: soft shadowing in corners, under vehicles and where things meet the ground), bloom, sun glare and lens ghosts, ACES tone mapping with colour grading,
-  film grain and vignette, image-based reflections (the weapon in your hands too: rounded machined edges, bead-blasted steel and stippled polymer), weathered and mud-spattered tanks with skirts, road wheels and tracks, plank crates, normal-mapped walls and ground, wind-blown grass and trees,
+- **Graphics**: HDR rendering with ambient occlusion (from Medium up: soft shadowing in corners, under vehicles and where things meet the ground), sunlit haze (distant ground glows toward the sun), bullet holes in walls, crates, rock, metal and the ground, bloom, sun glare and lens ghosts, ACES tone mapping with colour grading,
+  film grain and vignette, image-based reflections (the weapon in your hands too: rounded machined edges, bead-blasted steel and stippled polymer, rail teeth, ports, sights, muzzle devices and butt pads, gloved fingers round the grip, a muzzle flash that lights the gun), ground that varies in big drier and greener patches instead of repeating, weathered and mud-spattered tanks with skirts, road wheels and tracks, plank crates, normal-mapped walls and ground, wind-blown grass and trees,
   textured smoke, MSAA and soft shadows. From Medium up: firs made of sprays of needles and broadleaf trees of
   leaf clusters (with barked trunks and shadows the shape of the foliage), weathered and lichened boulders;
   buildings with window frames and sills, glass that reflects the sky, mullions, shutters, string courses,
