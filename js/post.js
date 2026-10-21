@@ -103,8 +103,26 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
   uniform vec2 sunPos; uniform float sunVis; uniform bool useBloom;
   uniform sampler2D tAO; uniform bool useAO; uniform float aoStrength; uniform sampler2D tDepth; uniform bool vmMask;
   uniform vec3 hazeCol; uniform vec3 sunDirW; uniform mat3 camRot; uniform mat4 projInvC;
-  uniform vec4 heat[8]; uniform int heatN;
+  uniform vec4 heat[8]; uniform int heatN; uniform bool useFXAA; uniform vec2 texelS;
   varying vec2 vUv;
+  // FXAA (where there's no MSAA, so phones too): smooth the stair-steps along high-contrast edges by blending along
+  // the edge's direction
+  float fxL(vec3 c){ c = c / (1.0 + c); return dot(c, vec3(0.299, 0.587, 0.114)); }
+  vec3 fxT(vec2 p){ return texture2D(tScene, p).rgb; }
+  vec3 fxaa(vec2 p){
+    vec3 nw = fxT(p + vec2(-1.0, -1.0) * texelS), ne = fxT(p + vec2(1.0, -1.0) * texelS), sw = fxT(p + vec2(-1.0, 1.0) * texelS), se = fxT(p + vec2(1.0, 1.0) * texelS), m = fxT(p);
+    float lNW = fxL(nw), lNE = fxL(ne), lSW = fxL(sw), lSE = fxL(se), lM = fxL(m);
+    float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE))), lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
+    if (lMax - lMin < max(0.04, lMax * 0.12)) return m;
+    vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), (lNW + lSW) - (lNE + lSE));
+    float red = max((lNW + lNE + lSW + lSE) * 0.03125, 1.0 / 128.0);
+    float rcp = 1.0 / (min(abs(dir.x), abs(dir.y)) + red);
+    dir = clamp(dir * rcp, vec2(-8.0), vec2(8.0)) * texelS;
+    vec3 a = 0.5 * (fxT(p + dir * (1.0 / 3.0 - 0.5)) + fxT(p + dir * (2.0 / 3.0 - 0.5)));
+    vec3 b = a * 0.5 + 0.25 * (fxT(p - dir * 0.5) + fxT(p + dir * 0.5));
+    float lB = fxL(b);
+    return (lB < lMin || lB > lMax) ? a : b;
+  }
   vec3 sfRRTFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
   vec3 sfAces(vec3 c){
     const mat3 IN = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
@@ -136,6 +154,9 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
       col = vec3(0.0);
       for (int i = 0; i < 6; i++) col += texture2D(tScene, uv - st * (float(i) / 5.0)).rgb;
       col /= 6.0;
+    } else if (useFXAA) {
+      col = fxaa(uv);
+      if (hurt > 0.01) { col.r = mix(col.r, texture2D(tScene, uv + dir).r, 0.6); col.b = mix(col.b, texture2D(tScene, uv - dir).b, 0.6); }
     } else {
       col.r = texture2D(tScene, uv + dir).r;
       col.g = texture2D(tScene, uv).g;
@@ -204,7 +225,7 @@ export class PostFX {
       time: { value: 0 }, saturation: { value: 1.08 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
       sunPos: { value: new THREE.Vector2(-1, -1) }, sunVis: { value: 0 },
       tAO: { value: null }, useAO: { value: false }, aoStrength: { value: 0.85 }, tDepth: { value: null }, vmMask: { value: false },
-      heat: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) }, heatN: { value: 0 },
+      heat: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) }, heatN: { value: 0 }, useFXAA: { value: false }, texelS: { value: new THREE.Vector2() },
       hazeCol: { value: new THREE.Vector3() }, sunDirW: { value: new THREE.Vector3(0, 1, 0) }, camRot: { value: new THREE.Matrix3() }, projInvC: { value: new THREE.Matrix4() },
     });
     this.aoBlurMat = mat(AOBLUR, { tAO: { value: null }, tDepth: { value: null }, aoTexel: { value: new THREE.Vector2() }, near: { value: 0.1 }, far: { value: 1500 } });
@@ -352,6 +373,8 @@ export class PostFX {
     if (fx.heat) for (let i = 0; i < cu.heatN.value; i++) cu.heat.value[i].copy(fx.heat[i]);
 
     cu.tScene.value = this.rtScene.texture;
+    cu.useFXAA.value = this.samples === 0 && !this.noFXAA;
+    cu.texelS.value.set(1 / this.w, 1 / this.h);
     cu.time.value = (fx.time % 100);
     cu.hurt.value = fx.hurt;
     cu.lowHp.value = fx.lowHp;
