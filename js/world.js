@@ -588,6 +588,8 @@ export class World {
     // cliffs: steep ground takes its texture from the side instead of smearing it down the face, and shows
     // layers of rock, wavering and broken by cracks
     mat.onBeforeCompile = (sh) => {
+      const L = this.lightU();
+      sh.uniforms.uCloudT = L.cloudT; sh.uniforms.uCloudAmt = L.cloudAmt;
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vTWorld; varying vec3 vTNrm;' + (FIELDS ? '\nattribute float farm; varying float vFarm;' : ''))
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNrm = normal;' + (FIELDS ? ' vFarm = farm;' : ''));
@@ -603,7 +605,7 @@ export class World {
       }
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
-          varying vec3 vTWorld; varying vec3 vTNrm;
+          varying vec3 vTWorld; varying vec3 vTNrm; uniform float uCloudT; uniform float uCloudAmt;
           ${FIELDS ? '#define T_FIELDS\n varying float vFarm; uniform vec3 uField[8]; uniform float uFieldN; uniform vec4 uFieldRot; uniform float uFieldSize; uniform vec3 uHedge;' : ''}
           float tHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
           float tNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -626,6 +628,9 @@ export class World {
           float dry = smoothstep(0.35, 0.8, tNoise(vTWorld.xz * 0.0105 + 41.0));
           diffuseColor.rgb *= mix(vec3(0.84, 0.88, 0.86), vec3(1.1, 1.07, 0.98), mac);
           diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(1.12, 1.0, 0.78), dry * 0.35 * (1.0 - steep));
+          // the shadows of the clouds drifting over the land with the wind
+          float cl = tNoise(vTWorld.xz * 0.0042 + uCloudT * vec2(0.03, 0.012)) * 0.65 + tNoise(vTWorld.xz * 0.011 + uCloudT * vec2(0.05, 0.02) + 7.0) * 0.35;
+          diffuseColor.rgb *= 1.0 - smoothstep(0.5, 0.72, cl) * clamp(uCloudAmt * 1.3, 0.0, 1.0) * 0.36;
           #ifdef T_FIELDS
           if (vFarm > 0.01) {
             // farmland: plots in rows on a grid turned to the land, each its own crop, ploughed in furrows, with
@@ -935,6 +940,9 @@ export class World {
     this.hemi.groundColor.set(p.hemiGround);
     this.hemi.intensity = +p.hemiIntensity;
     this.scene.environmentIntensity = +p.envIntensity;
+    const L = this.lightU();
+    L.cloudAmt.value = clamp(+p.clouds, 0, 1);
+    L.sunCol.value.set(p.sunLight).multiplyScalar(Math.min(4, +p.sunIntensity));
     this.atmosphere = p;
     this._bakeEnvironment();
     return p;
@@ -983,9 +991,16 @@ export class World {
     this.sun = sun;
   }
 
+  // Light the shaders share: the time for drifting cloud shadows, how cloudy it is, the sun's way and colour (for
+  // light through leaves and grass)
+  lightU() {
+    return this._lightU || (this._lightU = { cloudT: { value: 0 }, cloudAmt: { value: 0.4 }, sunDir: { value: SUN_DIR }, sunCol: { value: new THREE.Color(1, 0.9, 0.75) } });
+  }
+
   updateSky(camPos) {
     this.sky.position.copy(camPos);
     if (this.windU) this.windU.value = performance.now() / 1000;
+    this.lightU().cloudT.value = performance.now() / 1000;
   }
 
   updateShadow(focus) {
@@ -1062,6 +1077,8 @@ export class World {
       m.onBeforeCompile = (shader) => {
         shader.uniforms.uWind = this.windU;
         shader.uniforms.uSnow = this.snowU;
+        const L = this.lightU();
+        shader.uniforms.uSunDirW = L.sunDir; shader.uniforms.uSunCol = L.sunCol;
         shader.vertexShader = shader.vertexShader
           .replace('#include <common>', '#include <common>\nuniform float uWind;\nvarying float vUp;')
           .replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -1076,7 +1093,9 @@ export class World {
               vUp = normal.y;
             #endif`);
         shader.fragmentShader = shader.fragmentShader
-          .replace('#include <common>', '#include <common>\nuniform float uSnow;\nvarying float vUp;')
+          .replace('#include <common>', '#include <common>\nuniform float uSnow;\nvarying float vUp;\nuniform vec3 uSunDirW; uniform vec3 uSunCol;')
+          // the sun shining through the leaves when you look toward it
+          .replace('#include <opaque_fragment>', 'outgoingLight += diffuseColor.rgb * uSunCol * 0.22 * pow(max(dot(normalize(-vViewPosition), normalize((viewMatrix * vec4(uSunDirW, 0.0)).xyz)), 0.0), 5.0);\n#include <opaque_fragment>')
           .replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.86, 0.9, 0.93), uSnow * smoothstep(0.3, 0.92, vUp) * 0.78);')
           .replace('#include <normal_fragment_begin>', cards ? '#include <normal_fragment_begin>\n  normal = normalize(vNormal);' : '#include <normal_fragment_begin>');
       };

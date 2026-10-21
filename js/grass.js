@@ -79,6 +79,11 @@ export class Grass {
     const U = this.uniforms;
     mat.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, U);
+      const L = game.world.lightU();
+      shader.uniforms.uSunDirW = L.sunDir; shader.uniforms.uSunCol = L.sunCol;
+      // blades lit through from behind when you look toward the sun
+      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uSunDirW; uniform vec3 uSunCol;')
+        .replace('#include <opaque_fragment>', 'outgoingLight += diffuseColor.rgb * uSunCol * 0.2 * pow(max(dot(normalize(-vViewPosition), normalize((viewMatrix * vec4(uSunDirW, 0.0)).xyz)), 0.0), 4.0);\n#include <opaque_fragment>');
       // the texture's see-through texels are black, so its smaller mipmaps darken thin blades into black tufts in
       // the distance: take the colour back out of the coverage
       // both sides of a blade face the sky (double-sided cards would otherwise turn their backs black)
