@@ -62,6 +62,30 @@ function trackTexture() {
   return t;
 }
 
+// Foam for a ship's wake: bright, broken lines along both edges (the arms of the V a ship's wake spreads in),
+// churned streaks down the middle, gaps of dark water between
+function wakeTexture() {
+  const W = 64, H = 256, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const x = c.getContext('2d'), img = x.createImageData(W, H), d = img.data;
+  const hsh = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+  const nz = (u, v) => { const iu = Math.floor(u), iv = Math.floor(v), fu = u - iu, fv = v - iv; const a = hsh(iu, iv), b = hsh(iu + 1, iv), c2 = hsh(iu, iv + 1), e = hsh(iu + 1, iv + 1); return a + (b - a) * fu + (c2 - a) * fv + (a - b - c2 + e) * fu * fv; };
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const u = i / (W - 1), v = j / H;
+    const edge = Math.exp(-((Math.min(u, 1 - u) - 0.06) ** 2) / 0.0035);
+    const mid = Math.exp(-((u - 0.5) ** 2) / 0.04);
+    const n = nz(u * 9, v * 40) * 0.6 + nz(u * 23, v * 90) * 0.4, n2 = nz(u * 5 + 3, v * 14);
+    const brk = Math.min(1, Math.max(0, (n * 0.7 + n2 * 0.5 - 0.32) * 1.6));
+    const a = Math.min(1, edge * brk * 0.8 + mid * Math.max(0, n - 0.38) * 1.2);
+    const o = (j * W + i) * 4;
+    d[o] = d[o + 1] = d[o + 2] = 255; d[o + 3] = Math.round(a * 255);
+  }
+  x.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+
 // A scorch mark: soot darkest in the middle, ragged at the edge, with spatters thrown out
 function scorchTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 128;
@@ -266,6 +290,9 @@ export class Effects {
     this.trackMesh.renderOrder = 1;
     scene.add(this.trackMesh);
     this.trackN = 0;
+    // Ships' wakes: a strip of foam along each ship's track that spreads and fades behind it
+    this.wakes = new Map();
+    this.wakeMat = new THREE.MeshBasicMaterial({ map: wakeTexture(), vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._e = new THREE.Euler();
     this._p = new THREE.Vector3(); this._s = new THREE.Vector3();
 
@@ -325,6 +352,65 @@ export class Effects {
       this.fire.add(x + dx * 0.1 * i, y + dy * 0.1 * i, z + dz * 0.1 * i, dx * 3, dy * 3, dz * 3, 0.05, s, s * 0.5, 0xffc070, 1);
     }
     this.smoke.add(x, y, z, dx * 1.5 + rand(-0.3, 0.3), dy * 1.5 + 0.4, dz * 1.5 + rand(-0.3, 0.3), 0.6, 0.2, 0.9, 0x9a948a, 0.25);
+  }
+
+  // A ship's wake: call every frame with its stern (x, z), heading, half its beam and how fast it goes (0..1 of its
+  // top speed). key is the ship
+  wake(key, x, z, yaw, half, speed) {
+    let w = this.wakes.get(key);
+    if (!w) {
+      const geo = new THREE.BufferGeometry();
+      const N = 48;
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 2 * 3), 3).setUsage(THREE.DynamicDrawUsage));
+      geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(N * 2 * 4), 4).setUsage(THREE.DynamicDrawUsage));
+      geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(N * 2 * 2), 2).setUsage(THREE.DynamicDrawUsage));
+      const idx = [];
+      for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+      geo.setIndex(idx);
+      const mesh = new THREE.Mesh(geo, this.wakeMat);
+      mesh.frustumCulled = false;
+      mesh.renderOrder = 2;
+      this.game.scene.add(mesh);
+      w = { pts: [], mesh, N, dist: 0, seen: 0 };
+      this.wakes.set(key, w);
+    }
+    const now = (w.seen = this.time || 0);
+    // the first point rides on the stern; behind it one is laid every few metres
+    const head = w.pts[0];
+    if (!head) { w.pts.push({ x, z, t: now, half, s: speed, v: 0 }); return; }
+    w.dist += Math.hypot(x - head.x, z - head.z);
+    head.x = x; head.z = z; head.t = now; head.s = speed; head.half = half; head.v = w.dist;
+    const fixed = w.pts[1];
+    if (!fixed || (x - fixed.x) ** 2 + (z - fixed.z) ** 2 > 9) w.pts.splice(1, 0, { x, z, t: now, half, s: speed, v: w.dist });
+    if (w.pts.length > w.N) w.pts.length = w.N;
+  }
+
+  _updateWakes() {
+    const now = this.time || 0, W = this.game.world, y = (W.water ?? 0) + 0.06, LIFE = 16;
+    for (const [key, w] of this.wakes) {
+      while (w.pts.length && now - w.pts[w.pts.length - 1].t > LIFE) w.pts.pop();
+      if (!w.pts.length && now - w.seen > 1) { this.game.scene.remove(w.mesh); w.mesh.geometry.dispose(); this.wakes.delete(key); continue; }
+      const P = w.mesh.geometry.attributes.position.array, C = w.mesh.geometry.attributes.color.array, U = w.mesh.geometry.attributes.uv.array;
+      const n = w.pts.length;
+      w.mesh.visible = n > 1;
+      if (n < 2) continue;
+      for (let i = 0; i < w.N; i++) {
+        const p = w.pts[Math.min(i, n - 1)], q = w.pts[Math.min(i + 1, n - 1)] || p, o = w.pts[Math.min(Math.max(i - 1, 0), n - 1)];
+        let dx = o.x - q.x, dz = o.z - q.z;
+        const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+        const age = now - p.t, hw = p.half * (1 + age * 0.55);
+        const a = i >= n ? 0 : Math.max(0, 1 - age / LIFE) * Math.min(1, p.s * 1.6) * (i === 0 ? 0 : 1);
+        const k = i * 6;
+        P[k] = p.x - dz * hw; P[k + 1] = y; P[k + 2] = p.z + dx * hw;
+        P[k + 3] = p.x + dz * hw; P[k + 4] = y; P[k + 5] = p.z - dx * hw;
+        for (let j = 0; j < 2; j++) { const c = i * 8 + j * 4; C[c] = C[c + 1] = C[c + 2] = 1; C[c + 3] = a * 0.7; }
+        const v = p.v * 0.04;
+        U[i * 4] = 0; U[i * 4 + 1] = v; U[i * 4 + 2] = 1; U[i * 4 + 3] = v;
+      }
+      w.mesh.geometry.attributes.position.needsUpdate = true;
+      w.mesh.geometry.attributes.color.needsUpdate = true;
+      w.mesh.geometry.attributes.uv.needsUpdate = true;
+    }
   }
 
   // The two tracks' prints under a tank at (x, z) heading yaw, its tracks off metres either side of the middle
@@ -530,6 +616,8 @@ export class Effects {
   }
 
   update(dt) {
+    this.time = (this.time || 0) + dt;
+    if (this.wakes.size) this._updateWakes();
     this.smoke.update(dt);
     this.fire.update(dt);
     this.blaze.update(dt);
@@ -614,6 +702,8 @@ export class Effects {
     this.holeMesh.count = 0;
     this.trackN = 0;
     this.trackMesh.count = 0;
+    for (const w of this.wakes.values()) { this.game.scene.remove(w.mesh); w.mesh.geometry.dispose(); }
+    this.wakes.clear();
     this.debrisList.length = 0;
     this.tracers.length = 0;
     this.shake = 0;
