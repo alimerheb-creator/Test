@@ -2,9 +2,9 @@
   "format": "sixthfront-mod",
   "id": "aviation",
   "name": "Aviation",
-  "version": "1.13",
+  "version": "1.14",
   "author": "Sixth Front",
-  "description": "A battle type: pick AVIATION on the main menu, then a map (Highlands, Dune Sea, Fjordland, Sea Canyons, where a low afternoon sun lays a glittering path down the channels, and Pine Gorge, a river canyon with waterfalls and stone bridges to fly under: each about 3 km across, with pine forests, crags on the cliffs, waterfalls and mist) and a mode (Conquest with sky zones, Air Superiority, Ground Strike). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. Every airbase is guarded by C-RAM guns that shoot down bombs, rockets and missiles and hose down low-flying aircraft (you hear the alarm and the beeps when one tracks you). In Ground Strike, bomb the enemy base: radar, fuel depot, hangars, command bunker and the C-RAM sites. Your own aircraft come back about 6 seconds after you lose them: with 1 aircraft in your crew you get 3 spawns in it, with 2 the first gets 2 spawns and the second 1, with 3 or 4 each gets 1. Matchmaking: the bots on both sides fly only the aircraft within one rank of your best one, so a beginner's F-16 meets MiG-29s and Su-27s, not Su-57s. The C-RAM guns fire a visible stream of glowing tracers.",
+  "description": "A battle type: pick AVIATION on the main menu, then a map (Highlands, Dune Sea, Fjordland, Sea Canyons, where a low afternoon sun lays a glittering path down the channels, Pine Gorge, a river canyon with waterfalls and stone bridges to fly under, and Alps, forested valleys under snowy peaks with cloud on the slopes: each about 3 km across, with pine forests, crags on the cliffs, waterfalls and mist) and a mode (Conquest with sky zones, Air Superiority, Ground Strike). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. Every airbase is guarded by C-RAM guns that shoot down bombs, rockets and missiles and hose down low-flying aircraft (you hear the alarm and the beeps when one tracks you). In Ground Strike, bomb the enemy base: radar, fuel depot, hangars, command bunker and the C-RAM sites. Your own aircraft come back about 6 seconds after you lose them: with 1 aircraft in your crew you get 3 spawns in it, with 2 the first gets 2 spawns and the second 1, with 3 or 4 each gets 1. Matchmaking: the bots on both sides fly only the aircraft within one rank of your best one, so a beginner's F-16 meets MiG-29s and Su-27s, not Su-57s. The C-RAM guns fire a visible stream of glowing tracers.",
   "battle": {
     "name": "AVIATION",
     "blurb": "Jets and bombers, huge maps",
@@ -40,6 +40,11 @@
         "id": "pine-gorge",
         "name": "PINE GORGE",
         "blurb": "A river canyon, waterfalls and stone bridges"
+      },
+      {
+        "id": "alps",
+        "name": "ALPS",
+        "blurb": "Forested valleys, snowy peaks, cloud on the slopes"
       },
       {
         "id": "schweinfurt",
@@ -1948,6 +1953,560 @@
       ],
       "props": [],
       "randomProps": false
+    },
+    "alps": {
+      "name": "ALPS",
+      "size": {
+        "play": 1500,
+        "world": 2700,
+        "inner": 1300,
+        "fine": 9
+      },
+      "water": 0,
+      "terrain": {
+        "seed": 4411,
+        "hills": 0.45,
+        "bumps": 0.5,
+        "mountains": 1.2,
+        "valley": 0,
+        "level": 10
+      },
+      "alps": {
+        "height": 800,
+        "scale": 1,
+        "seed": 3,
+        "treeline": 440,
+        "snowline": 540,
+        "valleys": [
+          {
+            "path": [
+              [-60, -1900],
+              [80, -1350],
+              [-90, -850],
+              [60, -420],
+              [0, 0],
+              [-60, 420],
+              [90, 850],
+              [-80, 1350],
+              [60, 1900]
+            ],
+            "width": 300,
+            "wall": 680
+          },
+          {
+            "path": [
+              [-1900, 640],
+              [-1350, 520],
+              [-900, 600],
+              [-450, 520],
+              [-30, 600],
+              [450, 540],
+              [900, 620],
+              [1350, 520],
+              [1900, 600]
+            ],
+            "width": 240,
+            "wall": 600
+          },
+          {
+            "path": [
+              [1900, -640],
+              [1350, -520],
+              [900, -600],
+              [450, -520],
+              [30, -600],
+              [-450, -540],
+              [-900, -620],
+              [-1350, -520],
+              [-1900, -600]
+            ],
+            "width": 240,
+            "wall": 600
+          },
+          {
+            "path": [
+              [-240, 1330],
+              [240, 1330]
+            ],
+            "width": 780,
+            "wall": 620
+          },
+          {
+            "path": [
+              [-240, -1330],
+              [240, -1330]
+            ],
+            "width": 780,
+            "wall": 620
+          }
+        ]
+      },
+      "gorges": [
+        {
+          "path": [
+            [-60, -1900],
+            [80, -1350],
+            [-90, -850],
+            [60, -420],
+            [0, 0],
+            [-60, 420],
+            [90, 850],
+            [-80, 1350],
+            [60, 1900]
+          ],
+          "width": 34,
+          "floor": -5,
+          "wall": 0.45
+        },
+        {
+          "path": [
+            [-1900, 640],
+            [-1350, 520],
+            [-900, 600],
+            [-450, 520],
+            [-30, 600],
+            [450, 540],
+            [900, 620],
+            [1350, 520],
+            [1900, 600]
+          ],
+          "width": 28,
+          "floor": -5,
+          "wall": 0.45
+        },
+        {
+          "path": [
+            [1900, -640],
+            [1350, -520],
+            [900, -600],
+            [450, -520],
+            [30, -600],
+            [-450, -540],
+            [-900, -620],
+            [-1350, -520],
+            [-1900, -600]
+          ],
+          "width": 28,
+          "floor": -5,
+          "wall": 0.45
+        }
+      ],
+      "vegetation": {
+        "trees": 0.1,
+        "bushes": 0.5,
+        "rocks": 0.7,
+        "grass": 0.6
+      },
+      "palette": {
+        "grass": "#566b3a",
+        "grass2": "#46583a",
+        "dirt": "#6b5c45",
+        "rock": "#7c7a76",
+        "peak": "#9e9d99",
+        "forest": "#1d2a1e",
+        "snow": "#eef2f7",
+        "sand": "#857a66",
+        "seabed": "#33423d",
+        "sea": "#28474d",
+        "shallows": "#3f726f"
+      },
+      "atmosphere": {
+        "preset": "noon",
+        "skyTop": "#4d82c4",
+        "horizon": "#c6d3de",
+        "ground": "#5d6650",
+        "hemiGround": "#4b5040",
+        "sunElevation": 40,
+        "sunAzimuth": 135,
+        "fogNear": 650,
+        "fogFar": 4000,
+        "clouds": 0.5,
+        "sunIntensity": 3.6
+      },
+      "hq": [
+        {
+          "x": 0,
+          "z": 1400
+        },
+        {
+          "x": 0,
+          "z": -1400
+        }
+      ],
+      "flags": [
+        {
+          "id": "A",
+          "name": "WEST PASS",
+          "x": -900,
+          "z": 600,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "B",
+          "name": "EAST PASS",
+          "x": 900,
+          "z": 620,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "C",
+          "name": "THE CROSSROADS",
+          "x": 0,
+          "z": 0,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "D",
+          "name": "WEST GLEN",
+          "x": -900,
+          "z": -620,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        },
+        {
+          "id": "E",
+          "name": "EAST GLEN",
+          "x": 900,
+          "z": -600,
+          "radius": 340,
+          "height": 700,
+          "flat": 30
+        }
+      ],
+      "roads": [
+        [
+          [150, -1350],
+          [-20, -850],
+          [130, -420],
+          [70, 0],
+          [10, 420],
+          [160, 850],
+          [-10, 1350]
+        ],
+        [
+          [-1350, 570],
+          [-900, 650],
+          [-450, 570],
+          [-30, 650],
+          [450, 590],
+          [900, 670],
+          [1350, 570]
+        ],
+        [
+          [1350, -570],
+          [900, -650],
+          [450, -570],
+          [30, -650],
+          [-450, -590],
+          [-900, -670],
+          [-1350, -570]
+        ]
+      ],
+      "buildings": [
+        [
+          -819.2,
+          599.6,
+          6,
+          3,
+          1
+        ],
+        [
+          -880,
+          688.5,
+          6,
+          6,
+          2
+        ],
+        [
+          -817.6,
+          658,
+          4,
+          4,
+          2
+        ],
+        [
+          -883.4,
+          666.4,
+          6,
+          4,
+          1
+        ],
+        [
+          -870,
+          724.9,
+          6,
+          6,
+          1
+        ],
+        [
+          -773.3,
+          671.6,
+          4,
+          3,
+          2
+        ],
+        [
+          988.3,
+          748.8,
+          3,
+          4,
+          1
+        ],
+        [
+          989.4,
+          678,
+          5,
+          4,
+          2
+        ],
+        [
+          910.1,
+          726.2,
+          4,
+          3,
+          1
+        ],
+        [
+          969.4,
+          695.7,
+          3,
+          4,
+          2
+        ],
+        [
+          1016.6,
+          707.3,
+          6,
+          5,
+          1
+        ],
+        [
+          928.9,
+          753.3,
+          5,
+          4,
+          2
+        ],
+        [
+          94.5,
+          75.4,
+          6,
+          5,
+          2
+        ],
+        [
+          97.2,
+          23.6,
+          5,
+          5,
+          2
+        ],
+        [
+          41.6,
+          99.1,
+          5,
+          4,
+          1
+        ],
+        [
+          -2.2,
+          27.4,
+          4,
+          4,
+          2
+        ],
+        [
+          13.2,
+          67.6,
+          5,
+          6,
+          2
+        ],
+        [
+          -0.4,
+          101.4,
+          5,
+          3,
+          1
+        ],
+        [
+          -818.9,
+          -586.5,
+          3,
+          3,
+          1
+        ],
+        [
+          -871.2,
+          -577.3,
+          3,
+          3,
+          2
+        ],
+        [
+          -846.4,
+          -509.8,
+          3,
+          5,
+          2
+        ],
+        [
+          -878,
+          -564.1,
+          6,
+          4,
+          1
+        ],
+        [
+          -884.7,
+          -516.6,
+          5,
+          4,
+          2
+        ],
+        [
+          -818.9,
+          -617.5,
+          5,
+          6,
+          1
+        ],
+        [
+          881.3,
+          -518.1,
+          5,
+          5,
+          1
+        ],
+        [
+          985,
+          -556.1,
+          3,
+          5,
+          2
+        ],
+        [
+          894.6,
+          -488.7,
+          5,
+          5,
+          2
+        ],
+        [
+          953,
+          -572.5,
+          4,
+          4,
+          1
+        ],
+        [
+          930.2,
+          -569.9,
+          3,
+          5,
+          2
+        ],
+        [
+          892.7,
+          -536.2,
+          5,
+          3,
+          1
+        ],
+        [
+          107.3,
+          888,
+          3,
+          4,
+          1
+        ],
+        [
+          103.4,
+          870.6,
+          3,
+          4,
+          1
+        ],
+        [
+          102.3,
+          846,
+          4,
+          4,
+          1
+        ],
+        [
+          106.2,
+          821.3,
+          3,
+          4,
+          1
+        ],
+        [
+          -127.6,
+          -885.9,
+          5,
+          6,
+          1
+        ],
+        [
+          -105.1,
+          -841.5,
+          4,
+          3,
+          1
+        ],
+        [
+          -104,
+          -870.7,
+          5,
+          4,
+          1
+        ],
+        [
+          -72.9,
+          -831.2,
+          5,
+          3,
+          1
+        ],
+        [
+          0,
+          1400,
+          4,
+          3,
+          2
+        ],
+        [
+          40,
+          1440,
+          3,
+          3,
+          1
+        ],
+        [
+          0,
+          -1400,
+          4,
+          3,
+          2
+        ],
+        [
+          -40,
+          -1440,
+          3,
+          3,
+          1
+        ]
+      ],
+      "props": [],
+      "randomProps": false
     }
   },
   "script": [
@@ -2061,7 +2620,7 @@
     "  });",
     "}",
     "// per-map data: shore targets, icebergs, C-RAM sites",
-    "const MAPDATA = {\"highlands\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":0.7,\"crags\":0.35,\"ledges\":0.2,\"boulders\":0.2,\"mist\":0.4}},\"dune-sea\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"crags\":0.6,\"boulders\":0.3}},\"fjordland\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":0.8,\"crags\":0.7,\"ledges\":0.6,\"boulders\":0.6,\"falls\":6,\"mist\":0.8}},\"sea-canyons\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":1,\"crags\":1.5,\"ledges\":1.2,\"boulders\":1,\"falls\":5,\"mist\":1}},\"schweinfurt\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":1.5,\"crags\":0.12,\"ledges\":0,\"boulders\":0,\"mist\":0.5,\"clouds\":1,\"town\":[-20,-170,340,300],\"villages\":[[-1150,-620,26,120],[-720,-950,22,110],[-420,620,30,130],[330,470,24,110],[930,720,28,120],[1120,-720,26,120],[620,-980,20,100],[-1250,280,22,110],[1320,180,24,110],[-280,1060,20,100],[760,-380,18,90],[-760,-330,18,90]],\"works\":[60,-560,0.12],\"lake\":{\"x\":-1150,\"z\":930,\"level\":40,\"dam\":[-805,670,110]}}},\"pine-gorge\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":1.8,\"crags\":1.3,\"ledges\":1.2,\"boulders\":1,\"falls\":7,\"mist\":1.3,\"bridges\":[[-850,160,\"z\"],[860,90,\"z\"],[-590,600,\"x\"],[590,-600,\"x\"]]}}};",
+    "const MAPDATA = {\"highlands\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":0.7,\"crags\":0.35,\"ledges\":0.2,\"boulders\":0.2,\"mist\":0.4}},\"dune-sea\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"crags\":0.6,\"boulders\":0.3}},\"fjordland\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":0.8,\"crags\":0.7,\"ledges\":0.6,\"boulders\":0.6,\"falls\":6,\"mist\":0.8}},\"sea-canyons\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":1,\"crags\":1.5,\"ledges\":1.2,\"boulders\":1,\"falls\":5,\"mist\":1}},\"schweinfurt\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":1.5,\"crags\":0.12,\"ledges\":0,\"boulders\":0,\"mist\":0.5,\"clouds\":1,\"town\":[-20,-170,340,300],\"villages\":[[-1150,-620,26,120],[-720,-950,22,110],[-420,620,30,130],[330,470,24,110],[930,720,28,120],[1120,-720,26,120],[620,-980,20,100],[-1250,280,22,110],[1320,180,24,110],[-280,1060,20,100],[760,-380,18,90],[-760,-330,18,90]],\"works\":[60,-560,0.12],\"lake\":{\"x\":-1150,\"z\":930,\"level\":40,\"dam\":[-805,670,110]}}},\"pine-gorge\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"pines\":1.8,\"crags\":1.3,\"ledges\":1.2,\"boulders\":1,\"falls\":7,\"mist\":1.3,\"bridges\":[[-850,160,\"z\"],[860,90,\"z\"],[-590,600,\"x\"],[590,-600,\"x\"]]}},\"alps\":{\"cram\":[[0,-170,1250],[0,170,1250],[1,170,-1250],[1,-170,-1250]],\"strike\":[[\"command\",0,0,1150],[\"radar\",0,-330,1280],[\"fuel\",0,320,1360],[\"hangar\",0,-140,1420],[\"hangar\",0,160,1240],[\"command\",1,0,-1150],[\"radar\",1,330,-1280],[\"fuel\",1,-320,-1360],[\"hangar\",1,140,-1420],[\"hangar\",1,-160,-1240]],\"scenery\":{\"forest\":1,\"banks\":1,\"crags\":0.5,\"boulders\":0.4,\"mist\":0.6}}};",
     "",
     "// ================================================================ C-RAM / CIWS (shared by the battle mods)",
     "// A radar-guided 20 mm six-barrel gatling (Phalanx on ships, C-RAM on a trailer on the ground). Nobody aims it:",
@@ -3773,6 +4332,28 @@
     "    out.computeVertexNormals();",
     "    return out;",
     "  }",
+    "  // ---- a spruce: three narrow tiers of branches, no trunk to see (for the dense alpine forests)",
+    "  function spruceGeo() {",
+    "    const parts = [], dark = new THREE.Color(0x121d10), lite = new THREE.Color(0x30462a);",
+    "    for (let i = 0; i < 3; i++) {",
+    "      const r = 0.21 - i * 0.05, h = 0.5 - i * 0.08, y0 = 0.06 + i * 0.27;",
+    "      const cone = new THREE.ConeGeometry(r, h, 6, 1, true);",
+    "      cone.translate(0, y0 + h / 2, 0);",
+    "      parts.push([cone, (y) => dark.clone().lerp(lite, clamp((y - y0) / h, 0, 1) * 0.85)]);",
+    "    }",
+    "    const geos = parts.map(([geo, colAt]) => {",
+    "      const g2 = geo.toNonIndexed();",
+    "      const p = g2.attributes.position, c = new Float32Array(p.count * 3);",
+    "      for (let k = 0; k < p.count; k++) { const cc = colAt(p.getY(k)); c[k * 3] = cc.r; c[k * 3 + 1] = cc.g; c[k * 3 + 2] = cc.b; }",
+    "      g2.setAttribute('color', new THREE.BufferAttribute(c, 3));",
+    "      g2.deleteAttribute('uv');",
+    "      geo.dispose();",
+    "      return g2;",
+    "    });",
+    "    const out = mergeGeos(geos);",
+    "    out.computeVertexNormals();",
+    "    return out;",
+    "  }",
     "  function mergeGeos(list) {",
     "    let n = 0;",
     "    for (const gg of list) n += gg.attributes.position.count;",
@@ -3868,6 +4449,19 @@
     "      pines.push({ x: px, z: pz, y, h: rr(8, 18) * (rim ? 1.12 : 1) * (i ? rr(0.7, 1) : 1.1), tilt: rr(-0.05, 0.05), yaw: rr(0, 6.28), shade: rr(0.72, 1.15) });",
     "    }",
     "  }",
+    "  // alpine forest: spruce standing thick on the mountainsides wherever the ground is painted as forest (the",
+    "  // engine's forestAt), up to the tree line",
+    "  const spruce = [];",
+    "  const nSpruce = Math.round((SCN.forest || 0) * 46000 * QK);",
+    "  if (nSpruce && world.forestAt) {",
+    "    const E2 = MAPSIZE.play + 260;",
+    "    for (let t = 0; t < nSpruce * 5 && spruce.length < nSpruce; t++) {",
+    "      const x = rr(-E2, E2), z = rr(-E2, E2), f = world.forestAt(x, z);",
+    "      if (f < 0.05 || rnd() > Math.pow(f, 0.7)) continue;",
+    "      const y = H(x, z);",
+    "      spruce.push({ x, z, y, h: rr(13, 24) * (0.75 + f * 0.3), w: rr(0.85, 1.15), yaw: rr(0, 6.28), shade: rr(0.7, 1.12) });",
+    "    }",
+    "  }",
     "  // crags and ledges on the cliff faces",
     "  const nCrag = Math.round((SCN.crags || 0) * 1700 * QK), nLedge = Math.round((SCN.ledges || 0) * 420 * QK);",
     "  for (let t = 0; t < (nCrag + nLedge) * 60 && (crags.length < nCrag || ledges.length < nLedge); t++) {",
@@ -3913,6 +4507,16 @@
     "      _s.set(it.h * 0.95, it.h, it.h * 0.95);",
     "      M.compose(_p.set(it.x, it.y - 0.4, it.z), _q, _s);",
     "      col.setRGB(it.shade, it.shade, it.shade * 0.95);",
+    "    });",
+    "    own.push({ geometry: geo });",
+    "  }",
+    "  if (spruce.length) {",
+    "    const geo = spruceGeo();",
+    "    chunked(geo, pineMat, spruce, (it, M, col) => {",
+    "      _q.setFromAxisAngle(UPV, it.yaw);",
+    "      _s.set(it.h * it.w, it.h, it.h * it.w);",
+    "      M.compose(_p.set(it.x, it.y - 0.6, it.z), _q, _s);",
+    "      col.setRGB(it.shade * 0.95, it.shade, it.shade * 0.92);",
     "    });",
     "    own.push({ geometry: geo });",
     "  }",
@@ -4227,8 +4831,9 @@
     "",
     "  // ---- cumulus: heaps of cloud in the sky over the land, white on top and grey underneath, drifting",
     "  const clouds = [];",
-    "  if (SCN.clouds) {",
-    "    const cuTex = cvs(256, 256, (x) => {",
+    "  let cuTex = null;",
+    "  if (SCN.clouds || SCN.banks) {",
+    "    cuTex = cvs(256, 256, (x) => {",
     "      for (let i = 0; i < 26; i++) {",
     "        const cx = 128 + (rnd() - 0.5) * 150, cy = 140 - Math.abs(rnd() - 0.5) * 90 * (1 - Math.abs(cx - 128) / 120), r = 30 + rnd() * 40;",
     "        const gr = x.createRadialGradient(cx, cy - r * 0.3, r * 0.1, cx, cy, r);",
@@ -4246,6 +4851,8 @@
     "      x.fillStyle = v; x.fillRect(0, 0, 256, 256);",
     "    });",
     "    mats.push({ map: null, dispose: () => cuTex.dispose() });",
+    "  }",
+    "  if (SCN.clouds) {",
     "    const nC = Math.round(SCN.clouds * 46 * Math.max(0.5, QK));",
     "    for (let i = 0; i < nC; i++) {",
     "      const x = rr(-EXT, EXT), z = rr(-EXT, EXT), base = rr(290, 370), size = rr(90, 190);",
@@ -4257,6 +4864,30 @@
     "        sp.scale.set(s, s * 0.72, 1);",
     "        sp.position.set(x + rr(-0.5, 0.5) * size, base + (k ? rr(0.05, 0.35) * size : 0), z + rr(-0.5, 0.5) * size);",
     "        clouds.push({ sp, m, op: rr(0.8, 1) });",
+    "      }",
+    "    }",
+    "  }",
+    "  // ---- cloud banks: long soft banks of cloud hanging against the mountainsides between the forest and the snow,",
+    "  // so you fly in and out of them along the valleys",
+    "  if (SCN.banks) {",
+    "    const AL = (api.config.TERRAIN && api.config.TERRAIN.alps) || { treeline: 300, snowline: 450 };",
+    "    const lo = AL.treeline * 0.55, hi = AL.snowline + 60, nB = Math.round(SCN.banks * 64 * Math.max(0.5, QK));",
+    "    let nb = 0;",
+    "    for (let t = 0; t < 30000 && nb < nB; t++) {",
+    "      const x = rr(-EXT, EXT), z = rr(-EXT, EXT), y = rr(lo, hi);",
+    "      if (H(x, z) > y - 20) continue;",
+    "      let wall = false;",
+    "      for (let a = 0; a < 6.28 && !wall; a += 0.785) wall = H(x + Math.cos(a) * 170, z + Math.sin(a) * 170) > y + 10;",
+    "      if (!wall) continue;",
+    "      nb++;",
+    "      const size = rr(110, 240), lumps = 3 + Math.floor(rnd() * 3);",
+    "      for (let k = 0; k < lumps; k++) {",
+    "        const m = mat(new THREE.SpriteMaterial({ map: cuTex, transparent: true, opacity: 0, depthWrite: false, fog: true }));",
+    "        const sp = addMesh(new THREE.Sprite(m));",
+    "        const s2 = size * rr(0.6, 1.1);",
+    "        sp.scale.set(s2, s2 * rr(0.34, 0.48), 1);",
+    "        sp.position.set(x + rr(-0.7, 0.7) * size, y + rr(-0.06, 0.1) * size, z + rr(-0.7, 0.7) * size);",
+    "        clouds.push({ sp, m, op: rr(0.55, 0.85) });",
     "      }",
     "    }",
     "  }",
@@ -4385,7 +5016,7 @@
     "",
     "  // the clouds and the mist take a mission's light (moonlight at night): tint(color)",
     "  const tint = (c) => { for (const C2 of clouds) C2.m.color.set(c); for (const M2 of mist) M2.m.color.set(c); };",
-    "  g.__scn = { tint, falls, works, dam, houses: houses.length, churches: churches.length, clouds: clouds.length, bridges: obstacles, pines: pines.length, crags: crags.length, ledges: ledges.length, boulders: boulders.length, mist: mist.length };",
+    "  g.__scn = { tint, falls, works, dam, houses: houses.length, churches: churches.length, clouds: clouds.length, bridges: obstacles, pines: pines.length, spruce: spruce.length, crags: crags.length, ledges: ledges.length, boulders: boulders.length, mist: mist.length };",
     "  onOff(() => { delete g.__scn; });",
     "",
     "  // ---- every frame: the water falls, the spray rises, the mist drifts and thins out as you fly into it",

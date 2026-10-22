@@ -133,7 +133,7 @@ const SCHEMA = {
     stars: num(0, 2), sunElevation: num(3, 89), sunAzimuth: num(-360, 360), exposure: num(0.2, 4), envIntensity: num(0, 3),
   },
   terrain: { seed: num(0, 1000000), hills: num(0, 4), bumps: num(0, 4), mountains: num(0, 3), valley: num(-5, 5), level: num(-80, 80) },
-  palette: { grass: colorStr, grass2: colorStr, dirt: colorStr, rock: colorStr, peak: colorStr, town: colorStr, road: colorStr, sand: colorStr, seabed: colorStr, sea: colorStr, shallows: colorStr },
+  palette: { grass: colorStr, grass2: colorStr, dirt: colorStr, rock: colorStr, peak: colorStr, town: colorStr, road: colorStr, sand: colorStr, seabed: colorStr, sea: colorStr, shallows: colorStr, forest: colorStr, snow: colorStr },
   vegetation: { trees: num(0, 3), bushes: num(0, 3), rocks: num(0, 3), grass: num(0, 2) },
   flag: { id: str(2), name: str(20), x: coord, z: coord, radius: num(5, 400), flat: num(10, 200), town: bool, height: num(4, 3000) },
   hq: { x: coord, z: coord, yaw: num(-360, 360) },
@@ -607,7 +607,7 @@ export class ModManager {
 
   _applyMap(map, log) {
     if (!isObj(map)) { log.push('map: expected an object'); return; }
-    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'fields', 'palette', 'atmosphere'];
+    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'fields', 'alps', 'palette', 'atmosphere'];
     if (map.palette !== undefined) {
       if (!isObj(map.palette)) log.push('map.palette: expected an object like { "grass": "#c9b48a" }');
       else { const p = {}; applyFields(p, map.palette, SCHEMA.palette, 'map.palette', {}, log); TERRAIN.palette = p; }
@@ -650,6 +650,22 @@ export class ModManager {
           floor: clamp(Number.isFinite(Number(gz.floor)) ? Number(gz.floor) : -10, -80, 300),
           wall: clamp(Number(gz.wall) || 0.7, 0.25, 0.95),
         }));
+      }
+    }
+    // alps: ridged mountains over the whole map cut by broad valleys, forest up to the tree line, snow on the peaks
+    if (map.alps !== undefined) {
+      const AL = map.alps;
+      if (AL === null) TERRAIN.alps = null;
+      else if (!isObj(AL)) log.push('map.alps: expected { "height": 700, "treeline": 430, "snowline": 560, "valleys": [{ "path": [[x, z], ...], "width": 280, "wall": 650 }] } or null');
+      else {
+        const lim = worldEdge(), n = (v, d, a, b) => clamp(Number.isFinite(Number(v)) ? Number(v) : d, a, b);
+        const valleys = (Array.isArray(AL.valleys) ? AL.valleys : []).slice(0, 12).filter((v, i) => {
+          const ok = isObj(v) && Array.isArray(v.path) && v.path.length >= 2 && v.path.every((p) => Array.isArray(p) && p.length === 2 && p.every((x) => Number.isFinite(Number(x))));
+          if (!ok) log.push(`map.alps.valleys[${i}]: expected { "path": [[x, z], ...] } with at least two points`);
+          return ok;
+        }).map((v) => ({ path: v.path.slice(0, 32).map(([x, z]) => [clamp(+x, -lim, lim), clamp(+z, -lim, lim)]), width: n(v.width, 280, 40, 1200), wall: n(v.wall, 600, 40, 1500) }));
+        for (const k of Object.keys(AL)) if (!['height', 'scale', 'seed', 'treeline', 'snowline', 'valleys'].includes(k)) log.push(`map.alps.${k}: unknown setting (ignored)`);
+        TERRAIN.alps = { height: n(AL.height, 600, 0, 1200), scale: n(AL.scale, 1, 0.3, 3), seed: n(AL.seed, 1, -1e6, 1e6), treeline: n(AL.treeline, 420, -100, 3000), snowline: n(AL.snowline, 560, -100, 3000), valleys };
       }
     }
     if (map.fields !== undefined) {

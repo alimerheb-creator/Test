@@ -1,7 +1,7 @@
 // Terrain, sky, lighting, vegetation, static props and the collision/raycast grid.
 import * as THREE from 'three';
 import { PLAY_HALF, WORLD_HALF, GRID, FLAGS, HQS, BUILDINGS, ROADS, MAP, TERRAIN, VEGETATION, MAP_PROPS } from './config.js';
-import { fbm2, smoothstep, lerp, clamp, mulberry32, segDist2, rayAABB } from './util.js';
+import { fbm2, noise2, smoothstep, lerp, clamp, mulberry32, segDist2, rayAABB } from './util.js';
 import { makeTextures, worldUVMaterial } from './textures.js';
 
 // ---------------------------------------------------------------- vegetation shapes
@@ -425,6 +425,28 @@ export class World {
     const m = smoothstep(PLAY_HALF - 5, PLAY_HALF + 160, e);
     h += m * (30 + (fbm2(x * 0.008 - 3 + s, z * 0.008 + 9, 5) * 0.5 + 0.5) * 80) * T.mountains;
     if (T.level) h += T.level;
+    // alps: ridged mountains over the whole map (sharp crests, peaks and spurs), cut down to the land below by
+    // broad valleys with level floors and walls that steepen and then ease off towards the ridges
+    const AL = T.alps;
+    if (AL) {
+      const sc = 0.0019 / AL.scale, o = AL.seed * 7.31;
+      let r = 0, amp = 1, f = 1, tot = 0;
+      for (let i = 0; i < 5; i++) {
+        const n = 1 - Math.abs(noise2(x * sc * f + o + i * 17.3, z * sc * f - o - i * 11.7));
+        r += n * n * amp; tot += amp; amp *= 0.46; f *= 2.07;
+      }
+      r /= tot;
+      let vk = 1;
+      for (const v of AL.valleys) {
+        const hw = v.width / 2, P = v.path;
+        let d2 = Infinity;
+        for (let i = 0; i < P.length - 1; i++) d2 = Math.min(d2, segDist2(x, z, P[i][0], P[i][1], P[i + 1][0], P[i + 1][1]));
+        if (d2 > (hw * 1.3 + v.wall) ** 2) continue;
+        const k = clamp((Math.sqrt(d2) + noise2(x * 0.009 + 3, z * 0.009 - 5) * hw * 0.3 - hw) / v.wall, 0, 1);
+        vk = Math.min(vk, k * k * (3 - 2 * k));
+      }
+      h += AL.height * (0.14 + 0.86 * r * (1.3 - 0.3 * r)) * vk;
+    }
     // islands [x, z, radius, height, cliff]: a raised mound with a ragged coastline and a hilly top; with a cliff
     // (0..1, how far out the top reaches before the edge drops) it is a flat-topped mesa with sheer sides
     for (const isl of T.islands || []) {
@@ -447,6 +469,36 @@ export class World {
       if (k > 0) h = Math.min(h, lerp(h, gz.floor + fbm2(x * 0.05, z * 0.05, 2) * 1.5, k * k * (3 - 2 * k)));
     }
     return h;
+  }
+
+  // alps: how thick the forest grows here (0..1): spruce up the valley walls to a ragged tree line, none on the
+  // cliffs, meadows with groves on the valley floors, clearings here and there, nothing in towns or on airfields
+  forestAt(x, z, y, slope) {
+    const AL = TERRAIN.alps;
+    if (!AL) return 0;
+    if (y === undefined) { y = this.heightAt(x, z); slope = 1 - this._wideNormal(x, z); }
+    if (this.water !== null && y < this.water + 1.5) return 0;
+    const tl = AL.treeline + fbm2(x * 0.0045 + 5, z * 0.0045 - 3, 3) * 90;
+    let f = (1 - smoothstep(tl - 60, tl + 10, y)) * (1 - smoothstep(0.4, 0.58, slope));
+    const patch = fbm2(x * 0.0065 + 11, z * 0.0065 + 4, 3);
+    f *= lerp(smoothstep(-0.05, 0.25, patch), smoothstep(-0.6, -0.35, patch), smoothstep(0.015, 0.07, slope));
+    for (const z0 of this.flatZones) {
+      const d = Math.hypot(x - z0.x, z - z0.z);
+      if (d < z0.r1 + 30) f *= smoothstep(z0.r0 * 0.7, z0.r1 + 30, d);
+    }
+    return clamp(f, 0, 1);
+  }
+  // alps: snow on the peaks above a ragged snow line, on the gentler ground; sheer faces stay mostly bare
+  snowAt(x, z, y, slope) {
+    const AL = TERRAIN.alps;
+    if (!AL) return 0;
+    if (y === undefined) { y = this.heightAt(x, z); slope = 1 - this._wideNormal(x, z); }
+    const sl = AL.snowline + fbm2(x * 0.006 - 9, z * 0.006 + 2, 3) * 80;
+    return smoothstep(sl - 25, sl + 40, y) * (1 - smoothstep(0.45, 0.72, slope) * 0.7);
+  }
+  _wideNormal(x, z) {
+    const e = 6, hx = this.heightAt(x + e, z) - this.heightAt(x - e, z), hz = this.heightAt(x, z + e) - this.heightAt(x, z - e);
+    return (2 * e) / Math.hypot(hx, 2 * e, hz);
   }
 
   // Sea level, or null for a map without water
@@ -544,6 +596,10 @@ export class World {
     const grassA = new THREE.Color(P.grass || 0x7a7446), grassB = new THREE.Color(P.grass2 || 0x5b6538), dirt = new THREE.Color(P.dirt || 0x8e7657);
     const rock = new THREE.Color(P.rock || 0x77706a), rockHi = new THREE.Color(P.peak || 0x9a948c), town = new THREE.Color(P.town || 0x9b8b70);
     const road = new THREE.Color(P.road || 0x5f574d), sand = new THREE.Color(P.sand || 0xc2b087), seabed = new THREE.Color(P.seabed || 0x3f4a3f);
+    const AL = TERRAIN.alps, alp = AL ? new Float32Array(count * 2) : null;
+    const forestC = new THREE.Color(P.forest || 0x1f2c1d), snowC = new THREE.Color(P.snow || 0xeef2f6);
+    // (the lowest graphics setting skips drawing the single crowns of the forest)
+    const LOWQ = (this.game.qualityName ? this.game.qualityName() : this.game.settings.quality) === 'low';
     const c = new THREE.Color();
     const segs = [];
     for (const r of ROADS) for (let i = 0; i < r.length - 1; i++) segs.push([r[i][0], r[i][1], r[i + 1][0], r[i + 1][1]]);
@@ -556,13 +612,28 @@ export class World {
         const d = Math.hypot(x - f.x, z - f.z);
         if (d < f.r0 + 8) c.lerp(town, (1 - smoothstep(f.r0 * 0.6, f.r0 + 8, d)) * f.town * 0.85);
       }
+      let onRoad = 0;
       if (Math.abs(x) < PLAY_HALF + 40 && Math.abs(z) < PLAY_HALF + 40) {
         let dm = Infinity;
         for (const s of segs) { const d2 = segDist2(x, z, s[0], s[1], s[2], s[3]); if (d2 < dm) dm = d2; }
-        c.lerp(road, (1 - smoothstep(2.4, 4.6, Math.sqrt(dm))) * 0.9);
+        onRoad = 1 - smoothstep(2.4, 4.6, Math.sqrt(dm));
+        c.lerp(road, onRoad * 0.9);
       }
-      c.lerp(rock, smoothstep(0.16, 0.38, slope));
-      c.lerp(rockHi, smoothstep(50, 100, y) * 0.55);
+      if (AL) {
+        // alps: meadows on the valley floors, spruce forest up the walls, rock and scree on the cliffs and above
+        // the tree line, snow on the peaks
+        const fo = this.forestAt(x, z, y, slope) * (1 - smoothstep(0, 0.5, onRoad) * 0.9);
+        const sn = this.snowAt(x, z, y, slope);
+        const bare = Math.max(smoothstep(0.36, 0.56, slope), smoothstep(AL.treeline - 20, AL.treeline + 110, y + fbm2(x * 0.01, z * 0.01, 2) * 45) * 0.85);
+        c.lerp(rock, bare * (1 - fo));
+        c.lerp(rockHi, smoothstep(AL.treeline, AL.snowline, y) * 0.4 * (1 - fo));
+        c.lerp(forestC, fo * 0.94);
+        c.lerp(snowC, sn);
+        alp[k * 2] = fo; alp[k * 2 + 1] = sn;
+      } else {
+        c.lerp(rock, smoothstep(0.16, 0.38, slope));
+        c.lerp(rockHi, smoothstep(50, 100, y) * 0.55);
+      }
       if (this.water !== null) {
         // wet sand at the waterline, dark sea floor below it
         c.lerp(sand, (1 - smoothstep(0.4, 2.6, y - this.water)) * 0.85);
@@ -583,6 +654,7 @@ export class World {
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     if (farm) geo.setAttribute('farm', new THREE.BufferAttribute(farm, 1));
+    if (alp) geo.setAttribute('alp', new THREE.BufferAttribute(alp, 2));
     const mat = new THREE.MeshStandardMaterial({ vertexColors: true, map: this.tex.ground, normalMap: this.tex.groundN, roughness: 0.96, metalness: 0 });
     mat.normalScale.set(0.9, 0.9);
     // cliffs: steep ground takes its texture from the side instead of smearing it down the face, and shows
@@ -591,8 +663,9 @@ export class World {
       const L = this.lightU();
       sh.uniforms.uCloudT = L.cloudT; sh.uniforms.uCloudAmt = L.cloudAmt;
       sh.vertexShader = sh.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vTWorld; varying vec3 vTNrm;' + (FIELDS ? '\nattribute float farm; varying float vFarm;' : ''))
-        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNrm = normal;' + (FIELDS ? ' vFarm = farm;' : ''));
+        .replace('#include <common>', '#include <common>\nvarying vec3 vTWorld; varying vec3 vTNrm;' + (FIELDS ? '\nattribute float farm; varying float vFarm;' : '') + (AL ? '\nattribute vec2 alp; varying vec2 vAlp;' : ''))
+        .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNrm = normal;' + (FIELDS ? ' vFarm = farm;' : '') + (AL ? ' vAlp = alp;' : ''));
+      if (AL) sh.uniforms.uSunDir = L.sunDir;
       if (FIELDS) {
         const cols = FIELDS.colors.map((c) => new THREE.Color(c));
         while (cols.length < 8) cols.push(cols[cols.length % FIELDS.colors.length].clone());
@@ -607,6 +680,7 @@ export class World {
         .replace('#include <common>', `#include <common>
           varying vec3 vTWorld; varying vec3 vTNrm; uniform float uCloudT; uniform float uCloudAmt;
           ${FIELDS ? '#define T_FIELDS\n varying float vFarm; uniform vec3 uField[8]; uniform float uFieldN; uniform vec4 uFieldRot; uniform float uFieldSize; uniform vec3 uHedge;' : ''}
+          ${AL ? '#define T_ALPS\n varying vec2 vAlp; uniform vec3 uSunDir;' + (LOWQ ? '' : '\n#define T_CANOPY') : ''}
           float tHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
           float tNoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
             return mix(mix(tHash(i), tHash(i + vec2(1.0, 0.0)), f.x), mix(tHash(i + vec2(0.0, 1.0)), tHash(i + vec2(1.0, 1.0)), f.x), f.y); }`)
@@ -667,11 +741,36 @@ export class World {
           rockMul *= (1.0 - crack * 0.3 - fiss * 0.22) * (1.0 + lip * 0.2 - under * 0.3);
           float moss = smoothstep(0.58, 0.82, tNoise(sideW * 0.085 + 5.0)) * (1.0 - smoothstep(0.55, 0.9, 1.0 - tn.y)) * steep;
           diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * rockMul, steep);
-          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.17, 0.22, 0.11), moss * 0.5);`)
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.17, 0.22, 0.11), moss * 0.5);
+          #ifdef T_ALPS
+          #ifdef T_CANOPY
+          if (vAlp.x > 0.01) {
+            // the forest: spruce crowns packed shoulder to shoulder, each lit on the sun's side with dark gaps
+            // between them; far off, where a crown is smaller than a pixel, it fades to its average
+            vec2 q = vTWorld.xz / 4.4, qi = floor(q), qf = fract(q);
+            float dm = 9.0, hc = 0.0; vec2 off = vec2(0.0);
+            for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+              vec2 o = vec2(float(i), float(j));
+              vec2 cc = o + 0.2 + 0.6 * vec2(tHash(qi + o), tHash(qi + o + 19.7)) - qf;
+              float rr = 0.45 + 0.3 * tHash(qi + o + 7.3), d = length(cc) / rr;
+              if (d < dm) { dm = d; off = cc / rr; hc = tHash(qi + o + 3.1); }
+            }
+            float crown = 1.0 - smoothstep(0.5, 1.05, dm);
+            float lit = clamp(dot(-off, normalize(uSunDir.xz + 1e-4)) * 0.95, -1.0, 1.0);
+            float can = mix(0.3, (0.8 + 0.34 * lit) * (0.82 + 0.36 * hc), crown);
+            can = mix(can, 0.68, smoothstep(0.3, 0.9, fwidth(q.x) + fwidth(q.y)));
+            diffuseColor.rgb *= mix(1.0, can * 1.3, vAlp.x * (1.0 - steep * 0.5));
+          }
+          #else
+          diffuseColor.rgb *= mix(1.0, 0.88, vAlp.x);
+          #endif
+          // snow: the vertex colour carries it; the ground texture only as a faint grain
+          diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93 + topTex.r * 0.1), vAlp.y);
+          #endif`)
         .replace('#include <normal_fragment_begin>', 'vec2 tNUv = steep > 0.5 ? sideUv : vNormalMapUv;\n' + THREE.ShaderChunk.normal_fragment_begin.replaceAll('vNormalMapUv', 'tNUv'))
         .replace('#include <normal_fragment_maps>', THREE.ShaderChunk.normal_fragment_maps.replaceAll('vNormalMapUv', 'tNUv'));
     };
-    mat.customProgramCacheKey = () => (FIELDS ? 'terrain-fields' : 'terrain-cliffs');
+    mat.customProgramCacheKey = () => (FIELDS ? 'terrain-fields' : 'terrain-cliffs') + (AL ? (LOWQ ? '-alps-lo' : '-alps') : '');
     this.terrain = new THREE.Mesh(geo, mat);
     this.terrain.receiveShadow = true;
     this.scene.add(this.terrain);

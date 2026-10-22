@@ -330,7 +330,10 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   Canyons** (sheer, layered cliffs standing in the sea with narrow channels between them, made for flying low between
   the walls, with a low afternoon sun straight down the channels) and **Pine Gorge** (a pine-forested plateau cut by
   a river canyon a hundred metres deep, with its two forks, waterfalls pouring off the rim and four stone arch bridges
-  you can fly under) and **Schweinfurt** (the bombers' map: patchwork farmland with hedges and lanes, villages
+  you can fly under), **Alps** (a deep valley winding down the middle between sharp mountains carpeted in spruce up
+  to the tree line, bare rock and snow on the peaks, banks of cloud hanging against the slopes, two side valleys
+  crossing it and a turquoise river with villages along it; the airbases sit in broad basins at either end) and
+  **Schweinfurt** (the bombers' map: patchwork farmland with hedges and lanes, villages
   with red roofs and church spires, the town on its river, the ball-bearing works with their sawtooth halls and
   chimneys, a reservoir in the hills held back by a masonry dam with two towers, and a deck of cloud below the
   bombers). The land is full of detail when you fly low: pine forests along the rims and on the mesa tops,
@@ -374,7 +377,8 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   and wings. **Afterburners** burn as glowing plumes with shock diamonds, cannon **tracers** fly out as white-hot
   streaks (a glowing dot when seen from right behind) with a **muzzle flash**, and the rounds throw up spray from
   the water and dust from the ground. A jet skimming the sea throws up spray, the edges of the picture blur at
-  speed, and long white **contrails** stream off the wingtips of fast jets. The HUD
+  speed, and long white **contrails** stream off the wingtips of fast jets. Pull hard (a steep climb, a tight turn)
+  and **vapour** boils up over the wings, a dense white cloud rolling back over them and tearing off behind. The HUD
   has a **compass radar** (heading-up, with the view ahead as a pale wedge and every aircraft as an arrow, red the
   enemy and blue your side), the **pilot's name** over each aircraft, and a **top view of your aircraft** whose
   wings, tail and fuselage turn yellow, orange and red as they are hit (a part shot off is dashed). On a phone the

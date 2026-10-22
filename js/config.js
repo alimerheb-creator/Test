@@ -111,7 +111,7 @@ export const ROADS = [
 // sheer sides (cliff 0.25-0.95: how far out the flat top reaches); gorges are canyons cut into the land along a path,
 // { path: [[x, z], ...], width, floor, wall }: floor is the height of the bottom, wall (0.25-0.95) how sheer the sides are;
 // fields turns the open, level ground into farmland: { size, colors: [...], hedge, angle } (plots of size metres)
-export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1, level: 0, water: null, islands: [], gorges: [], fields: null, palette: null };
+export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1, level: 0, water: null, islands: [], gorges: [], fields: null, alps: null, palette: null };
 export const VEGETATION = { trees: 1, bushes: 1, rocks: 1, grass: 1 };
 export const MAP_PROPS = [];
 
