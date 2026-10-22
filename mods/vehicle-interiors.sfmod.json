@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "vehicle-interiors",
   "name": "Vehicle Interiors",
-  "version": "1.3",
+  "version": "1.4",
   "author": "Sixth Front",
   "description": "Sit inside your vehicles. In a tank, press C (CROUCH on phones) to take the commander's seat: vision blocks to look out of, the gun breech recoiling beside you, a rack of rounds behind, a live gunner's sight screen and switch panels. With the Jets or Bombers mod, C switches to the cockpit: jets get working radar, attitude and stores screens, a stick and throttle that move with you and a HUD in green; bombers get a framed flight deck with gauges, control wheels, four throttles and a co-pilot. In a helicopter you fly from the raised back seat with the gunner below in front (the Ka-52 seats you side by side with your co-pilot): canopy frames, a cyclic stick and collective lever that move with you, a live tactical map and flight screen (the Mi-24 has round gauges), dark Western cockpits and turquoise Russian ones.",
   "script": [
