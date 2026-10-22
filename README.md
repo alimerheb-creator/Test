@@ -134,6 +134,21 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   billowing fireball, a ring of dust blown out along the ground, sparks and embers, a column of smoke that hangs
   for a while and a scorch mark left behind, and broken lumps of masonry or earth flying out trailing dust.
   Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on phones and High on desktop).
+- **Cockpits, tank and ship's bridge you can work** (Vehicle Interiors): the switches, buttons and levers are where
+  they are in the real thing and do their real job. A modern fighter: the landing gear handle with its three green
+  lights at the lower left of the panel, flaps and master arm beside it, the countermeasures button, a button per
+  weapon under the stores page, the radar range button under the radar screen, the air brake switch on the throttle
+  grip, the lights on the right console, the ejection handle between your knees (pull it twice). The Cold War jets
+  have round dials instead of screens, all of them live (airspeed, altitude, climb, rpm, compass). WW1 and WW2
+  fighters have their own cockpits: the guns' breeches in front of you with their charging handles (yank one to
+  clear a jammed, overheated gun), the brass magneto switch that cuts the engine, the reflector gunsight with its
+  switch, flaps, the undercarriage lever, the gun safety. Bombers: gear, flaps, lights, bomb arming, the bail-out
+  alarm bell. Helicopters: master arm, flares, weapons, lights. The tank: main gun / coax, the laser rangefinder,
+  the smoke grenade launchers, the fire suppression, the hatch. A warship's bridge (C in a ship): the helm (helm
+  orders hold until you change them), the engine telegraph, the radar screen, weapons, HE/AP, damage control,
+  decoys and smoke, the rudder angle indicator and speed log over the windows, the officer of the watch and a
+  lookout. On a phone tap a control (the PANEL button looks down at the panel); on a computer hold ALT and click
+  (the head tips down to the panel). Every control has a key too (its tooltip says which).
 - **Mobile controls**: virtual stick, drag-to-look, and a context button that appears when you can act
   (hold to **revive** a downed teammate with a progress ring, enter or exit a tank, detonate C-4). There are
   also buttons for prone, sprint (latches on), map and scoreboard, plus aim assist, optional auto-fire,
@@ -235,7 +250,11 @@ each time, up to four times; win it and it goes back to normal.
   Savo Island while the Japanese shell the South Dakota; **CONVOY ONS 5**, a corvette's radar, Asdic and Hedgehog
   in the night the wolf packs broke; **NORTH CAPE**, the Scharnhorst run down in the Arctic dark; **SMALL BOYS,
   ATTACK**; **THE SHIP THAT WOULD NOT DIE**, the destroyer Laffey on the radar picket line off Okinawa under
-  twenty-two kamikaze attacks.
+  twenty-two kamikaze attacks; **BATTLESHIP ROW**, a seaman of the USS Nevada at Pearl Harbor on the morning of 7
+  December 1941: walk the whole ship (her decks, ladders, turrets and the bridge deck are solid underfoot), talk to
+  her crew (the officer of the deck, the band and the colour guard mustering for colours, the deck division
+  holystoning the teak, the gun crews, a lookout), then general quarters: up the ladders to your .50-caliber machine
+  gun and shoot down the Vals and Zeros diving on the row while the band finishes the anthem.
   **The Cold War**: **THE YANGTZE INCIDENT**, Amethyst's night escape past the batteries; **THE SITTING DUCKS**, US
   destroyers anchored off Wolmi-do as bait for the Inchon guns; **BLACK SATURDAY**, practice depth charges on a
   Soviet submarine off Cuba that turns out to carry a nuclear torpedo; **THE GULF OF TONKIN**, USS Maddox and the
@@ -466,7 +485,14 @@ are red, a premium vehicle sits in the gold row at the top, and your **crew slot
   F-35A → F-22A; A-10C → F-15E; B-17G → B-52H → B-2A; B-1B. ONYX: MiG-29 → Su-27 → Su-35S → Su-57; Su-25 → Su-34;
   Lancaster → Tu-95MS → Tu-160; Tu-22M3. Helicopters: AH-1Z → AH-64E and Mi-24V → Ka-52. The deploy screen lists the
   aircraft you have bought. A helicopter flown in a NORMAL or TANK battle puts half that battle's RP into the
-  AIRCRAFT tree.
+  AIRCRAFT tree. Plus the F-15C Eagle and the F-117A Nighthawk.
+- **The older wars' aircraft.** The aircraft tree has an era switch: MODERN, COLD WAR, WW2 and WW1, each with its own
+  tree and crew slots, and the AVIATION battle flies the era open there (everyone, bots included, flies that war's
+  aircraft; no C-RAM guns or drone strikes before the modern era). COLD WAR: F-86F → F-4C → F-14A → F-16A Netz;
+  A-1H Skyraider → F-105D → B-52D; Sea Harrier → Mirage III → F-4E · MiG-15 → MiG-17 → MiG-21 → MiG-23; A-4C →
+  Dagger; Su-22. WW2: P-40B → Spitfire → P-51D; SBD Dauntless → Il-2; B-17G · Bf 109E → Bf 109G → Fw 190A → Me 262;
+  Zero → Val; He 111. WW1: Pup → Nieuport 17 → Camel → S.E.5a; B.E.2c → S.E.5a with bombs; SPAD XIII · Eindecker →
+  Albatros → Dr.I → D.VII; Gotha (and the Red Baron's red triplane, premium).
 - **Daily tasks.** Three a day, new ones at midnight: win a battle, kill soldiers, destroy tanks, shoot down
   aircraft, sink ships, capture objectives, score points, destroy targets from a helicopter or complete a ground
   support mission. Each pays RP, silver (and some gold) the moment it's done; the pinned RESEARCH button shows how
@@ -544,8 +570,12 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 | Tab / M | Scoreboard / full map |
 | Esc or P | Pause |
 
-In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, right mouse to zoom, V smoke grenades.
-In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke screen, R damage control, G HE/AP shells.
+In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, right mouse to zoom, V smoke grenades,
+R laser rangefinder, X fire suppression, C the commander's seat.
+In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke screen, R damage control, G HE/AP shells, C
+the bridge.
+In an aircraft's cockpit: G landing gear, N flaps, B air brake, L lights, H master arm, I magnetos (propeller
+aircraft); hold ALT to free the mouse and click the cockpit's switches, buttons and levers (on a phone, tap them).
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
 down, 1/2/3 weapons, Space flares, E ejects.
 In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, Q/E rudder (yaw the nose left
