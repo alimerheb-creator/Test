@@ -583,10 +583,12 @@ and right for fine aiming), 1/2/3 weapons, Space flares, F spots, J ejects. Ever
 rudder move with the controls (cut from the wing, the tailplane and the fin, and shot off with them). The Cobra is a sharp, hard pull: flick the mouse far up (or snap the stick back) from level flight
 in a Su-27, Su-35S, Su-57, MiG-29 or F-22A. On a phone: drag anywhere to steer (a quick, long swipe up throws a
 Cobra), the slider on the left is the throttle, the big round button fires, and the buttons are named for flying
-(GUN / MISSILE / BOMBS, FLARES, CAMERA, ZOOM, SPOT, EJECT at the top left), and the two RUDDER buttons at the bottom
-yaw the nose. Or set FLIGHT CONTROLS to TILT (GYRO) on a phone or tablet and fly by tilting it: left and right to roll,
-toward and away from you to pitch (LEVEL at the top right takes the way you hold it as level). Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
-stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around,
+(GUN / MISSILE / BOMBS, FLARES, CAMERA, ZOOM, SPOT, EJECT at the top left), and the ◀ YAW and YAW ▶ buttons at the
+bottom yaw the nose. STEER between them switches the steering in flight: AIM (drag), STICK, TILT. With TILT (GYRO) on a
+phone or tablet you fly by tilting it: left and right to roll, toward and away from you to pitch (LEVEL at the top right
+takes the way you hold it as level). With STICK or TILT a swipe left or right yaws the nose (held as far as you swipe,
+centred when you let go). Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
+stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around (on a phone, up and down),
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
 commander's seat, in a helicopter the pilot's seat behind the gunner, beside the co-pilot in the Ka-52).
 With C-4 selected, right mouse detonates.

@@ -399,7 +399,8 @@ export class UI {
   }
 
   // Mods that came from the game's mods folder are kept up to date: when the game ships a newer version of one
-  // you installed, the new one replaces it (switched on or off as before)
+  // you installed, or the same version changed since (mods/index.json has each file's hash), the game's copy
+  // replaces it (switched on or off as before). Only a copy with a higher version number than the game's stays.
   async _updateExamples() {
     const g = this.game, mods = g.mods;
     const newer = (a, b) => {
@@ -407,16 +408,19 @@ export class UI {
       for (let i = 0; i < Math.max(pa.length, pb.length); i++) { const d = (pa[i] || 0) - (pb[i] || 0); if (d) return d > 0; }
       return false;
     };
+    const hash = (s) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16).padStart(8, '0'); };
     let changed = false;
     for (const ex of this.examples || []) {
       const m = mods.list.find((x) => x.id === slugify(ex.id || ex.name));
-      if (!m || !ex.version || !newer(ex.version, m.version)) continue;
+      if (!m || !ex.version) continue;
+      const edited = !newer(m.version, ex.version) && typeof ex.hash === 'string' && hash(m.text) !== ex.hash;
+      if (!newer(ex.version, m.version) && !edited) continue;
       try {
         const res = await fetch(`mods/${ex.file}`);
         if (!res.ok) continue;
         const text = await res.text();
         const e = mods._entry(text, m.enabled);
-        if (!e || e.id !== m.id || !newer(e.version, m.version)) continue;
+        if (!e || e.id !== m.id || text === m.text || newer(m.version, e.version)) continue;
         mods.add(text);
         changed = true;
       } catch (err) { /* offline: keep the installed copy */ }
