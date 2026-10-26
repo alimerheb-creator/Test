@@ -64,13 +64,14 @@ function tex(canvas, srgb = true) {
   const t = new THREE.CanvasTexture(canvas);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-  t.anisotropy = 8;
+  t.anisotropy = 16;
   return t;
 }
 
 const clamp255 = (v) => (v < 0 ? 0 : v > 255 ? 255 : v);
 
-export function makeTextures() {
+// hi: the high graphics settings get a ground texture of twice the resolution
+export function makeTextures(hi = false) {
   const S = 256;
 
   // Plaster: blotchy render with hairline cracks
@@ -107,7 +108,7 @@ export function makeTextures() {
   const concreteN = tex(normalCanvas(S, concreteH, 3), false);
 
   // Ground detail: soil grain, pebbles and small tufts (multiplies terrain vertex colours)
-  const G = 512;
+  const G = hi ? 1024 : 512;
   const groundH = heightField(G, (u, v, x, y) => {
     let h = pfbm(u, v, 16, 5) * 0.8 + hash2(x, y) * 0.25;
     const p = pnoise(u * 64, v * 64, 64);

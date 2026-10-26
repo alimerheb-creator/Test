@@ -389,7 +389,8 @@ export class World {
   constructor(game) {
     this.game = game;
     this.scene = game.scene;
-    this.tex = makeTextures();
+    const q = game.qualityName ? game.qualityName() : 'high';
+    this.tex = makeTextures(q === 'high' || q === 'ultra');
     this.boxes = [];
     layoutGrid();
     GRID_HALF = Math.max(320, PLAY_HALF + 80);
