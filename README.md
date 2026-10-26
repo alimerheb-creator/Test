@@ -135,11 +135,21 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   for a while and a scorch mark left behind, and broken lumps of masonry or earth flying out trailing dust.
   Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on phones and High on desktop).
 - **Cockpits, tank and ship's bridge you can work** (Vehicle Interiors): the switches, buttons and levers are where
-  they are in the real thing and do their real job. A modern fighter: the landing gear handle with its three green
-  lights at the lower left of the panel, flaps and master arm beside it, the countermeasures button, a button per
-  weapon under the stores page, the radar range button under the radar screen, the air brake switch on the throttle
-  grip, the lights on the right console, the ejection handle between your knees (pull it twice). The Cold War jets
-  have round dials instead of screens, all of them live (airspeed, altitude, climb, rpm, compass). WW1 and WW2
+  they are in the real thing and do their real job. A modern fighter has well over a hundred: three screens, each
+  ringed by twenty option buttons, with five pages to pick from (RDR radar with range and RWS/TWS mode, SMS stores
+  with weapon select, HSD a map of the zones and aircraft, ADI attitude with speed, altitude and heading, ENG the
+  engine and fuel), brightness and a swap button; the up-front keypad under the HUD with its data display (tune the
+  radios, pick a steerpoint, A-A and A-G master modes); sixteen caution lights that come on with what is happening
+  (engine fire, hydraulics, a missile launched at you, radar lock, stall, gear down too fast, fuel low...) with the
+  MASTER CAUTION and WARNING lights and a lamp test; standby airspeed, altimeter, climb and compass; switch and knob
+  panels down both consoles (screen, keypad, radar and HUD power, the radar warning receiver, the cabin lights,
+  countermeasures on AUTO to fire flares at a missile launch, fuel, start, lights, trim, canopy, oxygen and more);
+  the landing gear handle, flaps and master arm; the trim hat, pickle and management switches on the stick; and on
+  the throttle the air brake, the DOGFIGHT switch (straight to the gun) and the countermeasures switch. The ejection
+  handle is between your knees (pull it twice). The cabins are painted metal plates with their seams and screw
+  heads in relief, and the sun casts their shadows (the canopy bow sweeping across the panel as you turn). The Cold
+  War jets have round dials instead of screens, all of them live (airspeed, altitude, climb, rpm, compass), and the
+  switches of their day. WW1 and WW2
   fighters have their own cockpits: the guns' breeches in front of you with their charging handles (yank one to
   clear a jammed, overheated gun), the brass magneto switch that cuts the engine, the reflector gunsight with its
   switch, flaps, the undercarriage lever, the gun safety. Bombers: gear, flaps, lights, bomb arming, the bail-out
