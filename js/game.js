@@ -361,12 +361,31 @@ export class Game extends Emitter {
   _loop(t) {
     requestAnimationFrame((tt) => this._loop(tt));
     const dt = Math.min(0.05, this._last ? (t - this._last) / 1000 : 0.016);
+    if (this._last) this._dynRes(t - this._last);
     this._last = t;
     try {
       this.frame(dt);
     } catch (e) {
       console.error(e);
     }
+  }
+
+  // Dynamic resolution: when the frames come too slowly for a while (the graphics can't keep up), draw the next
+  // ones a step lower in resolution, down to 70% of the quality's own; when there's room again, step back up. The
+  // picture stays the same, only a touch softer while the load is heavy.
+  _dynRes(ms) {
+    if (this.state !== 'playing' || ms > 250) { this._drsT = 0; this._ft = 0; return; }
+    this._ft = this._ft ? this._ft * 0.94 + ms * 0.06 : ms;
+    this._drsT = (this._drsT || 0) + ms / 1000;
+    if (this._drsT < 2) return;
+    const Q = this.qualityPreset(), top = Math.min(window.devicePixelRatio || 1, Q.pixelRatio), cur = this.renderer.getPixelRatio();
+    let next = cur;
+    if (this._ft > 1000 / 42) next = Math.max(top * 0.7, cur - top * 0.1);
+    else if (this._ft < 1000 / 56) next = Math.min(top, cur + top * 0.1);
+    if (Math.abs(next - cur) < 0.01) return;
+    this._drsT = 0;
+    this.renderer.setPixelRatio(next);
+    this._resize();
   }
 
   // One tick. `render` can be switched off to fast-forward the simulation.
