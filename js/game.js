@@ -44,6 +44,8 @@ export class Game extends Emitter {
     const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     this.isTouch = !!(coarse && 'ontouchstart' in window);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
+    // (no blocking check of every shader as it compiles: it stalls the frame; the driver compiles in the background)
+    renderer.debug.checkShaderErrors = false;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = this.qualityPreset().shadows > 0;

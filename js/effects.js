@@ -226,10 +226,13 @@ class ParticleSystem {
       i++;
     }
     this.points.geometry.setDrawRange(0, this.count);
-    this.posAttr.needsUpdate = true;
-    this.colAttr.needsUpdate = true;
-    this.sizeAttr.needsUpdate = true;
-    this.angAttr.needsUpdate = true;
+    // only the live particles go up to the graphics card (nothing at all when there are none)
+    if (!this.count && !this._sent) return;
+    this._sent = this.count;
+    const n = Math.max(1, this.count);
+    for (const [at, k] of [[this.posAttr, 3], [this.colAttr, 4], [this.sizeAttr, 1], [this.angAttr, 1]]) {
+      at.clearUpdateRanges(); at.addUpdateRange(0, n * k); at.needsUpdate = true;
+    }
   }
 
   _move(from, to) {

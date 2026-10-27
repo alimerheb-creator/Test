@@ -505,7 +505,9 @@ export class HUD {
     const scoped = P.state === 'alive' && !P.vehicle && P.slot === 0 && P.gun.def.scope && P.adsT > 0.85;
     this.el.scope.hidden = !scoped;
 
-    this._drawMinimap();
+    // the minimap redraws 20 times a second (a big rotated, scaled map image is costly to draw every frame)
+    this._miniT = (this._miniT || 0) - dt;
+    if (this._miniT <= 0) { this._miniT = 0.05; this._drawMinimap(); }
     this._drawOverlay(dt);
   }
 
