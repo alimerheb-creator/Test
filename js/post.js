@@ -221,7 +221,7 @@ export class PostFX {
     this.raysMat = mat(RAYS, { tSrc: { value: null }, sunPos: { value: new THREE.Vector2() }, aspect: { value: 1 } });
     this.compMat = mat(COMPOSITE, {
       tScene: { value: null }, tBloom: { value: null }, useBloom: { value: true }, tRays: { value: null }, rays: { value: 0 }, blur: { value: 0 },
-      bloomStrength: { value: 0.55 }, exposure: { value: 1.05 }, vignette: { value: 0.32 }, grain: { value: 0.018 },
+      bloomStrength: { value: 0.55 }, exposure: { value: 1.05 }, vignette: { value: 0.32 }, grain: { value: 0 },
       time: { value: 0 }, saturation: { value: 1.08 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
       sunPos: { value: new THREE.Vector2(-1, -1) }, sunVis: { value: 0 },
       tAO: { value: null }, useAO: { value: false }, aoStrength: { value: 0.85 }, tDepth: { value: null }, vmMask: { value: false },
