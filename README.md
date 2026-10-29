@@ -157,7 +157,12 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   the smoke grenade launchers, the fire suppression, the hatch. A warship's bridge (C in a ship): the helm (helm
   orders hold until you change them), the engine telegraph, the radar screen, weapons, HE/AP, damage control,
   decoys and smoke, the rudder angle indicator and speed log over the windows, the officer of the watch and a
-  lookout. On a phone tap a control (the PANEL button looks down at the panel); on a computer hold ALT and click
+  lookout. A submarine's control room (C in a submarine), inside the curved pressure hull under its pipes and
+  valves: the ship control panel (a live display of depth, ordered depth, heading, speed, trim and the water under
+  the keel, depth and heading gauges, DIVE, SURFACE, a guarded EMERGENCY BLOW, AHEAD / ASTERN and the helmsman's
+  yoke), the sonar waterfall and contact list to port, fire control to starboard (the tactical plot with your
+  torpedoes running, a lamp per tube, TORP / MSL, FIRE, countermeasures, damage control, SCOPE to raise the
+  periscope), the two periscopes behind you and the crew at their stations; deep down the lights go red. On a phone tap a control (the PANEL button looks down at the panel); on a computer hold ALT and click
   (the head tips down to the panel). Every control has a key too (its tooltip says which).
 - **Mobile controls**: virtual stick, drag-to-look, and a context button that appears when you can act
   (hold to **revive** a downed teammate with a progress ring, enter or exit a tank, detonate C-4). There are
@@ -278,7 +283,9 @@ each time, up to four times; win it and it goes back to normal.
   **INS HANIT**, a C-802 from Beirut and the fight to save the ship; **THE LIFEBOAT**, the Maersk Alabama's
   lifeboat and the SEAL snipers; **DAWN OF THE GULF OF ADEN**, Korean commandos retaking the Samho Jewelry;
   **NINE HOURS IN THE RED SEA**, USS Carney against cruise missiles and drones from Yemen; **THE LAST DITCH**, a
-  destroyer's Phalanx as the very last defence; **SURFACE ACTION GROUP**.
+  destroyer's Phalanx as the very last defence; **SURFACE ACTION GROUP**; **THE SILENT SERVICE**, in the attack
+  submarine USS Minnesota: periscope depth, a convoy's transports torpedoed one by one, then deep and quiet while
+  the escorts hunt you with anti-submarine rockets (with the control room to work yourself).
 - **Infantry**: ten missions in each of the four wars.
   **1914–1918**: **MONS**, the regulars of the BEF on the canal bank, fifteen aimed rounds a minute against the
   German columns, Dease's Vickers gun at the Nimy bridge, then the order to retire; **ANZAC COVE**, out of the boats
@@ -413,7 +420,17 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   (MP3 or WAV under 2.5 MB; **BUILT-IN** goes back, **TEST** plays it).
 - **NAVAL**: battleships (Iowa / Sovetsky Soyuz: nine 406 mm guns in three turrets that fire together, eight
   Harpoons, four Phalanx guns), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates
-  (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M) and patrol boats, nine ships a side. Maps: **Sapphire Strait**
+  (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M), patrol boats and attack submarines
+  (Virginia / Yasen: six heavyweight torpedoes from the bow tubes, four missiles that launch from periscope depth),
+  nine ships a side. A submarine dives a step at a time (Z down, SHIFT up; DIVE and SURFACE on a phone): SURFACED,
+  PERISCOPE DEPTH (9 m, where the periscope and the missiles work: hold AIM for the periscope) and DEEP (30 m, as
+  far as the sea floor allows). Under water she is hidden from everything but sonar, which hears her closer in
+  when she's deep and slow and further out when she goes fast; no missile can lock on to her. Destroyers,
+  frigates, corvettes and cruisers hunt her by themselves: when their sonar holds her they fire salvoes of
+  anti-submarine rockets that dive into the sea and go off at her depth. Her torpedoes launch from depth and
+  climb to their running depth. Under the surface the camera goes with her: a blue-green haze that darkens the
+  deeper she goes, shafts of sunlight slanting down, specks drifting in the water, the waves overhead seen from
+  below with the sky through Snell's window, and the hulls of the ships above. Maps: **Sapphire Strait**
   (rocky islands), **Iron Harbor** (a grey port between two coasts), **Arctic Passage** (pack ice and
   icebergs) and **North Sea** (open water, grey swell). Modes: **Conquest** (buoys), **Fleet Battle** (no flags, sink the enemy fleet) and **Strike** (shell
   the enemy's shore installations while their coastal batteries shoot back). Pick your ship on the deploy
@@ -438,7 +455,8 @@ Your **battle rank** in a battle type is the highest rank (I to V) in your crew 
 sides then use only what's within one rank of it, so beginners meet beginners:
 
 - **Naval:** with only the patrol boat (rank I) the fleets are patrol boats and corvettes; a corvette brings in
-  frigates and destroyers; a battleship captain meets destroyers, cruisers and battleships.
+  frigates and destroyers; a battleship captain meets destroyers, cruisers and battleships. Submarines (rank III,
+  researched after the frigate) come in from rank III up.
 - **Aviation:** a beginner's F-16C (or MiG-29) meets MiG-29s, Su-27s, Su-25s, Lancasters and Mi-24s, not Su-57s
   and F-22As; the stealth fighters and modern bombers only show up once you fly rank III and IV.
 - **Tanks:** the bot tanks carry the armour, speed and gun of tanks within one rank of yours (an M1A2 or T-90M
@@ -587,7 +605,8 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 In a tank: W/S throttle, A/D steer, mouse aims the turret, 1 cannon, 2 coax MG, right mouse to zoom, V smoke grenades,
 R laser rangefinder, X fire suppression, C the commander's seat.
 In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke screen, R damage control, G HE/AP shells, C
-the bridge.
+the bridge. In a submarine: Z dive, SHIFT surface, right mouse the periscope, 1 torpedoes (aimed with the bow), 2
+missiles, C the control room.
 In an aircraft's cockpit: G landing gear, N flaps, B air brake, L lights, H master arm, I magnetos (propeller
 aircraft); hold ALT to free the mouse and click the cockpit's switches, buttons and levers (on a phone, tap them).
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
