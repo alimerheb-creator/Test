@@ -84,11 +84,15 @@ export class HUD {
 
   // Team and vehicle names can be renamed by mods
   updateLabels() {
+    // (your side on the left, whichever it is)
+    const me = this.game.player ? this.game.player.team : 0;
     for (const t of [0, 1]) {
-      const n = TEAMS[t].name;
+      const n = TEAMS[t ? 1 - me : me].name;
       const a = document.getElementById('team-name-' + t), b = document.getElementById('dp-name-' + t);
       if (a) a.textContent = n;
       if (b) b.textContent = n;
+      const c = document.getElementById('dp-team-' + t);
+      if (c) c.textContent = TEAMS[t].name;
     }
     const vt = document.getElementById('vh-title');
     if (vt) vt.textContent = VEHICLES.tank.name;
@@ -360,11 +364,15 @@ export class HUD {
   update(dt) {
     const g = this.game, P = g.player, mode = g.mode;
     if (!P) return;
+    // (Multiplayer and Career Mode put you on a side after the match has started)
+    if (this.last.side !== P.team) { this.last.side = P.team; this.updateLabels(); }
     // tickets & flags
     for (let t = 0; t < 2; t++) {
-      const tk = Math.ceil(mode.tickets[t]);
+      // (the left one is your side's)
+      const tm = t ? 1 - P.team : P.team;
+      const tk = Math.ceil(mode.tickets[tm]);
       this._set('tk' + t, this.el.tk[t], String(tk));
-      const pct = (mode.tickets[t] / mode.maxTickets) * 100;
+      const pct = (mode.tickets[tm] / mode.maxTickets) * 100;
       if (Math.abs((this.last['tkb' + t] || 0) - pct) > 0.2) { this.el.tkb[t].style.width = pct + '%'; this.last['tkb' + t] = pct; }
     }
     mode.flags.forEach((f, i) => {

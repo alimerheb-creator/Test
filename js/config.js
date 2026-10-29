@@ -207,6 +207,7 @@ export const DEFAULT_SETTINGS = {
   playerName: 'Recruit',
   battleType: 'normal',   // which battle the main menu starts: 'normal' or a battle mod's id
   botsPerTeam: 12,
+  side: 0,               // the side you play on: 0 or 1 (VANGUARD or ONYX, picked on the deploy screen)
   difficulty: 'normal',
   tickets: 250,
   sensitivity: 1.0,

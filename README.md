@@ -494,7 +494,9 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
 Progression works like War Thunder Mobile and is built into the game: the **Career** and **Armory** mods are
 installed and switched on by themselves (with the Helicopters mod) and can't be switched off. Press **RESEARCH** on the main menu (the gold
 button in the top-right corner, or the one next to DEPLOY), the deploy screen or the battle report for the research trees: **SHIPS**, **AIRCRAFT** and **TANKS** for each side (VANGUARD and ONYX), and
-**WEAPONS**. Next to the back button, **DAILY TASKS** lists today's three tasks (see below). Each tree has a column per rank (I to V) with lines from each vehicle to the next; locked ones
+**WEAPONS**. Which side you fight for is yours to pick: **YOUR SIDE** on the deploy screen (VANGUARD or ONYX)
+starts the match again on that side, with its jets, ships and tanks from your lineup (it's remembered; online
+games and Career Mode missions pick the side themselves). Next to the back button, **DAILY TASKS** lists today's three tasks (see below). Each tree has a column per rank (I to V) with lines from each vehicle to the next; locked ones
 are red, a premium vehicle sits in the gold row at the top, and your **crew slots** run along the bottom.
 
 - **Earning.** You start with a patrol boat, an F-16C (or MiG-29), an M60A3 (or T-62M) and the standard guns, and
@@ -621,7 +623,8 @@ yaws the nose: drag it left or right like the throttle, and when you let go it e
 it switches the steering in flight: AIM (drag), STICK, TILT. On its side an aircraft sinks: hold it up on a knife edge
 with top rudder (the nose held above its path), as in the real thing. With TILT (GYRO) on a
 phone or tablet you fly by tilting it: left and right to roll, toward and away from you to pitch (LEVEL at the top right
-takes the way you hold it as level). With STICK or TILT a swipe left or right yaws the nose (held as far as you swipe,
+takes the way you hold it as level; it reads the phone the same however far you tilt it, back past upright
+too). With STICK or TILT a swipe left or right yaws the nose (held as far as you swipe,
 centred when you let go). Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around (on a phone, up and down),
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the

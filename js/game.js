@@ -264,14 +264,16 @@ export class Game extends Emitter {
     }
     const names = [...BOT_NAMES].sort(() => Math.random() - 0.5);
     let ni = 0;
-    const P = new Soldier(this, { team: 0, name: st.playerName, isPlayer: true, squad: 0, classId: this.ui ? this.ui.selectedClass : 'assault' });
+    // (the side you picked on the deploy screen; Multiplayer and Career Mode missions set it themselves)
+    const side = st.side === 1 ? 1 : 0;
+    const P = new Soldier(this, { team: side, name: st.playerName, isPlayer: true, squad: 0, classId: this.ui ? this.ui.selectedClass : 'assault' });
     this.player = P;
     this.soldiers.push(P);
     const n = Math.max(4, st.botsPerTeam);
     for (let team = 0; team < 2; team++) {
-      const count = team === 0 ? n - 1 : n;
+      const count = team === side ? n - 1 : n;
       for (let i = 0; i < count; i++) {
-        const idx = team === 0 ? i + 1 : i;
+        const idx = team === side ? i + 1 : i;
         const s = new Soldier(this, {
           team, name: names[ni++ % names.length], squad: Math.floor(idx / 4), classId: CLASS_ORDER[(idx + team) % CLASS_ORDER.length],
         });
@@ -285,6 +287,7 @@ export class Game extends Emitter {
     const tanksPerSide = Math.max(0, Math.min(2, n >= 10 ? VEHICLES.tank.perTeam : Math.min(1, VEHICLES.tank.perTeam)));
     for (const v of this.vehicles) if (v.slot < tanksPerSide) v.spawn();
     this.playerCtl.attach(P);
+    this.hud.updateLabels();
     this.redeployT = 0;
     this.deathDelay = 0;
     this.playerCtl.deathYaw = undefined;

@@ -122,6 +122,16 @@ export class UI {
     this.renderClassCards();
     $('btn-deploy').addEventListener('click', () => this._deploy());
     $('btn-deploy-menu').addEventListener('click', () => { g.audio.click(); g.quitToMenu(); });
+    // your side: picking the other one starts the match again on it (its own vehicles: its jets, ships and tanks)
+    for (const t of [0, 1]) {
+      $('dp-team-' + t).addEventListener('click', () => {
+        if (!g.player || g.player.team === t || g.player.state === 'alive') return;
+        g.audio.click();
+        g.settings.side = t; saveSettings(g.settings);
+        g.startMatch();
+        g.hud.toast(`YOU FIGHT FOR ${TEAMS[t].name}`);
+      });
+    }
     const canvas = $('dp-map');
     canvas.addEventListener('click', (e) => {
       const r = canvas.getBoundingClientRect();
@@ -500,6 +510,10 @@ export class UI {
     const t = g.mode.tickets;
     $('dp-tk0').textContent = Math.ceil(t[P.team]);
     $('dp-tk1').textContent = Math.ceil(t[1 - P.team]);
+    // (not in an online game or a Career Mode mission: they pick it)
+    const pick = !g.__mp && !(g.__campaign && g.__campaign.active);
+    $('dp-team').hidden = !pick;
+    for (const s of [0, 1]) $('dp-team-' + s).classList.toggle('on', P.team === s);
     const btn = $('btn-deploy');
     const wait = g.redeployT > 0;
     btn.disabled = wait;
