@@ -469,6 +469,10 @@ export class World {
       const k = 1 - smoothstep(hw * gz.wall, hw, d);
       if (k > 0) h = Math.min(h, lerp(h, gz.floor + fbm2(x * 0.05, z * 0.05, 2) * 1.5, k * k * (3 - 2 * k)));
     }
+    // deep: more than 8 m under the sea the floor falls away that many times faster (deep water for submarines,
+    // with the coasts and the shallows as they were)
+    const sh = (TERRAIN.water ?? 0) - 8;
+    if (T.deep > 1 && TERRAIN.water !== null && h < sh) h = sh + (h - sh) * T.deep;
     return h;
   }
 
@@ -839,6 +843,27 @@ export class World {
           vec2 w3 = texture2D(tWaves, p * 0.113 + time * vec2(0.023, -0.028)).xy * 2.0 - 1.0;
           vec2 slope = (w1 * 0.3 + w2 * 0.24 + w3 * 0.2 * (1.0 - far)) * mix(1.0, 0.55, far);
           vec3 N = normalize(vec3(slope.x, 1.0, slope.y));
+          if (!gl_FrontFacing) {
+            // seen from under the surface: the sky through Snell's window overhead, rippling with the waves and
+            // the sun burning in it; outside the window the surface is a mirror of the dim sea (total reflection)
+            vec3 Nu = normalize(vec3(slope.x * 1.7, 1.0, slope.y * 1.7));
+            vec3 Tr = refract(-V, -Nu, 1.333);
+            vec3 uw = fogColor;
+            vec3 ucol = uw * 0.8;
+            if (dot(Tr, Tr) > 0.0001) {
+              Tr = normalize(Tr);
+              float Ft = 0.02 + 0.98 * pow(1.0 - max(dot(Tr, Nu), 0.0), 5.0);
+              vec3 sk = skyAt(Tr) + sunColor * sunLight * sunPower * (pow(max(dot(Tr, sunDir), 0.0), 900.0) * 3.0 + pow(max(dot(Tr, sunDir), 0.0), 40.0) * 0.15);
+              ucol = mix(sk, uw * 0.8, Ft);
+            }
+            // the surface swells catch the light in bright moving bands
+            ucol += uw * smoothstep(0.25, 0.6, length(slope)) * 0.35;
+            gl_FragColor = vec4(ucol, 1.0);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+            #include <fog_fragment>
+            return;
+          }
           vec2 L = landAt(p);
           float depth = L.r * 16.0;
           // Fresnel: water reflects 2% looking straight down and nearly everything at a glancing angle
@@ -895,6 +920,7 @@ export class World {
       defines: { WATER_Q: Q },
       transparent: true,
       fog: true,
+      side: THREE.DoubleSide,
     });
     // the sky's own colours, so the reflections follow the time of day
     for (const k of ['top', 'horizon', 'sunDir', 'sunColor', 'cloudLo', 'cloudHi', 'cloudAmount']) mat.uniforms[k] = sky[k];
@@ -906,6 +932,104 @@ export class World {
     this.waterMesh.frustumCulled = false;
     this.scene.add(this.waterMesh);
     this.waterMat = mat;
+    this._buildUnderwater();
+  }
+
+  // Under the sea: shafts of sunlight slanting down from the surface and specks drifting in the water around the
+  // camera (both wrap around it, so there are always some near), shown only while the camera is under water
+  _buildUnderwater() {
+    const cam = { value: new THREE.Vector3() }, time = { value: 0 }, sea = { value: this.water };
+    const n = 900, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n * 3; i++) pos[i] = (Math.random() - 0.5) * 60;
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const snow = new THREE.Points(sg, new THREE.ShaderMaterial({
+      uniforms: { cam, time, sea, color: { value: new THREE.Color() }, scale: { value: 700 } },
+      vertexShader: `uniform vec3 cam; uniform float time; uniform float sea; uniform float scale; varying float vA;
+        void main(){
+          vec3 p = position + vec3(sin(time * 0.3 + position.y) * 0.6, -time * 0.22, cos(time * 0.23 + position.x) * 0.6);
+          p = cam + mod(p - cam + 30.0, 60.0) - 30.0;
+          vec4 mv = viewMatrix * vec4(p, 1.0);
+          gl_Position = projectionMatrix * mv;
+          float d = max(-mv.z, 0.1);
+          vA = (1.0 - smoothstep(8.0, 28.0, length(p - cam))) * step(p.y, sea - 0.4);
+          gl_PointSize = clamp(scale * 0.006 / d, 1.0, 5.0);
+        }`,
+      fragmentShader: `uniform vec3 color; varying float vA;
+        void main(){
+          float r = length(gl_PointCoord - 0.5);
+          if (r > 0.5 || vA <= 0.0) discard;
+          gl_FragColor = vec4(color, vA * (1.0 - r * 2.0) * 0.75);
+          #include <colorspace_fragment>
+        }`,
+      transparent: true, depthWrite: false,
+    }));
+    const m = 18, corner = new Float32Array(m * 8), seed = new Float32Array(m * 12), idx = [];
+    for (let i = 0; i < m; i++) {
+      const sx = (Math.random() - 0.5) * 90, sz = (Math.random() - 0.5) * 90, w = 1.5 + Math.random() * 3.5;
+      [[-1, 0], [1, 0], [-1, 1], [1, 1]].forEach(([x, y], k) => { corner.set([x, y], (i * 4 + k) * 2); seed.set([sx, sz, w], (i * 4 + k) * 3); });
+      idx.push(i * 4, i * 4 + 2, i * 4 + 1, i * 4 + 1, i * 4 + 2, i * 4 + 3);
+    }
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(m * 12), 3));
+    rg.setAttribute('corner', new THREE.BufferAttribute(corner, 2));
+    rg.setAttribute('seed', new THREE.BufferAttribute(seed, 3));
+    rg.setIndex(idx);
+    const rays = new THREE.Mesh(rg, new THREE.ShaderMaterial({
+      uniforms: { cam, time, sea, sunDir: this.skyMat.uniforms.sunDir, color: { value: new THREE.Color() } },
+      vertexShader: `uniform vec3 cam; uniform float time; uniform float sea; uniform vec3 sunDir;
+        attribute vec2 corner; attribute vec3 seed; varying float vA; varying vec2 vUv;
+        void main(){
+          vec2 c = cam.xz + mod(seed.xy - cam.xz + 45.0, 90.0) - 45.0;
+          vec3 dir = normalize(vec3(-sunDir.x * 0.4, -1.0, -sunDir.z * 0.4));
+          vec3 axis = vec3(c.x, sea - 0.2, c.y) + dir * 60.0 * corner.y;
+          vec3 side = normalize(cross(dir, axis - cameraPosition));
+          vec3 p = axis + side * corner.x * seed.z * (1.0 + corner.y * 0.8);
+          vUv = corner;
+          vA = (0.55 + 0.45 * sin(time * (0.4 + seed.z * 0.12) + seed.x)) * (1.0 - smoothstep(18.0, 45.0, distance(c, cam.xz)));
+          gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+        }`,
+      fragmentShader: `uniform vec3 color; varying float vA; varying vec2 vUv;
+        void main(){
+          float a = vA * (1.0 - abs(vUv.x)) * pow(1.0 - vUv.y, 1.6);
+          gl_FragColor = vec4(color * a, 1.0);
+          #include <colorspace_fragment>
+        }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    }));
+    for (const o of [snow, rays]) { o.frustumCulled = false; o.visible = false; o.renderOrder = 2; this.scene.add(o); }
+    this._uw = { snow, rays, cam, time, under: false, air: null, color: new THREE.Color(), near: 0, far: 0 };
+  }
+
+  // the camera under the surface: a blue-green haze closes in (darker the deeper), the sky dome goes
+  _updateUnderwater(camPos) {
+    const U = this._uw;
+    if (!U) return;
+    const fog = this.scene.fog;
+    const under = !!fog && camPos.y < this.water - 0.12;
+    if (under) {
+      // anything else that set the air's fog (the time of day, the weather) is kept for when we come up
+      if (!U.under || fog.near !== U.near || fog.far !== U.far || !fog.color.equals(U.color))
+        U.air = { color: fog.color.clone(), near: fog.near, far: fog.far, bg: this.scene.background };
+      const P = TERRAIN.palette || {}, wu = this.waterMat.uniforms;
+      const k = clamp((this.water - camPos.y) / 45, 0, 1);
+      const light = clamp(0.35 + this.sun.intensity * 0.22 * Math.max(SUN_DIR.y, 0.1) + this.hemi.intensity * 0.25, 0.15, 1.4);
+      U.color.set(P.sea || 0x175a7a).lerp(wu.shallow.value, 0.3).multiplyScalar(light * (1 - k * 0.6));
+      U.near = 1.5; U.far = 150 - k * 50;
+      fog.color.copy(U.color); fog.near = U.near; fog.far = U.far;
+      if (this.scene.background && this.scene.background.isColor) this.scene.background = U.color;
+      U.cam.value.copy(camPos);
+      U.time.value = performance.now() / 1000;
+      U.snow.material.uniforms.color.value.copy(U.color).multiplyScalar(2.2).addScalar(0.08);
+      U.snow.material.uniforms.scale.value = this.game.renderer.domElement.height;
+      U.rays.material.uniforms.color.value.copy(this.sun.color).multiplyScalar(0.05 * this.sun.intensity * Math.max(SUN_DIR.y, 0) * (1 - k * 0.7));
+    } else if (U.under && U.air) {
+      fog.color.copy(U.air.color); fog.near = U.air.near; fog.far = U.air.far;
+      this.scene.background = U.air.bg;
+    }
+    U.under = under;
+    this.sky.visible = !under;
+    U.snow.visible = U.rays.visible = under;
   }
 
   // A picture of the land for the sea shader: red = the sea bed's depth (0..16 m), green = the land's height
@@ -1099,6 +1223,7 @@ export class World {
 
   updateSky(camPos) {
     this.sky.position.copy(camPos);
+    this._updateUnderwater(camPos);
     if (this.windU) this.windU.value = performance.now() / 1000;
     this.lightU().cloudT.value = performance.now() / 1000;
   }
