@@ -501,6 +501,7 @@ export class Combat {
       }
     }
     if (def.structural) g.buildings.damageSphere(x, y, z, r * 0.85, def.structural, owner);
+    if (g.towers) g.towers.blast(x, y, z, r, def, owner);
     g.world.damageTrees(x, z, r * 0.45);
     const cam = g.camera.position;
     const pd = Math.sqrt((cam.x - x) ** 2 + (cam.y - y) ** 2 + (cam.z - z) ** 2);

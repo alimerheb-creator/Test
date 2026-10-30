@@ -213,6 +213,36 @@ export class GameAudio {
     }
   }
 
+  // a skyscraper coming down: a deep roar that builds and goes on for as long as it falls, crashes in it
+  collapse(x, y, z, dur = 10) {
+    if (!this.ready) return;
+    const s = this._spatial(x, y, z, 3000);
+    if (!s) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const out = this._out(clamp(s.gain * 2.2, 0, 2.4), s.pan, 0.6);
+    const n = this._noise(t, dur + 2);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(140, t); lp.frequency.linearRampToValueAtTime(420, t + dur * 0.6); lp.frequency.linearRampToValueAtTime(120, t + dur + 2);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t); env.gain.linearRampToValueAtTime(1, t + 1.2); env.gain.setValueAtTime(1, t + dur); env.gain.exponentialRampToValueAtTime(0.0001, t + dur + 2);
+    n.connect(lp).connect(env).connect(out);
+    const o = ctx.createOscillator();
+    o.frequency.setValueAtTime(38, t); o.frequency.linearRampToValueAtTime(26, t + dur);
+    const og = ctx.createGain();
+    og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.9, t + 1); og.gain.setValueAtTime(0.9, t + dur); og.gain.exponentialRampToValueAtTime(0.0001, t + dur + 1.5);
+    o.connect(og).connect(out);
+    o.start(t); o.stop(t + dur + 2);
+    this._track(o);
+    for (let i = 0; i < dur * 2.5; i++) {
+      const tt = t + rand(0.3, dur);
+      const k = this._noise(tt, 0.5);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = rand(150, 1400); bp.Q.value = 1.5;
+      const e = this._env(tt, rand(0.3, 0.8), 0.01, rand(0.2, 0.6));
+      k.connect(bp).connect(e).connect(out);
+    }
+  }
+
   cannon(x, y, z) {
     this.explosion(x, y, z, 0.8);
     this.shot('sniper', x, y, z);

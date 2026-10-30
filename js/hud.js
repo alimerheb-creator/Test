@@ -184,6 +184,12 @@ export class HUD {
       g.fillRect(toPx(b[0] - hw), toPx(b[1] - hd), (hw * 2 * S) / (MAP_HALF * 2), (hd * 2 * S) / (MAP_HALF * 2));
       g.strokeRect(toPx(b[0] - hw), toPx(b[1] - hd), (hw * 2 * S) / (MAP_HALF * 2), (hd * 2 * S) / (MAP_HALF * 2));
     }
+    // the skyscrapers, darker
+    g.fillStyle = 'rgba(70,76,82,0.95)';
+    for (const t of (this.game.towers && this.game.towers.list) || []) {
+      g.fillRect(toPx(t.cx - t.w / 2), toPx(t.cz - t.d / 2), (t.w * S) / (MAP_HALF * 2), (t.d * S) / (MAP_HALF * 2));
+      g.strokeRect(toPx(t.cx - t.w / 2), toPx(t.cz - t.d / 2), (t.w * S) / (MAP_HALF * 2), (t.d * S) / (MAP_HALF * 2));
+    }
     // out of bounds shading
     g.strokeStyle = 'rgba(255,75,58,0.5)';
     g.lineWidth = 2;

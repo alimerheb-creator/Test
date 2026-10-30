@@ -5,6 +5,7 @@ import { Emitter, loadSettings, saveSettings, rand, clamp } from './util.js';
 import { World } from './world.js';
 import { weatherMaterial } from './textures.js';
 import { Buildings } from './buildings.js';
+import { Towers } from './towers.js';
 import { Effects } from './effects.js';
 import { GameAudio } from './audio.js';
 import { Input } from './input.js';
@@ -74,6 +75,8 @@ export class Game extends Emitter {
     this.effects = new Effects(this);
     this.buildings = new Buildings(this);
     this.buildings.generate();
+    this.towers = new Towers(this);
+    this.towers.generate();
     this.grass = new Grass(this);
     this.post = new PostFX(renderer);
     progress(0.65, 'Arming both sides');
@@ -255,6 +258,7 @@ export class Game extends Emitter {
     this.effects.clear();
     this.combat.clear();
     this.buildings.reset();
+    this.towers.reset();
     this.world.reset();
     this.mode.reset(RULES.startTickets > 0 ? RULES.startTickets : st.tickets);
     this.time = 0;
@@ -407,6 +411,7 @@ export class Game extends Emitter {
       this.combat.update(dt);
       this.mode.update(dt);
       this.buildings.update(dt);
+      this.towers.update(dt);
       this.effects.update(dt);
       // soft contact shadows under what's beyond the sun's shadow map (it reaches about its extent from the camera)
       if (this.renderer.shadowMap.enabled) this.effects.updateBlobs(this.qualityPreset().shadowExtent, 420);

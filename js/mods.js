@@ -607,7 +607,7 @@ export class ModManager {
 
   _applyMap(map, log) {
     if (!isObj(map)) { log.push('map: expected an object'); return; }
-    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'fields', 'alps', 'palette', 'atmosphere'];
+    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'fields', 'alps', 'towers', 'palette', 'atmosphere'];
     if (map.palette !== undefined) {
       if (!isObj(map.palette)) log.push('map.palette: expected an object like { "grass": "#c9b48a" }');
       else { const p = {}; applyFields(p, map.palette, SCHEMA.palette, 'map.palette', {}, log); TERRAIN.palette = p; }
@@ -651,6 +651,19 @@ export class ModManager {
           wall: clamp(Number(gz.wall) || 0.7, 0.25, 0.95),
         }));
       }
+    }
+    // towers: how many skyscrapers the map gets where there's room (0 for none), or exactly where they stand
+    if (map.towers !== undefined) {
+      const TW = map.towers, lim = worldEdge();
+      if (TW === null) TERRAIN.towers = null;
+      else if (typeof TW === 'number' && Number.isFinite(TW)) TERRAIN.towers = clamp(Math.round(TW), 0, 40);
+      else if (Array.isArray(TW)) {
+        TERRAIN.towers = TW.slice(0, 40).filter((t, i) => {
+          const ok = Array.isArray(t) && t.length >= 5 && t.every((v) => Number.isFinite(Number(v)));
+          if (!ok) log.push(`map.towers[${i}]: expected [x, z, width, depth, height]`);
+          return ok;
+        }).map((t) => [clamp(+t[0], -lim, lim), clamp(+t[1], -lim, lim), clamp(+t[2], 10, 60), clamp(+t[3], 10, 60), clamp(+t[4], 30, 400), t[5] === undefined ? -1 : clamp(Math.round(+t[5]), 0, 2)]);
+      } else log.push('map.towers: expected a number (how many, 0 for none) or a list of [x, z, width, depth, height]');
     }
     // alps: ridged mountains over the whole map cut by broad valleys, forest up to the tree line, snow on the peaks
     if (map.alps !== undefined) {

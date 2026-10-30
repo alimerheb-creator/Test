@@ -101,6 +101,14 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 - **Destruction**: every building is made of wall, floor and stair panels with hit points. Rockets,
   40mm grenades, C-4 and tank shells blow holes in walls, upper floors lose their support, and when
   enough of the ground floor is gone the whole building collapses on anyone inside.
+- **Skyscrapers** on every map, in every kind of battle (infantry, tanks, aviation, naval): clusters of glass, dark
+  bronze and concrete towers, 50 to 280 metres tall, some set back near the top, with plant rooms, masts and red
+  lights for the aircraft, lit windows at night, and some already burning when the battle starts. Their lobbies stand
+  on pillars, so you can run and drive through underneath, and aircraft fly between them (and crash into them). Hits
+  set their floors on fire. Explosives at the foot of one bring it down: three C-4 charges stuck to it (or tank shells,
+  rockets, a bomb) and it shudders, leans and sinks slowly into a rolling cloud of its own dust, sparks spraying out of
+  the crush, glass glittering down the face, slabs tumbling off it, the ground shaking under you, and leaves a smoking
+  heap of rubble. Anyone under it is crushed. The map shows them; Career Mode's historical missions don't have them.
 - **Four classes**
   - Assault: M4K carbine, underbarrel 40mm launcher, 2 frags
   - Engineer: VX-9 PDW, RPG-7V (wrecks tanks and walls)
@@ -625,7 +633,8 @@ with top rudder (the nose held above its path), as in the real thing. With TILT 
 phone or tablet you fly by tilting it, as if it were the plane seen from behind: left and right to roll, the top away
 from you (the screen turned up to the sky) to climb and toward you to dive (INVERT PITCH swaps them) (LEVEL at the top right
 takes the way you hold it as level; it reads the phone the same however far you tilt it, back past upright
-too). With STICK or TILT a swipe left or right yaws the nose (held as far as you swipe,
+too; the sensor's jitter is filtered out while you hold steady without slowing quick moves, it's gentle near the middle
+for fine aiming, and TILT SENSITIVITY in the flight settings makes it LOW, NORMAL or HIGH). With STICK or TILT a swipe left or right yaws the nose (held as far as you swipe,
 centred when you let go). Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
 stick instead: Shift/Z or the mouse wheel for throttle (THR buttons on phones), the mouse or a drag to look around (on a phone, up and down),
 and INVERT PITCH if you prefer pulling back to climb. C switches between the outside view and the cockpit (Vehicle Interiors mod; in a tank it takes the
@@ -643,6 +652,7 @@ The game is split into small ES modules under `js/`:
 | `config.js` | Teams, map layout, weapons, classes, scoring, AI difficulty |
 | `world.js` | Heightmap terrain, sky, lighting, trees/rocks/props, collision grid and raycasts |
 | `buildings.js` | Destructible buildings, collapse logic, rubble |
+| `towers.js` | Skyscrapers: placing them, their facades, fires, the collapse (dust, sparks, falling slabs) and rubble |
 | `soldier.js` | Soldier movement physics, health/downed state, animated model |
 | `weapons.js` | Guns, hitscan bullets, projectiles, explosions, crates, melee, spotting |
 | `vehicles.js` | Tank driving, turret, cannon, roadkill and wall crushing |
