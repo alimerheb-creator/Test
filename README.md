@@ -622,7 +622,8 @@ Cobra), the slider on the left is the throttle, the big round button fires, and 
 yaws the nose: drag it left or right like the throttle, and when you let go it eases back to the middle. STEER beside
 it switches the steering in flight: AIM (drag), STICK, TILT. On its side an aircraft sinks: hold it up on a knife edge
 with top rudder (the nose held above its path), as in the real thing. With TILT (GYRO) on a
-phone or tablet you fly by tilting it: left and right to roll, toward and away from you to pitch (LEVEL at the top right
+phone or tablet you fly by tilting it, as if it were the plane seen from behind: left and right to roll, the top away
+from you (the screen turned up to the sky) to climb and toward you to dive (INVERT PITCH swaps them) (LEVEL at the top right
 takes the way you hold it as level; it reads the phone the same however far you tilt it, back past upright
 too). With STICK or TILT a swipe left or right yaws the nose (held as far as you swipe,
 centred when you let go). Set FLIGHT CONTROLS to JOYSTICK in the settings (main menu or pause) to fly with W/S/A/D or the on-screen
