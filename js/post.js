@@ -98,7 +98,7 @@ const AOBLUR = `uniform sampler2D tAO; uniform sampler2D tDepth; uniform vec2 ao
   }`;
 
 const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform sampler2D tRays; uniform float rays; uniform float blur;
-  uniform float bloomStrength; uniform float exposure; uniform float vignette; uniform float grain; uniform float time;
+  uniform float bloomStrength; uniform float exposure; uniform float vignette; uniform float grain; uniform float sharpen; uniform float time;
   uniform float saturation; uniform float hurt; uniform float lowHp; uniform float aspect;
   uniform vec2 sunPos; uniform float sunVis; uniform bool useBloom;
   uniform sampler2D tAO; uniform bool useAO; uniform float aoStrength; uniform sampler2D tDepth; uniform bool vmMask;
@@ -145,7 +145,7 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
     }
     uv += hOff * 0.0032;
     vec3 col;
-    float ca = hurt * 0.006 + 0.0006;
+    float ca = hurt * 0.006;
     vec2 dir = (uv - 0.5) * ca;
     if (blur > 0.002) {
       // speed: the edges of the picture streak outward, the middle stays sharp
@@ -156,6 +156,12 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
       col /= 6.0;
     } else if (useFXAA) {
       col = fxaa(uv);
+      // (and a touch of sharpening: FXAA softens the whole picture a little)
+      if (sharpen > 0.0) {
+        vec3 nb = texture2D(tScene, uv + vec2(texelS.x, 0.0)).rgb + texture2D(tScene, uv - vec2(texelS.x, 0.0)).rgb
+          + texture2D(tScene, uv + vec2(0.0, texelS.y)).rgb + texture2D(tScene, uv - vec2(0.0, texelS.y)).rgb;
+        col = max(col + (col - nb * 0.25) * sharpen, 0.0);
+      }
       if (hurt > 0.01) { col.r = mix(col.r, texture2D(tScene, uv + dir).r, 0.6); col.b = mix(col.b, texture2D(tScene, uv - dir).b, 0.6); }
     } else {
       col.r = texture2D(tScene, uv + dir).r;
@@ -170,7 +176,7 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
       // everywhere else
       vec4 vd = projInvC * vec4(uv * 2.0 - 1.0, 1.0, 1.0);
       float mu = max(dot(normalize(camRot * (vd.xyz / vd.w)), sunDirW), 0.0);
-      col += hazeCol * ah.g * (0.22 + pow(mu, 6.0) * 1.4 + pow(mu, 40.0) * 2.2);
+      col += hazeCol * ah.g * (0.12 + pow(mu, 6.0) * 0.8 + pow(mu, 40.0) * 1.2);
     }
     if (useBloom) col += texture2D(tBloom, uv).rgb * bloomStrength;
     if (rays > 0.001) col += texture2D(tRays, uv).rgb * rays * vec3(1.0, 0.86, 0.66);
@@ -178,7 +184,7 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
     if (sunVis > 0.001) {
       vec2 d = uv - sunPos; d.x *= aspect;
       float r = length(d);
-      col += vec3(1.0, 0.82, 0.58) * (exp(-r * 7.0) * 0.35 + exp(-r * 32.0) * 0.9) * sunVis;
+      col += vec3(1.0, 0.82, 0.58) * (exp(-r * 9.0) * 0.14 + exp(-r * 36.0) * 0.6) * sunVis;
       vec2 axis = vec2(0.5) - sunPos;
       for (int i = 1; i <= 4; i++) {
         float fi = float(i);
@@ -186,7 +192,7 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
         vec2 gd = uv - gp; gd.x *= aspect;
         float gr = 0.018 + fi * 0.014;
         float ring = smoothstep(gr, gr * 0.55, length(gd));
-        col += mix(vec3(0.35, 0.55, 1.0), vec3(1.0, 0.6, 0.3), fract(fi * 0.37)) * ring * 0.045 * sunVis;
+        col += mix(vec3(0.35, 0.55, 1.0), vec3(1.0, 0.6, 0.3), fract(fi * 0.37)) * ring * 0.02 * sunVis;
       }
     }
     col *= exposure;
@@ -216,15 +222,15 @@ export class PostFX {
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
     this.quad.frustumCulled = false;
     this.scene.add(this.quad);
-    this.downMat = mat(DOWN, { tSrc: { value: null }, texel: { value: new THREE.Vector2() }, threshold: { value: 1.0 }, knee: { value: 0.6 }, prefilter: { value: false } });
-    this.upMat = mat(UP, { tLow: { value: null }, tHigh: { value: null }, texel: { value: new THREE.Vector2() }, scatter: { value: 0.85 } });
+    this.downMat = mat(DOWN, { tSrc: { value: null }, texel: { value: new THREE.Vector2() }, threshold: { value: 1.0 }, knee: { value: 0.35 }, prefilter: { value: false } });
+    this.upMat = mat(UP, { tLow: { value: null }, tHigh: { value: null }, texel: { value: new THREE.Vector2() }, scatter: { value: 0.7 } });
     this.raysMat = mat(RAYS, { tSrc: { value: null }, sunPos: { value: new THREE.Vector2() }, aspect: { value: 1 } });
     this.compMat = mat(COMPOSITE, {
       tScene: { value: null }, tBloom: { value: null }, useBloom: { value: true }, tRays: { value: null }, rays: { value: 0 }, blur: { value: 0 },
-      bloomStrength: { value: 0.55 }, exposure: { value: 1.05 }, vignette: { value: 0.32 }, grain: { value: 0 },
+      bloomStrength: { value: 0.22 }, exposure: { value: 1.05 }, vignette: { value: 0.2 }, grain: { value: 0 }, sharpen: { value: 0.3 },
       time: { value: 0 }, saturation: { value: 1.08 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
       sunPos: { value: new THREE.Vector2(-1, -1) }, sunVis: { value: 0 },
-      tAO: { value: null }, useAO: { value: false }, aoStrength: { value: 0.85 }, tDepth: { value: null }, vmMask: { value: false },
+      tAO: { value: null }, useAO: { value: false }, aoStrength: { value: 0.65 }, tDepth: { value: null }, vmMask: { value: false },
       heat: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) }, heatN: { value: 0 }, useFXAA: { value: false }, texelS: { value: new THREE.Vector2() },
       hazeCol: { value: new THREE.Vector3() }, sunDirW: { value: new THREE.Vector3(0, 1, 0) }, camRot: { value: new THREE.Matrix3() }, projInvC: { value: new THREE.Matrix4() },
     });
@@ -245,7 +251,7 @@ export class PostFX {
   _aoMat(n) {
     return this.aoMats[n] || (this.aoMats[n] = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: AO, defines: { SAMPLES: n }, depthTest: false, depthWrite: false,
-      uniforms: { tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, proj11: { value: 1 }, aspect: { value: 1 }, radius: { value: 1.6 }, texel: { value: new THREE.Vector2() }, fadeFar: { value: 150 }, intensity: { value: 2.0 }, hazeDist: { value: 900 } },
+      uniforms: { tDepth: { value: null }, projInv: { value: new THREE.Matrix4() }, proj11: { value: 1 }, aspect: { value: 1 }, radius: { value: 1.6 }, texel: { value: new THREE.Vector2() }, fadeFar: { value: 150 }, intensity: { value: 1.5 }, hazeDist: { value: 900 } },
     }));
   }
 
@@ -284,7 +290,7 @@ export class PostFX {
     }
     if (this.mips.length > 1) this.rtRays = new THREE.WebGLRenderTarget(this.mips[1].width, this.mips[1].height, { type, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
     this.compMat.uniforms.exposure.value = this.hdr ? (this.exposureValue || 1.05) : 1.0;
-    this.downMat.uniforms.threshold.value = this.hdr ? 1.0 : 0.82;
+    this.downMat.uniforms.threshold.value = this.hdr ? 1.4 : 0.9;
   }
 
   dispose() {

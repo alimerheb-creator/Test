@@ -502,10 +502,10 @@ export class Game extends Emitter {
     // sun shafts: strongest looking toward a bright sun, gone when it's behind you or the sky is dull
     _f.set(0, 0, -1).applyQuaternion(cam.quaternion);
     const facing = THREE.MathUtils.smoothstep(_f.dot(SUN_DIR), 0.25, 0.8);
-    fx.rays = facing * THREE.MathUtils.clamp((this.world.sun.intensity - 1.3) / 1.8, 0, 1) * (_v.z < 1 ? 1 : 0) * 0.75;
+    fx.rays = facing * THREE.MathUtils.clamp((this.world.sun.intensity - 1.3) / 1.8, 0, 1) * (_v.z < 1 ? 1 : 0) * 0.4;
     // the sunlit haze: the sun's colour, as strong as the sun is, spread over the fog's distance
     fx.sunDir = SUN_DIR;
-    const sl = this.world.sun, hzk = 0.035 * Math.min(4, sl.intensity) * (this.world.atmosphere && this.world.atmosphere.haze !== undefined ? +this.world.atmosphere.haze : 1);
+    const sl = this.world.sun, hzk = 0.022 * Math.min(4, sl.intensity) * (this.world.atmosphere && this.world.atmosphere.haze !== undefined ? +this.world.atmosphere.haze : 1);
     (fx.hazeCol || (fx.hazeCol = new THREE.Vector3())).set(sl.color.r * hzk, sl.color.g * hzk, sl.color.b * hzk);
     fx.hazeDist = Math.max(250, this.scene.fog ? this.scene.fog.far * 0.9 : 900);
     // heat haze: the strongest sources on screen, as screen position, radius and strength

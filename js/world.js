@@ -1153,8 +1153,11 @@ export class World {
     u.cloudAmount.value = clamp(+p.clouds, 0, 1);
     u.stars.value = clamp(+p.stars, 0, 2);
     this.scene.fog.color.set(p.horizon);
-    this.scene.fog.near = +p.fogNear;
-    this.scene.fog.far = Math.max(+p.fogNear + 10, +p.fogFar);
+    // (the air is clearer than the presets and maps say: you see a good deal further; on a phone or tablet a little
+    // less further, it's more to draw)
+    const clear = this.game.isTouch ? 1.3 : 1.6;
+    this.scene.fog.near = +p.fogNear * (clear + 0.2);
+    this.scene.fog.far = Math.min(6000, Math.max(this.scene.fog.near + 10, +p.fogFar * clear));
     // see as far as the fog does (big maps push it out)
     const cam = this.game.camera;
     if (cam) { cam.far = Math.max(1500, this.scene.fog.far + 400); cam.updateProjectionMatrix(); }
