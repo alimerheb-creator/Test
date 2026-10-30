@@ -424,6 +424,10 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   airbase about once a minute. When your side's guns engage something incoming near you, or a strike comes for
   you, the base alarm sounds like the real one over a base's loudspeakers: a wailing siren with an echo, then
   "INCOMING, INCOMING, INCOMING". A slow beep means an enemy C-RAM is tracking you, a fast one that it's firing.
+  Its radar can't pick an aircraft out of the ground clutter: fly below about 50 m and it only finds you once you're
+  within a few hundred metres (a message tells you you're under the radar). It takes a moment to lock on before it
+  fires, and a fast jet crossing its sights or hugging the ground is hard for it to hit; one flying straight at it
+  high up, or a slow one, takes the full stream.
   To hear the real recording instead, use **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings
   (MP3 or WAV under 2.5 MB; **BUILT-IN** goes back, **TEST** plays it).
 - **NAVAL**: battleships (Iowa / Sovetsky Soyuz: nine 406 mm guns in three turrets that fire together, eight
@@ -495,7 +499,7 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area
   count; finish it and the enemy loses **15 tickets**. The bot pilots fly the missions too.
 - **Danger.** Enemy infantry fire shoulder-launched **Stinger** and **Igla** missiles (flares help), engineers fire
-  RPGs, tank crews put their cannon on helicopters hovering low, and the airbases' C-RAM guns shred anything low.
+  RPGs, tank crews put their cannon on helicopters hovering low, and the airbases' C-RAM guns shred anything slow, or high and in their sights (go in low and fast).
 
 ### Career and research
 

@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "naval",
   "name": "Naval",
-  "version": "1.8",
+  "version": "1.9",
   "author": "Sixth Front",
   "description": "A battle type: pick NAVAL on the main menu, then a map (Sapphire Strait, Iron Harbor, Arctic Passage, North Sea) and a mode (Conquest, Fleet Battle, Strike). Everyone commands a warship: battleships (Iowa / Sovetsky Soyuz), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M), patrol boats and attack submarines (Virginia / Yasen: Z dives to periscope depth and deep, SHIFT comes up, hold AIM for the periscope; under water only sonar finds her, and the escorts hunt her with anti-submarine rockets). Guns elevate by themselves to land where you aim (G switches HE and AP shells), missiles need a lock, torpedoes run straight. Hits start fires, flood compartments and knock out the engine, the rudder or the guns: R calls the damage control party. The bigger ships carry Phalanx CIWS guns that shoot down incoming missiles with a roar of tracers. Matchmaking: the bots sail only the classes within one rank of your best ship (a patrol boat captain meets patrol boats and corvettes). Every ship has decoy launchers (SPACE, or DECOY on a phone) that pull incoming missiles away and a smoke screen (V, or SMOKE) to hide in: no missile locks on you in it. Missiles also miss sometimes, more often against small, fast boats.",
   "battle": {
@@ -150,78 +150,18 @@
       "deep": 3.5
     },
     "islands": [
-      [
-        -180,
-        120,
-        95,
-        44
-      ],
-      [
-        210,
-        -110,
-        105,
-        48
-      ],
-      [
-        -560,
-        520,
-        125,
-        54
-      ],
-      [
-        600,
-        -560,
-        130,
-        56
-      ],
-      [
-        540,
-        500,
-        80,
-        40
-      ],
-      [
-        -540,
-        -490,
-        85,
-        42
-      ],
-      [
-        -770,
-        60,
-        95,
-        46
-      ],
-      [
-        770,
-        -40,
-        95,
-        46
-      ],
-      [
-        290,
-        290,
-        42,
-        27
-      ],
-      [
-        -290,
-        -280,
-        42,
-        27
-      ],
-      [
-        -120,
-        560,
-        50,
-        30
-      ],
-      [
-        130,
-        -560,
-        50,
-        30
-      ]
+      [-180, 120, 95, 44],
+      [210, -110, 105, 48],
+      [-560, 520, 125, 54],
+      [600, -560, 130, 56],
+      [540, 500, 80, 40],
+      [-540, -490, 85, 42],
+      [-770, 60, 95, 46],
+      [770, -40, 95, 46],
+      [290, 290, 42, 27],
+      [-290, -280, 42, 27],
+      [-120, 560, 50, 30],
+      [130, -560, 50, 30]
     ],
     "vegetation": {
       "trees": 0.7,
@@ -288,55 +228,13 @@
     ],
     "roads": [],
     "buildings": [
-      [
-        -560,
-        520,
-        3,
-        3,
-        2
-      ],
-      [
-        -532,
-        548,
-        2,
-        3,
-        1
-      ],
-      [
-        540,
-        500,
-        2,
-        2,
-        5
-      ],
-      [
-        600,
-        -560,
-        4,
-        3,
-        2
-      ],
-      [
-        628,
-        -536,
-        3,
-        2,
-        1
-      ],
-      [
-        -180,
-        120,
-        2,
-        2,
-        4
-      ],
-      [
-        210,
-        -110,
-        3,
-        2,
-        2
-      ]
+      [-560, 520, 3, 3, 2],
+      [-532, 548, 2, 3, 1],
+      [540, 500, 2, 2, 5],
+      [600, -560, 4, 3, 2],
+      [628, -536, 3, 2, 1],
+      [-180, 120, 2, 2, 4],
+      [210, -110, 3, 2, 2]
     ],
     "props": [],
     "randomProps": false
@@ -361,102 +259,22 @@
         "deep": 3.5
       },
       "islands": [
-        [
-          -1060,
-          -700,
-          420,
-          34
-        ],
-        [
-          -1060,
-          0,
-          430,
-          36
-        ],
-        [
-          -1060,
-          700,
-          420,
-          34
-        ],
-        [
-          1060,
-          700,
-          420,
-          34
-        ],
-        [
-          1060,
-          0,
-          430,
-          36
-        ],
-        [
-          1060,
-          -700,
-          420,
-          34
-        ],
-        [
-          -150,
-          -40,
-          70,
-          22
-        ],
-        [
-          150,
-          40,
-          50,
-          18
-        ],
-        [
-          -260,
-          330,
-          60,
-          22
-        ],
-        [
-          260,
-          -330,
-          60,
-          22
-        ],
-        [
-          -380,
-          -150,
-          55,
-          24
-        ],
-        [
-          380,
-          150,
-          55,
-          24
-        ],
-        [
-          -420,
-          650,
-          90,
-          26
-        ],
-        [
-          420,
-          -650,
-          90,
-          26
-        ],
-        [
-          330,
-          560,
-          80,
-          24
-        ],
-        [
-          -330,
-          -560,
-          80,
-          24
-        ]
+        [-1060, -700, 420, 34],
+        [-1060, 0, 430, 36],
+        [-1060, 700, 420, 34],
+        [1060, 700, 420, 34],
+        [1060, 0, 430, 36],
+        [1060, -700, 420, 34],
+        [-150, -40, 70, 22],
+        [150, 40, 50, 18],
+        [-260, 330, 60, 22],
+        [260, -330, 60, 22],
+        [-380, -150, 55, 24],
+        [380, 150, 55, 24],
+        [-420, 650, 90, 26],
+        [420, -650, 90, 26],
+        [330, 560, 80, 24],
+        [-330, -560, 80, 24]
       ],
       "vegetation": {
         "trees": 0.25,
@@ -536,97 +354,19 @@
       ],
       "roads": [],
       "buildings": [
-        [
-          -900,
-          300,
-          4,
-          3,
-          2
-        ],
-        [
-          -900,
-          360,
-          4,
-          3,
-          1
-        ],
-        [
-          -900,
-          -300,
-          5,
-          3,
-          2
-        ],
-        [
-          -880,
-          -380,
-          3,
-          3,
-          3
-        ],
-        [
-          900,
-          -300,
-          4,
-          3,
-          2
-        ],
-        [
-          900,
-          -360,
-          4,
-          3,
-          1
-        ],
-        [
-          900,
-          300,
-          5,
-          3,
-          2
-        ],
-        [
-          880,
-          380,
-          3,
-          3,
-          3
-        ],
-        [
-          -420,
-          650,
-          3,
-          3,
-          2
-        ],
-        [
-          420,
-          -650,
-          3,
-          3,
-          2
-        ],
-        [
-          330,
-          560,
-          4,
-          2,
-          1
-        ],
-        [
-          -330,
-          -560,
-          4,
-          2,
-          1
-        ],
-        [
-          -150,
-          -40,
-          3,
-          3,
-          3
-        ]
+        [-900, 300, 4, 3, 2],
+        [-900, 360, 4, 3, 1],
+        [-900, -300, 5, 3, 2],
+        [-880, -380, 3, 3, 3],
+        [900, -300, 4, 3, 2],
+        [900, -360, 4, 3, 1],
+        [900, 300, 5, 3, 2],
+        [880, 380, 3, 3, 3],
+        [-420, 650, 3, 3, 2],
+        [420, -650, 3, 3, 2],
+        [330, 560, 4, 2, 1],
+        [-330, -560, 4, 2, 1],
+        [-150, -40, 3, 3, 3]
       ],
       "props": [],
       "randomProps": false
@@ -650,114 +390,24 @@
         "deep": 3.5
       },
       "islands": [
-        [
-          -700,
-          650,
-          160,
-          60
-        ],
-        [
-          700,
-          -650,
-          160,
-          60
-        ],
-        [
-          -750,
-          -380,
-          140,
-          55
-        ],
-        [
-          750,
-          380,
-          140,
-          55
-        ],
-        [
-          -300,
-          420,
-          40,
-          18
-        ],
-        [
-          250,
-          380,
-          35,
-          16
-        ],
-        [
-          -120,
-          180,
-          30,
-          14
-        ],
-        [
-          400,
-          60,
-          45,
-          20
-        ],
-        [
-          -420,
-          -60,
-          45,
-          20
-        ],
-        [
-          120,
-          -180,
-          30,
-          14
-        ],
-        [
-          -250,
-          -380,
-          35,
-          16
-        ],
-        [
-          300,
-          -420,
-          40,
-          18
-        ],
-        [
-          0,
-          600,
-          28,
-          12
-        ],
-        [
-          0,
-          -600,
-          28,
-          12
-        ],
-        [
-          -650,
-          250,
-          38,
-          16
-        ],
-        [
-          650,
-          -250,
-          38,
-          16
-        ],
-        [
-          -150,
-          60,
-          30,
-          13
-        ],
-        [
-          150,
-          -60,
-          30,
-          13
-        ]
+        [-700, 650, 160, 60],
+        [700, -650, 160, 60],
+        [-750, -380, 140, 55],
+        [750, 380, 140, 55],
+        [-300, 420, 40, 18],
+        [250, 380, 35, 16],
+        [-120, 180, 30, 14],
+        [400, 60, 45, 20],
+        [-420, -60, 45, 20],
+        [120, -180, 30, 14],
+        [-250, -380, 35, 16],
+        [300, -420, 40, 18],
+        [0, 600, 28, 12],
+        [0, -600, 28, 12],
+        [-650, 250, 38, 16],
+        [650, -250, 38, 16],
+        [-150, 60, 30, 13],
+        [150, -60, 30, 13]
       ],
       "vegetation": {
         "trees": 0.12,
@@ -846,34 +496,10 @@
       ],
       "roads": [],
       "buildings": [
-        [
-          -700,
-          650,
-          3,
-          3,
-          2
-        ],
-        [
-          700,
-          -650,
-          3,
-          3,
-          2
-        ],
-        [
-          750,
-          380,
-          2,
-          2,
-          4
-        ],
-        [
-          -750,
-          -380,
-          2,
-          2,
-          4
-        ]
+        [-700, 650, 3, 3, 2],
+        [700, -650, 3, 3, 2],
+        [750, 380, 2, 2, 4],
+        [-750, -380, 2, 2, 4]
       ],
       "props": [],
       "randomProps": false
@@ -897,20 +523,8 @@
         "deep": 2.5
       },
       "islands": [
-        [
-          -600,
-          610,
-          105,
-          30,
-          0.45
-        ],
-        [
-          600,
-          -610,
-          105,
-          30,
-          0.45
-        ]
+        [-600, 610, 105, 30, 0.45],
+        [600, -610, 105, 30, 0.45]
       ],
       "vegetation": {
         "trees": 0,
@@ -998,20 +612,8 @@
       ],
       "roads": [],
       "buildings": [
-        [
-          -600,
-          610,
-          2,
-          2,
-          3
-        ],
-        [
-          600,
-          -610,
-          2,
-          2,
-          3
-        ]
+        [-600, 610, 2, 2, 3],
+        [600, -610, 2, 2, 3]
       ],
       "props": [],
       "randomProps": false
@@ -1558,6 +1160,15 @@
     "  T.length = 0;",
     "  for (const fn of AD.providers) { try { for (const t of fn()) T.push(t); } catch (e) { console.error(e); } }",
     "  const P = g.player, pv = P && P.state === 'alive' ? P.vehicle : null;",
+    "  // flying low near an enemy C-RAM, unseen: say so (now and then)",
+    "  AD.lowT = (AD.lowT || 0) - dt;",
+    "  if (pv && pv.isAircraft && AD.lowT <= 0) {",
+    "    const me = T.find((t) => t.ref === pv);",
+    "    if (me && adLow(me) < 0.3 && !AD.mounts.some((m) => m.target && m.target.ref === pv) && AD.mounts.some((m) => m.ground && m.team !== P.team && (!m.active || m.active()) && m.mdl.root.getWorldPosition(_a3).distanceTo(me.pos) < 1500)) {",
+    "      AD.lowT = 25;",
+    "      hud.toast('UNDER THE RADAR · THE C-RAM CAN\\'T SEE YOU THIS LOW UNTIL YOU\\'RE CLOSE');",
+    "    }",
+    "  }",
     "  for (const m of AD.mounts) {",
     "    adStep(m, dt);",
     "    // an enemy gun with your aircraft in its sights: a slow beep while it tracks, a fast one while it shoots",
@@ -1579,6 +1190,14 @@
     "  AD.alarmTick(dt);",
     "};",
     "",
+    "// How well the radar sees an aircraft for its height over the ground (or the sea): 1 up in the open sky, down to 0 in",
+    "// the clutter of the ground below about 30 m, where it only finds one close in (and holds it less well)",
+    "const adLow = (t) => {",
+    "  const gy = Math.max(world.heightAt(t.pos.x, t.pos.z), world.water ?? -Infinity), h = t.pos.y - gy;",
+    "  const k = Math.min(1, Math.max(0, (h - 30) / 90));",
+    "  return k * k * (3 - 2 * k);",
+    "};",
+    "const AD_LOW_RANGE = 480;",
     "function adStep(m, dt) {",
     "  const mdl = m.mdl;",
     "  const on = m.active ? m.active() : true;",
@@ -1595,7 +1214,9 @@
     "    for (const t of AD.frameThreats) {",
     "      if (t.team === m.team) continue;",
     "      const d = t.pos.distanceTo(base);",
-    "      const range = t.kind === 'aircraft' ? m.range * 0.85 : m.range;",
+    "      let range = t.kind === 'aircraft' ? m.range * 0.85 : m.range;",
+    "      // (an aircraft hugging the ground: only close in)",
+    "      if (t.kind === 'aircraft') range = AD_LOW_RANGE + (range - AD_LOW_RANGE) * adLow(t);",
     "      if (d > range) continue;",
     "      let score;",
     "      if (t.kind === 'aircraft') score = 60 + d / 30;",
@@ -1616,6 +1237,8 @@
     "      }",
     "      if (score < bs && world.lineClear(base.x, base.y, base.z, t.pos.x, t.pos.y, t.pos.z)) { bs = score; best = t; }",
     "    }",
+    "    // a new aircraft: the fire-control radar takes a moment to lock on before the gun opens up",
+    "    if (best && best.kind === 'aircraft' && (!m.target || m.target.ref !== best.ref)) m.lockT = 0.8;",
     "    m.target = best;",
     "  } else if (m.target && !AD.frameThreats.includes(m.target)) {",
     "    // threats are rebuilt every frame: follow the same object",
@@ -1641,7 +1264,8 @@
     "  mdl.pitch.rotation.x = m.pitch;",
     "  m.aligned = !!t && Math.abs(ey) < 0.07 && Math.abs(ep) < 0.07;",
     "  const was = m.firing;",
-    "  m.firing = m.aligned && m.ammo > 0 && m.reloadT <= 0;",
+    "  if (m.lockT > 0) m.lockT -= dt;",
+    "  m.firing = m.aligned && m.ammo > 0 && m.reloadT <= 0 && !(t.kind === 'aircraft' && m.lockT > 0);",
     "  if (!m.firing) {",
     "    if (was && m.ammo <= 0) m.reloadT = AD_RELOAD;",
     "    return;",
@@ -1675,7 +1299,12 @@
     "  if (!t.local) return;",
     "  const k = Math.max(0, 1.25 - dist / m.range);",
     "  if (t.kind === 'aircraft') {",
-    "    if (t.hurt) t.hurt(m.dps * m.bonus * k * dt);",
+    "    // aircraft: less at long range, and a fast one crossing its sights or one down in the ground clutter is hard to",
+    "    // hit; one flying straight at it at height takes the full stream",
+    "    _a3.subVectors(t.pos, tip);",
+    "    const dd = _a3.length() || 1, vr = t.vel.dot(_a3) / dd, w = Math.sqrt(Math.max(0, t.vel.lengthSq() - vr * vr)) / dd;",
+    "    const ka = Math.max(0, 1.1 - dist / m.range) * Math.min(1, Math.max(0.4, 0.3 / Math.max(0.3, w))) * (0.7 + 0.3 * adLow(t));",
+    "    if (t.hurt) t.hurt(m.dps * m.bonus * 0.8 * ka * dt);",
     "    if (Math.random() < dt * 6) adfx.impact(t.pos.x, t.pos.y, t.pos.z, 0, 1, 0, 'metal');",
     "  } else if (Math.random() < 1 - Math.exp(-m.pk * m.bonus * (KIND_PK[t.kind] || 1) * k * dt)) {",
     "    adfx.explosion(t.pos.x, t.pos.y, t.pos.z, t.kind === 'shell' ? 0.35 : 0.6);",
