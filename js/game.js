@@ -50,7 +50,7 @@ export class Game extends Emitter {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = this.qualityPreset().shadows > 0;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = this.isTouch ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     renderer.autoClear = false;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
@@ -142,12 +142,27 @@ export class Game extends Emitter {
     return QUALITY[q] ? q : this.isTouch ? 'medium' : 'high';
   }
 
-  qualityPreset() { return QUALITY[this.qualityName()]; }
+  qualityPreset() {
+    const name = this.qualityName(), Q = QUALITY[name];
+    if (!this.isTouch || !Q.touch) return Q;
+    if (!this._touchQ || this._touchQ.name !== name) this._touchQ = { name, Q: { ...Q, ...Q.touch } };
+    return this._touchQ.Q;
+  }
+
+  // The sharpest the picture is drawn: the quality's pixel ratio (no more than the screen's), and on a phone or
+  // tablet no more pixels than the quality allows there
+  topPixelRatio() {
+    const Q = this.qualityPreset();
+    let r = Math.min(window.devicePixelRatio || 1, Q.pixelRatio);
+    if (Q.pixels) r = Math.min(r, Math.max(0.75, Math.sqrt(Q.pixels / Math.max(1, window.innerWidth * window.innerHeight))));
+    return r;
+  }
 
   applyQuality() {
     const Q = this.qualityPreset();
-    const dpr = window.devicePixelRatio || 1;
-    this.renderer.setPixelRatio(Math.min(dpr, Q.pixelRatio));
+    this.renderer.setPixelRatio(this.topPixelRatio());
+    // (the softer shadow filter takes several times the samples: not on phones and tablets)
+    this.renderer.shadowMap.type = this.isTouch ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     const shadows = Q.shadows > 0;
     const sun = this.world.sun;
     const needsRecompile = this.renderer.shadowMap.enabled !== shadows;
@@ -380,16 +395,16 @@ export class Game extends Emitter {
   }
 
   // Dynamic resolution: when the frames come too slowly for a while (the graphics can't keep up), draw the next
-  // ones a step lower in resolution, down to 70% of the quality's own; when there's room again, step back up. The
-  // picture stays the same, only a touch softer while the load is heavy.
+  // ones a step lower in resolution, down to 70% of the quality's own (55% on a phone or tablet); when there's room
+  // again, step back up. The picture stays the same, only a touch softer while the load is heavy.
   _dynRes(ms) {
     if (this.state !== 'playing' || ms > 250) { this._drsT = 0; this._ft = 0; return; }
-    this._ft = this._ft ? this._ft * 0.94 + ms * 0.06 : ms;
+    this._ft = this._ft ? this._ft * 0.9 + ms * 0.1 : ms;
     this._drsT = (this._drsT || 0) + ms / 1000;
-    if (this._drsT < 2) return;
-    const Q = this.qualityPreset(), top = Math.min(window.devicePixelRatio || 1, Q.pixelRatio), cur = this.renderer.getPixelRatio();
+    if (this._drsT < (this.isTouch ? 1 : 2)) return;
+    const top = this.topPixelRatio(), cur = this.renderer.getPixelRatio();
     let next = cur;
-    if (this._ft > 1000 / 42) next = Math.max(top * 0.7, cur - top * 0.1);
+    if (this._ft > 1000 / 42) next = Math.max(top * (this.isTouch ? 0.55 : 0.7), cur - top * 0.1);
     else if (this._ft < 1000 / 56) next = Math.min(top, cur + top * 0.1);
     if (Math.abs(next - cur) < 0.01) return;
     this._drsT = 0;

@@ -788,7 +788,8 @@ export class World {
   _buildWater() {
     const land = this._landTexture();
     const sky = this.skyMat.uniforms;
-    const q = this.game.settings.quality, Q = q === 'low' ? 0 : 1;
+    // (the mirrored hills traced over the land: not at LOW, nor at MEDIUM on a phone or tablet)
+    const q = this.game.qualityName ? this.game.qualityName() : this.game.settings.quality, Q = q === 'low' || (this.game.isTouch && q === 'medium') ? 0 : 1;
     const P = TERRAIN.palette || {};
     const mat = new THREE.ShaderMaterial({
       uniforms: {

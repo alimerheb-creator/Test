@@ -1,3 +1,4 @@
+import CoreMotion
 import UIKit
 import WebKit
 
@@ -11,6 +12,7 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
 
     private let store = Store()
     private var web: WKWebView!
+    private let motion = CMMotionManager()
 
     override func loadView() {
         let config = WKWebViewConfiguration()
@@ -19,6 +21,7 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
         config.mediaTypesRequiringUserActionForPlayback = []
         config.websiteDataStore = .default()
         config.userContentController.add(StoreBridge(store: store), name: "sfstore")
+        config.userContentController.add(MotionBridge(owner: self), name: "sfmotion")
         installStoreScript(config.userContentController)
 
         web = WKWebView(frame: .zero, configuration: config)
@@ -62,6 +65,45 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
     override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge { .all }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
+
+    // MARK: - the motion sensor, for flying by tilting the device
+
+    /// A page in an app gets no motion events of its own, so the app reads the sensor (Core Motion: which way is
+    /// down, in the device's own frame) and hands the game which way is up, and how the screen is turned, 60 times
+    /// a second, while the game wants it (it says "start" when you pick TILT).
+    func startMotion() {
+        guard motion.isDeviceMotionAvailable, !motion.isDeviceMotionActive else { return }
+        motion.deviceMotionUpdateInterval = 1.0 / 60.0
+        motion.startDeviceMotionUpdates(to: .main) { [weak self] data, _ in
+            guard let self = self, let g = data?.gravity, let web = self.web else { return }
+            let js = String(format: "window.__sfMotion&&window.__sfMotion(%.4f,%.4f,%.4f,%d)", -g.x, -g.y, -g.z, self.screenAngle())
+            web.evaluateJavaScript(js, completionHandler: nil)
+        }
+    }
+
+    func stopMotion() {
+        if motion.isDeviceMotionActive { motion.stopDeviceMotionUpdates() }
+    }
+
+    /// How far the screen is turned from upright, as a web page counts it (landscape with the home button or the
+    /// side button on the right: 90)
+    private func screenAngle() -> Int {
+        let o: UIInterfaceOrientation
+        if let scene = view.window?.windowScene { o = scene.interfaceOrientation } else { o = UIApplication.shared.statusBarOrientation }
+        switch o {
+        case .landscapeRight: return 90
+        case .landscapeLeft: return 270
+        case .portraitUpsideDown: return 180
+        default: return 0
+        }
+    }
+
+    /// (and if the page asks for the motion sensor itself, it may have it)
+    @available(iOS 15.0, *)
+    func webView(_ webView: WKWebView, requestDeviceOrientationAndMotionPermissionFor origin: WKSecurityOrigin,
+                 initiatedByFrame frame: WKFrameInfo, decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+        decisionHandler(.grant)
+    }
 
     /// Writes anything the game saved that is still on its way to disk (the app is going to the background).
     func saveNow() {
@@ -134,5 +176,19 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
         a.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completionHandler(nil) })
         a.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler(a.textFields?.first?.text) })
         present(a, animated: true)
+    }
+}
+
+/// "start" and "stop" from the game for the motion sensor (held weakly: the web view keeps its message handlers)
+final class MotionBridge: NSObject, WKScriptMessageHandler {
+    private weak var owner: GameViewController?
+
+    init(owner: GameViewController) {
+        self.owner = owner
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let op = message.body as? String else { return }
+        if op == "start" { owner?.startMotion() } else if op == "stop" { owner?.stopMotion() }
     }
 }

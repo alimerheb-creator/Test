@@ -223,11 +223,13 @@ export const DEFAULT_SETTINGS = {
 };
 
 // Graphics presets. 'auto' picks medium on phones/tablets and high elsewhere.
+// `touch`: what changes on a phone or tablet: `pixels` is the most the picture may have (a big tablet's screen at
+// full sharpness is more than its graphics can fill 60 times a second), and the costliest effects come down
 export const QUALITY = {
-  low: { pixelRatio: 1.0, shadows: 0, shadowExtent: 70, post: false, msaa: 0, bloom: false, grass: 0 },
-  medium: { pixelRatio: 1.5, shadows: 1024, shadowExtent: 70, post: true, msaa: 0, bloom: true, grass: 4500, ao: 8 },
-  high: { pixelRatio: 2.0, shadows: 2048, shadowExtent: 90, post: true, msaa: 4, bloom: true, grass: 11000, ao: 12 },
-  ultra: { pixelRatio: 2.5, shadows: 4096, shadowExtent: 110, post: true, msaa: 4, bloom: true, grass: 20000, ao: 16 },
+  low: { pixelRatio: 1.0, shadows: 0, shadowExtent: 70, post: false, msaa: 0, bloom: false, grass: 0, touch: { pixels: 0.9e6 } },
+  medium: { pixelRatio: 1.5, shadows: 1024, shadowExtent: 70, post: true, msaa: 0, bloom: true, grass: 4500, ao: 8, touch: { pixels: 1.5e6, ao: 0, grass: 2600 } },
+  high: { pixelRatio: 2.0, shadows: 2048, shadowExtent: 90, post: true, msaa: 4, bloom: true, grass: 11000, ao: 12, touch: { pixels: 2.4e6, msaa: 2, ao: 8, grass: 6000, shadows: 1024 } },
+  ultra: { pixelRatio: 2.5, shadows: 4096, shadowExtent: 110, post: true, msaa: 4, bloom: true, grass: 20000, ao: 16, touch: { pixels: 3.6e6, msaa: 2, ao: 8, grass: 9000, shadows: 2048 } },
 };
 
 export const BOT_NAMES = [

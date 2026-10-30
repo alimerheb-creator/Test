@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "aviation",
   "name": "Aviation",
-  "version": "1.15",
+  "version": "1.16",
   "author": "Sixth Front",
   "description": "A battle type: pick AVIATION on the main menu, then a map (Highlands, Dune Sea, Fjordland, Sea Canyons, where a low afternoon sun lays a glittering path down the channels, Pine Gorge, a river canyon with waterfalls and stone bridges to fly under, and Alps, forested valleys under snowy peaks with cloud on the slopes: each about 3 km across, with pine forests, crags on the cliffs, waterfalls and mist) and a mode (Conquest with sky zones, Air Superiority, Ground Strike). Everyone flies: the Jets and Bombers mods (switched on for you) with up to 10 aircraft a side. Every airbase is guarded by C-RAM guns that shoot down bombs, rockets and missiles and hose down low-flying aircraft (you hear the alarm and the beeps when one tracks you). In Ground Strike, bomb the enemy base: radar, fuel depot, hangars, command bunker and the C-RAM sites. Your own aircraft come back about 6 seconds after you lose them: with 1 aircraft in your crew you get 3 spawns in it, with 2 the first gets 2 spawns and the second 1, with 3 or 4 each gets 1. Matchmaking: the bots on both sides fly only the aircraft within one rank of your best one, so a beginner's F-16 meets MiG-29s and Su-27s, not Su-57s. The C-RAM guns fire a visible stream of glowing tracers.",
   "battle": {
@@ -2464,7 +2464,7 @@
     "  if (!P || P.state !== 'alive' || !GT.list.length || g.state !== 'playing') return;",
     "  ctx.save();",
     "  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';",
-    "  ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 3 * dpr;",
+    "  ctx.shadowColor = 'rgba(0,0,0,0.6)'; if (g.isTouch) { ctx.shadowOffsetX = ctx.shadowOffsetY = Math.max(1, Math.round(dpr)); } else ctx.shadowBlur = 3 * dpr;",
     "  for (const t of GT.list) {",
     "    const d = Math.hypot(t.pos.x - P.pos.x, t.pos.z - P.pos.z);",
     "    if (!t.alive && d > 1500) continue;",

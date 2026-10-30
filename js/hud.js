@@ -73,7 +73,10 @@ export class HUD {
   }
 
   _resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // (on a big tablet the overlay at the screen's full sharpness is millions of pixels to clear and draw every
+    // frame: no more than about two million)
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (this.game.isTouch) dpr = Math.max(1, Math.min(dpr, Math.sqrt(2.0e6 / Math.max(1, window.innerWidth * window.innerHeight))));
     this.dpr = dpr;
     this.overlay.width = Math.floor(window.innerWidth * dpr);
     this.overlay.height = Math.floor(window.innerHeight * dpr);
@@ -945,14 +948,15 @@ export class HUD {
           ctx.strokeStyle = `rgba(232,234,227,${0.9 * alpha})`;
           ctx.lineWidth = 2 * dpr;
           ctx.shadowColor = 'rgba(0,0,0,0.6)';
-          ctx.shadowBlur = 2 * dpr;
+          // (a blurred shadow is costly to draw on a phone or tablet: a hard one there)
+          if (this.game.isTouch) { ctx.shadowOffsetX = ctx.shadowOffsetY = Math.max(1, Math.round(dpr)); } else ctx.shadowBlur = 2 * dpr;
           ctx.beginPath();
           ctx.moveTo(cx - gap - len, cy); ctx.lineTo(cx - gap, cy);
           ctx.moveTo(cx + gap, cy); ctx.lineTo(cx + gap + len, cy);
           ctx.moveTo(cx, cy + gap); ctx.lineTo(cx, cy + gap + len);
           ctx.moveTo(cx, cy - gap - len); ctx.lineTo(cx, cy - gap);
           ctx.stroke();
-          ctx.shadowBlur = 0;
+          ctx.shadowBlur = 0; ctx.shadowOffsetX = ctx.shadowOffsetY = 0;
           ctx.fillStyle = `rgba(232,234,227,${0.9 * alpha})`;
           ctx.fillRect(cx - 1 * dpr, cy - 1 * dpr, 2 * dpr, 2 * dpr);
         }
