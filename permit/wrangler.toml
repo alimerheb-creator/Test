@@ -1,0 +1,14 @@
+name = "permit-register"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "permit-register-db"
+database_id = "43468eca-7b66-4c50-b0af-89735c3a4f07"

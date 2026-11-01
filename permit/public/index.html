@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Site Permit Register</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1f3a34">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f3f4f1; --card:#ffffff; --ink:#1c2321; --muted:#5f6b67; --line:#dfe3df;
+  --brand:#1f3a34; --brand-2:#2c524a; --accent:#f2b705; --accent-ink:#2a2200;
+  --ok:#1d7a4d; --ok-bg:#e3f3ea; --warn:#9a6400; --warn-bg:#fff3d6; --bad:#b3261e; --bad-bg:#fbe5e3;
+  --radius:12px; --shadow:0 1px 2px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+.hidden{display:none!important}
+.wrap{max-width:980px;margin:0 auto;padding:16px 16px 96px}
+header.top{background:var(--brand);color:#fff;position:sticky;top:0;z-index:20}
+header.top .in{max-width:980px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.logo{width:34px;height:34px;border-radius:8px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-weight:700;flex:none}
+.brandname{font-weight:700;line-height:1.1}
+.brandname small{display:block;font-weight:400;opacity:.75;font-size:12px}
+.spacer{flex:1}
+.chip-user{display:flex;align-items:center;gap:8px;font-size:13px;text-align:right;line-height:1.2}
+.chip-user small{display:block;opacity:.75}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer;background:#e7ebe8;color:var(--ink);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--brand);color:#fff}
+.btn.accent{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:var(--bad);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.small{padding:6px 10px;min-height:34px;font-size:13px}
+.btn.big{width:100%;padding:16px;font-size:17px;border-radius:12px}
+.btn.onDark{background:rgba(255,255,255,.12);color:#fff}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+h1{font-size:22px;margin:4px 0 12px}
+h2{font-size:17px;margin:0 0 10px}
+.muted{color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:12px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px}
+.stat{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+.stat .v{font-size:28px;font-weight:700;line-height:1.1}
+.stat .l{font-size:13px;color:var(--muted)}
+.stat.hl{background:var(--brand);color:#fff}
+.stat.hl .l{color:rgba(255,255,255,.75)}
+label.f{display:block;margin-bottom:12px}
+label.f>span{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.in-f{width:100%;padding:11px 12px;border:1px solid #c9d0cc;border-radius:10px;background:#fff;min-height:44px}
+.in-f:focus{outline:2px solid var(--accent);border-color:transparent}
+textarea.in-f{min-height:80px;resize:vertical}
+.pinbox{letter-spacing:.4em;font-size:20px;text-align:center}
+.tabs{display:flex;gap:6px;background:#e6eae7;padding:4px;border-radius:12px;margin-bottom:14px;overflow-x:auto}
+.tabs button{flex:1;border:0;background:transparent;padding:9px 12px;border-radius:9px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--muted)}
+.tabs button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);z-index:20}
+nav.bottom .in{max-width:980px;margin:0 auto;display:flex}
+nav.bottom button{flex:1;border:0;background:none;padding:8px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;position:relative}
+nav.bottom button svg{width:22px;height:22px}
+nav.bottom button.on{color:var(--brand)}
+nav.bottom button.on::before{content:"";position:absolute;top:0;left:25%;right:25%;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.nbadge{position:absolute;top:4px;right:calc(50% - 22px);background:var(--bad);color:#fff;border-radius:999px;font-size:11px;padding:0 6px;line-height:18px}
+.status{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em}
+.st-issued{background:var(--ok-bg);color:var(--ok)}
+.st-awaiting_photo{background:var(--warn-bg);color:var(--warn)}
+.st-cancelled{background:var(--bad-bg);color:var(--bad)}
+.st-pending{background:var(--warn-bg);color:var(--warn)}
+.st-approved{background:var(--ok-bg);color:var(--ok)}
+.st-suspended,.st-rejected{background:var(--bad-bg);color:var(--bad)}
+.plist{display:grid;gap:10px}
+.pcard{display:flex;gap:12px;align-items:stretch;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px;border:0;text-align:left;cursor:pointer;width:100%}
+.thumb{width:76px;height:76px;border-radius:9px;background:#e8ece9;flex:none;position:relative;overflow:hidden;display:grid;place-items:center;color:#9aa5a0}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.xmark{position:absolute;inset:0;pointer-events:none}
+.xmark::before,.xmark::after{content:"";position:absolute;left:50%;top:50%;width:140%;height:6px;background:rgba(179,38,30,.85);transform-origin:center}
+.xmark::before{transform:translate(-50%,-50%) rotate(45deg)}
+.xmark::after{transform:translate(-50%,-50%) rotate(-45deg)}
+.wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden}
+.wm span{transform:rotate(-28deg);border:5px solid rgba(179,38,30,.9);color:rgba(179,38,30,.9);font-weight:800;font-size:clamp(28px,9vw,64px);padding:4px 18px;border-radius:10px;letter-spacing:.08em;background:rgba(255,255,255,.35)}
+.pmeta{flex:1;min-width:0}
+.pmeta .serial{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:16px}
+.pmeta .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plan{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#e9ede9;border:1px solid var(--line);user-select:none}
+.plan-img{display:block;width:100%;height:auto}
+.plan-empty{aspect-ratio:16/10;background-color:#eef1ee;background-image:linear-gradient(#d9dfdb 1px,transparent 1px),linear-gradient(90deg,#d9dfdb 1px,transparent 1px);background-size:40px 40px}
+.plan-ph{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.85);padding:3px 8px;border-radius:6px}
+.plan.placing{cursor:crosshair;outline:3px dashed var(--accent)}
+.pin{position:absolute;transform:translate(-50%,-50%);border:0;background:var(--brand);color:#fff;border-radius:999px;padding:6px 10px;font-weight:700;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.25);cursor:pointer;display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+.pin:hover{background:var(--brand-2)}
+.pin-active{background:var(--accent);color:var(--accent-ink)}
+.pin-badge{background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 6px;font-size:11px;line-height:17px}
+ .sitemap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.sitemap svg{display:block;width:100%;min-width:820px;height:auto}
+.sitemap .rd{fill:#c0392b;font:700 17px "IBM Plex Sans",sans-serif}
+.sitemap .seg{cursor:pointer}
+.sitemap .seg rect,.sitemap .seg path{fill:#d6efe6;stroke:#1f9a74;stroke-width:3}
+.sitemap .seg.hot rect,.sitemap .seg.hot path{fill:#ffe48a;stroke:#c99400}
+.sitemap .seg.off{opacity:.45}
+.sitemap .seg:hover rect,.sitemap .seg:hover path{fill:#bfe6d6}
+.sitemap .lb{font:600 17px "IBM Plex Mono",monospace;fill:#1c2321}
+.sitemap .ct{font:700 14px "IBM Plex Sans",sans-serif;fill:#9a6400}
+.areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.atile{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;border:0;text-align:left;cursor:pointer}
+.atile .c{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:18px}
+.atile .n{font-size:13px;color:var(--muted);min-height:18px}
+.atile .k{font-size:12px;margin-top:6px}
+.chart{display:flex;align-items:flex-end;gap:6px;height:170px;padding-top:18px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;border:0;background:none;padding:0;min-width:0}
+.bar .b{width:100%;max-width:34px;background:var(--brand-2);border-radius:4px 4px 0 0;min-height:2px}
+.bar.sel .b{background:var(--accent)}
+.bar .v{font-size:11px;font-weight:700;margin-bottom:3px}
+.bar .d{font-size:10px;color:var(--muted);margin-top:4px;white-space:nowrap}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t td,table.t th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.t th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.listrow{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.listrow:last-child{border-bottom:0}
+.listrow .grow{flex:1;min-width:160px}
+.modal{position:fixed;inset:0;background:rgba(15,22,20,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:620px;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:18px 18px 24px}
+@media(min-width:700px){.modal{align-items:center}.sheet{border-radius:16px}}
+.sheet-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sheet-h h2{margin:0;flex:1}
+.x{border:0;background:#eef1ee;border-radius:999px;width:36px;height:36px;font-size:20px;cursor:pointer}
+.bigserial{font-family:"IBM Plex Mono",monospace;font-size:clamp(34px,10vw,52px);font-weight:600;text-align:center;letter-spacing:.02em;background:var(--accent);color:var(--accent-ink);border-radius:14px;padding:14px 8px;margin:6px 0 12px}
+.photo{position:relative;border-radius:12px;overflow:hidden;background:#e8ece9;min-height:120px}
+.photo img{display:block;width:100%;height:auto}
+.kv{display:grid;grid-template-columns:120px 1fr;gap:6px 10px;font-size:14px;margin:12px 0}
+.kv div:nth-child(odd){color:var(--muted)}
+.notice{padding:12px 14px;border-radius:10px;background:var(--warn-bg);color:#5a3d00;margin-bottom:14px;font-size:14px}
+.notice.bad{background:var(--bad-bg);color:#6d1712}
+.notice.ok{background:var(--ok-bg);color:#0f4a2d}
+#toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#1c2321;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.auth{max-width:420px;margin:0 auto;padding:28px 16px}
+.auth .hero{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+.auth .hero .logo{width:48px;height:48px;font-size:20px;border-radius:12px}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.back{border:0;background:none;color:var(--brand);font-weight:600;padding:0;margin-bottom:8px;cursor:pointer}
+.spin{width:18px;height:18px;border:3px solid rgba(255,255,255,.4);border-top-color:currentColor;border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:26px 10px;color:var(--muted)}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}
+.filters .in-f{min-height:40px;padding:8px 10px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal" class="modal hidden"></div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const TZ = "Asia/Riyadh";
+const $ = s => document.querySelector(s);
+function el(tag, props, ...kids){
+  const e = document.createElement(tag);
+  if (props) for (const [k,v] of Object.entries(props)){
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "style") e.style.cssText = v;
+    else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+    else if (k === "svg") e.innerHTML = v; // static, trusted icon markup only
+    else if (["value","checked","disabled","type","placeholder","inputMode","maxLength","src","alt","id","title","multiple","rows"].includes(k)) e[k] = v;
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)){ if (c == null || c === false) continue; e.append(c instanceof Node ? c : document.createTextNode(String(c))); }
+  if (tag === "select" && props && "value" in props) e.value = props.value ?? "";
+  return e;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const normName = s => String(s||"").trim().replace(/\s+/g," ").toLowerCase();
+const dayKey = d => new Date(d).toLocaleDateString("en-CA",{timeZone:TZ});
+const todayKey = () => dayKey(Date.now());
+const fmtDT = iso => iso ? new Date(iso).toLocaleString("en-GB",{timeZone:TZ,day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "";
+const fmtT = iso => iso ? new Date(iso).toLocaleTimeString("en-GB",{timeZone:TZ,hour:"2-digit",minute:"2-digit"}) : "";
+const fmtDay = k => new Date(k+"T12:00:00Z").toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+const pad = (n,w=4) => String(n).padStart(w,"0");
+const rid = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now().toString(36)).replace(/[^a-zA-Z0-9-]/g,"");
+let toastT;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),3200); }
+async function hashPin(pin, salt){
+  const data = new TextEncoder().encode(salt+":"+pin);
+  try { const buf = await crypto.subtle.digest("SHA-256", data); return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join(""); }
+  catch { let h=2166136261; for (const b of data){ h^=b; h=Math.imul(h,16777619)>>>0; } return "f"+h.toString(16); }
+}
+const ICON = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>',
+  map:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/></svg>',
+  list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></svg>',
+  cam:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  doc:'<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg>'
+};
+
+/* ---------- image compression ---------- */
+function loadImage(file){
+  return new Promise((res, rej) => { const url = URL.createObjectURL(file); const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); res(img); }; img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("Could not read that image")); }; img.src = url; });
+}
+async function compress(img, maxDim, maxChars, q0=0.78){
+  let dim = maxDim, q = q0, out = "";
+  for (let i=0;i<14;i++){
+    const s = Math.min(1, dim / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth*s)), h = Math.max(1, Math.round(img.naturalHeight*s));
+    const c = document.createElement("canvas"); c.width=w; c.height=h;
+    const ctx = c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+    out = c.toDataURL("image/jpeg", q);
+    if (out.length <= maxChars) return out;
+    if (q > 0.5) q -= 0.1; else dim = Math.round(dim*0.82);
+  }
+  return out;
+}
+
+/* ---------- state ---------- */
+const S = {
+  db:null, ready:false, loadErr:null, canWrite:true,
+  loaded:{companies:false,users:false,areas:false,permits:false},
+  companies:[], users:[], areas:[], permits:[], permitsById:{}, pubCompanies:[], needsSetup:false, since:0, v:0, meObj:null, isAGC:false,
+  token:null, view:"home", areaId:null, adminTab:"approvals", authTab:"login",
+  form:{}, filt:{q:"",area:"",company:"",status:"",day:"",type:""}, dayPick:null, placing:null,
+  fails:0, lockUntil:0
+};
+try { S.token = localStorage.getItem("spr_token"); } catch {}
+function setToken(t){ S.token=t; try{ t ? localStorage.setItem("spr_token",t) : localStorage.removeItem("spr_token"); }catch{} }
+async function api(path, body){
+  const r = await fetch(path, {method: body?"POST":"GET", headers: {"content-type":"application/json", ...(S.token?{authorization:"Bearer "+S.token}:{})}, body: body?JSON.stringify(body):undefined});
+  let d={}; try{ d = await r.json(); }catch{}
+  if (r.status===401 && S.token && path!=="/api/login"){ signOut(true); }
+  if (!r.ok) throw new Error(d.error || ("Request failed ("+r.status+")"));
+  return d;
+}
+const photoUrl = (serial, kind) => "/api/photo/"+encodeURIComponent(serial)+"?t="+encodeURIComponent(S.token||"")+(kind?"&kind="+kind:"")+"&v="+(S.permitsById[serial]?.photoAt||"");
+function signOut(silent){ if(S.token && !silent) api("/api/logout",{}).catch(()=>{}); setToken(null); S.meObj=null; S.isAGC=false; S.ready=true; S.view="home"; S.form={}; S.users=[]; S.permits=[]; S.permitsById={}; S.since=0; S.v=0; closeModal(); boot(); }
+const me = () => S.meObj;
+const companyOf = id => S.companies.find(c => c.id === id) || null;
+const areaOf = id => S.areas.find(a => a.id === id) || null;
+const userName = id => (S.users.find(u=>u.id===id)||{}).name || "Unknown";
+function isAGC(){ return !!S.isAGC; }
+
+function canCancel(p){ const u=me(); return !!u && p.status!=="cancelled" && (isAGC() || u.companyId===p.companyId); }
+const sortedAreas = () => [...S.areas].sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true}));
+
+function writeErr(e){ console.error(e); return (e && e.message) || "Something went wrong. Try again."; }
+async function busy(btn, fn){
+  if (btn.disabled) return; const old=[...btn.childNodes]; btn.disabled=true; btn.replaceChildren(el("span",{class:"spin"}), " Working…");
+  try { await fn(); } catch(e){ toast(writeErr(e)); } finally { if (btn.isConnected){ btn.disabled=false; btn.replaceChildren(...old); } }
+}
+
+/* ---------- render ---------- */
+function render(){
+  const app = $("#app"); const ae = document.activeElement;
+  const keep = ae && ae.id && app.contains(ae) ? {id:ae.id, s:ae.selectionStart, e:ae.selectionEnd} : null;
+  app.replaceChildren(rootView());
+  if (keep){ const n=document.getElementById(keep.id); if (n){ n.focus(); try{ n.setSelectionRange(keep.s, keep.e); }catch{} } }
+}
+function bind(key, props={}){
+  return el(props.tag||"input", {class:"in-f "+(props.cls||""), id:"f_"+key, value:S.form[key]??"", ...props.attrs,
+    oninput:e=>{ S.form[key]=e.target.value; }, onchange:e=>{ S.form[key]=e.target.value; if(props.rerender) render(); }}, props.kids||[]);
+}
+function rootView(){
+  if (!S.ready) return el("div",{class:"auth"}, brandHero(), el("div",{class:"card empty"}, S.loadErr ? S.loadErr : "Loading permit register…", S.loadErr?el("div",{style:"margin-top:12px"},el("button",{class:"btn primary",onclick:()=>{S.loadErr=null;render();boot();}},"Try again")):null));
+  const u = me();
+  if (!u) return authView();
+  if (u.status !== "approved") return pendingView(u);
+  if (!S.dataReady) return el("div",{class:"auth"}, brandHero(), el("div",{class:"card empty"},"Loading permits…"));
+  return shellView();
+}
+function brandHero(){ return el("div",{class:"hero"}, el("div",{class:"logo"},"P"), el("div",{class:"brandname",style:"font-size:20px"},"Site Permit Register", el("small",null,"Work permits by area"))); }
+
+/* ---------- auth ---------- */
+function authView(){
+  const box = el("div",{class:"auth"}, brandHero());
+  if (S.needsSetup) { box.append(setupCard()); return box; }
+  box.append(el("div",{class:"tabs"},
+    el("button",{class:S.authTab==="login"?"on":"", onclick:()=>{S.authTab="login";render();}},"Sign in"),
+    el("button",{class:S.authTab==="signup"?"on":"", onclick:()=>{S.authTab="signup";render();}},"Create account")));
+  if (S.authTab==="login"){
+    const btn = el("button",{class:"btn primary big", onclick:()=>busy(btn, doLogin)},"Sign in");
+    box.append(el("div",{class:"card"},
+      el("label",{class:"f"}, el("span",null,"Your name"), bind("lname",{attrs:{placeholder:"e.g. Ahmed Hassan", autocomplete:"username"}})),
+      el("label",{class:"f"}, el("span",null,"PIN"), bind("lpin",{cls:"pinbox",attrs:{type:"password",inputMode:"numeric",maxLength:6,placeholder:"••••",autocomplete:"current-password"}})),
+      btn));
+  } else {
+    const comps = S.pubCompanies;
+    const btn = el("button",{class:"btn primary big", onclick:()=>busy(btn, doSignup)},"Create account");
+    box.append(el("div",{class:"card"},
+      el("label",{class:"f"}, el("span",null,"Full name"), bind("sname",{attrs:{placeholder:"Name and surname"}})),
+      el("label",{class:"f"}, el("span",null,"Your company"), bind("scomp",{tag:"select", kids:[el("option",{value:""},"Select company…"), comps.map(c=>el("option",{value:c.id}, c.name + (c.type==="main"?" (Main contractor)":c.type==="subcontractor"?" (Subcontractor)":" (Contractor)")))]})),
+      el("label",{class:"f"}, el("span",null,"Choose a PIN (4–6 digits)"), bind("spin",{cls:"pinbox",attrs:{type:"password",inputMode:"numeric",maxLength:6,placeholder:"••••",autocomplete:"new-password"}})),
+      el("label",{class:"f"}, el("span",null,"Repeat PIN"), bind("spin2",{cls:"pinbox",attrs:{type:"password",inputMode:"numeric",maxLength:6,placeholder:"••••",autocomplete:"new-password"}})),
+      el("p",{class:"muted",style:"font-size:13px;margin-top:0"},"Your company not listed? Ask AGC to add it. New accounts need AGC approval before issuing permits."),
+      btn));
+  }
+  return box;
+}
+function setupCard(){
+  const btn = el("button",{class:"btn primary big", onclick:()=>busy(btn, async()=>{
+    const d = await api("/api/setup",{name:S.form.mname, pin:S.form.mpin});
+    setToken(d.token); S.form={}; await boot();
+  })},"Set up register");
+  return el("div",{class:"card"}, el("h2",null,"First-time setup"),
+    el("p",{class:"muted"},"Create the first AGC admin account. This person approves everyone else."),
+    el("label",{class:"f"}, el("span",null,"Your name"), bind("mname")),
+    el("label",{class:"f"}, el("span",null,"PIN (4–6 digits)"), bind("mpin",{cls:"pinbox",attrs:{type:"password",inputMode:"numeric",maxLength:6}})), btn);
+}
+async function doLogin(){
+  const d = await api("/api/login",{name:S.form.lname, pin:S.form.lpin});
+  setToken(d.token); S.form={}; S.view="home"; await boot();
+}
+async function doSignup(){
+  if ((S.form.spin||"")!==(S.form.spin2||"")) throw new Error("The two PINs don't match");
+  const d = await api("/api/signup",{name:S.form.sname, companyId:S.form.scomp, pin:S.form.spin});
+  setToken(d.token); S.form={}; await boot();
+  toast("Account created. Waiting for AGC approval.");
+}
+function pendingView(u){
+  const c = S.pubCompanies.find(x=>x.id===u.companyId);
+  const msg = u.status==="pending" ? "Your account is waiting for AGC approval. You'll get access as soon as AGC approves you — open this page again later."
+    : u.status==="rejected" ? "Your account request was not approved by AGC." : "Your account has been suspended by AGC.";
+  return el("div",{class:"auth"}, brandHero(), el("div",{class:"card"},
+    el("h2",null,u.name), el("div",{class:"muted",style:"margin-bottom:10px"}, c?c.name:""),
+    el("div",{class:"notice "+(u.status==="pending"?"":"bad")}, msg),
+    el("button",{class:"btn ghost",onclick:()=>boot()},"Check again"), " ", el("button",{class:"btn ghost",onclick:()=>signOut()},"Sign out")));
+}
+
+/* ---------- shell ---------- */
+function shellView(){
+  const u=me(), c=companyOf(u.companyId), agc=isAGC();
+  const pending = agc ? S.users.filter(x=>x.status==="pending").length : 0;
+  let body;
+  if (S.view==="area" && areaOf(S.areaId)) body = areaView(areaOf(S.areaId));
+  else if (S.view==="map") body = mapView();
+  else if (S.view==="permits") body = permitsView();
+  else if (S.view==="admin" && agc) body = adminView();
+  else if (S.view==="settings") body = settingsView();
+  else body = homeView();
+  const tab = (id,label,icon,badge) => el("button",{class:(S.view===id||(id==="map"&&S.view==="area"))?"on":"", onclick:()=>{S.view=id; S.placing=null; render(); scrollTo(0,0);}}, el("span",{svg:icon}), label, badge?el("span",{class:"nbadge"},badge):null);
+  return el("div",null,
+    el("header",{class:"top"}, el("div",{class:"in"}, el("div",{class:"logo"},"P"), el("div",{class:"brandname"},"Permit Register", el("small",null,"Site work permits")), el("div",{class:"spacer"}),
+      el("div",{class:"chip-user"}, el("div",null, u.name, el("small",null, c?c.name:"")), el("button",{class:"btn small onDark",onclick:()=>signOut()},"Sign out")))),
+    el("div",{class:"wrap"}, body),
+    el("nav",{class:"bottom"}, el("div",{class:"in"}, tab("home","Home",ICON.home), tab("map","Site map",ICON.map), tab("permits","Permits",ICON.list), agc?tab("admin","AGC Admin",ICON.shield,pending||null):null, tab("settings","My account",ICON.gear))));
+}
+
+/* ---------- home / dashboard ---------- */
+function homeView(){
+  const today = todayKey(); const byDay = {};
+  for (const p of S.permits) byDay[p.day] = (byDay[p.day]||0)+1;
+  const days=[]; for (let i=13;i>=0;i--) days.push(dayKey(Date.now()-i*86400000));
+  const week = days.slice(-7).reduce((s,d)=>s+(byDay[d]||0),0);
+  const active = S.permits.filter(p=>p.status!=="cancelled").length;
+  const cancelled = S.permits.filter(p=>p.status==="cancelled").length;
+  const max = Math.max(1,...days.map(d=>byDay[d]||0));
+  const pick = S.dayPick || today;
+  const dayPermits = S.permits.filter(p=>p.day===pick);
+  const byArea = {}; for (const p of dayPermits) byArea[p.areaCode]=(byArea[p.areaCode]||0)+1;
+  const byType = {}; for (const p of dayPermits) byType[p.type||"Not specified"]=(byType[p.type||"Not specified"]||0)+1;
+  const byComp = {}; for (const p of dayPermits) byComp[p.companyName]=(byComp[p.companyName]||0)+1;
+  const pending = isAGC() ? S.users.filter(x=>x.status==="pending").length : 0;
+  return el("div",null,
+    pending ? el("div",{class:"notice",style:"cursor:pointer",onclick:()=>{S.view="admin";S.adminTab="approvals";render();}}, `${pending} account${pending>1?"s":""} waiting for your approval → open AGC Admin`) : null,
+    el("div",{class:"stats"},
+      el("div",{class:"stat hl"}, el("div",{class:"v"}, byDay[today]||0), el("div",{class:"l"},"Permits issued today")),
+      el("div",{class:"stat"}, el("div",{class:"v"}, week), el("div",{class:"l"},"Last 7 days")),
+      el("div",{class:"stat"}, el("div",{class:"v"}, active), el("div",{class:"l"},"Valid (not cancelled)")),
+      el("div",{class:"stat"}, el("div",{class:"v"}, cancelled), el("div",{class:"l"},"Cancelled"))),
+    el("div",{class:"card"}, el("div",{class:"row"}, el("h2",{style:"flex:1;margin:0"},"Permits issued per day"), el("span",{class:"muted",style:"font-size:13px"},"Last 14 days · tap a day")),
+      el("div",{class:"chart"}, days.map(d=>{ const v=byDay[d]||0; return el("button",{class:"bar"+(d===pick?" sel":""), title:fmtDay(d)+": "+v, onclick:()=>{S.dayPick=d;render();}},
+        el("div",{class:"v"}, v||""), el("div",{class:"b",style:`height:${Math.round(v/max*120)}px`}), el("div",{class:"d"}, d.slice(8)==="01"||d===days[0] ? new Date(d+"T12:00:00Z").toLocaleDateString("en-GB",{day:"numeric",month:"short"}) : String(+d.slice(8)))); }))),
+    el("div",{class:"card"},
+      el("div",{class:"row",style:"margin-bottom:10px"}, el("h2",{style:"flex:1;margin:0"}, (pick===today?"Today":fmtDay(pick)) + " · " + dayPermits.length + " issued"),
+        el("input",{class:"in-f",type:"date",style:"width:auto;min-height:38px;padding:6px 10px",value:pick,max:today,onchange:e=>{S.dayPick=e.target.value||today;render();}})),
+      dayPermits.length ? el("div",null,
+        el("div",{class:"grid",style:"grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:12px"},
+          el("table",{class:"t"}, el("tr",null, el("th",null,"Area"), el("th",null,"Issued")), Object.entries(byArea).sort().map(([k,v])=>el("tr",null, el("td",{class:"mono"},k), el("td",null,v)))),
+          el("table",{class:"t"}, el("tr",null, el("th",null,"Permit type"), el("th",null,"Issued")), Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([k,v])=>el("tr",null, el("td",null,k), el("td",null,v)))),
+          el("table",{class:"t"}, el("tr",null, el("th",null,"Company"), el("th",null,"Issued")), Object.entries(byComp).sort((a,b)=>b[1]-a[1]).map(([k,v])=>el("tr",null, el("td",null,k), el("td",null,v))))),
+        el("div",{class:"plist"}, dayPermits.map(permitCard)))
+      : el("div",{class:"empty"},"No permits issued on this day.")),
+    el("button",{class:"btn accent big",onclick:()=>{S.view="map";render();}}, el("span",{svg:ICON.map,style:"width:22px;height:22px;display:inline-flex"}), "Open site map to issue a permit"));
+}
+
+/* ---------- map ---------- */
+const SITE = {
+  segs:[["LINK3",40,200],["IC4",200,270],["LINK4",270,340],["LINK5",340,470],["IC6",470,620],["LINK6",620,700],["IC7",700,860],["LINK7",860,920],["IC8",920,1010],["LINK8",1010,1080]],
+  arms:{IC4:[70,270,222,248],IC6:[95,255,532,558],IC8:[85,260,952,978]},
+  roads:[["KFR",235],["OLY",340],["KAR",545],["ABR",780],["OTH",965]]
+};
+function siteMap(){
+  const today=todayKey(); const byCode={}; for (const a of S.areas) byCode[String(a.code).toUpperCase()]=a;
+  const cnt = a => a ? S.permits.filter(p=>p.areaId===a.id && p.day===today).length : 0;
+  let g = '<line x1="20" y1="170" x2="1095" y2="170" stroke="#d23a2f" stroke-width="2"/>';
+  g += '<text x="10" y="140" class="rd">ISFR</text>';
+  for (const [n,x] of SITE.roads) g += `<line x1="${x}" y1="45" x2="${x}" y2="300" stroke="#d23a2f" stroke-width="2"/><text x="${x}" y="326" text-anchor="middle" class="rd">${n}</text>`;
+  g += '<path d="M610 170 Q540 190 505 230 T450 310" fill="none" stroke="#d23a2f" stroke-width="2"/><text x="395" y="330" class="rd">THU</text>';
+  for (const [code,y0,y1] of SITE.segs){
+    const a=byCode[code]; const n=cnt(a); const cls="seg"+(a?"":" off")+(n?" hot":"");
+    g += `<g class="${cls}" data-code="${code}"><rect x="${y0+3}" y="150" width="${y1-y0-6}" height="40" rx="5"/>`;
+    const arm=SITE.arms[code];
+    if (arm){ const [a0,a1,xa,xb]=arm; g += `<rect x="${xa}" y="${a0}" width="${xb-xa}" height="${a1-a0}" rx="5"/>`; }
+    if (code==="IC6") g += '<path d="M600 172 L548 220 L520 240 L512 222 L545 200 L596 155 Z"/>';
+    const mx = arm ? (arm[2]+arm[3])/2 : (y0+y1)/2;
+    if (arm && code!=="IC6") g += `<text x="${mx}" y="58" text-anchor="middle" class="lb">${code}</text>${n?`<text x="${mx}" y="290" text-anchor="middle" class="ct">${n} today</text>`:""}`;
+    else if (code==="IC6") g += `<text x="${(y0+y1)/2+40}" y="138" text-anchor="middle" class="lb">${code}</text>${n?`<text x="${(y0+y1)/2+40}" y="215" text-anchor="middle" class="ct">${n} today</text>`:""}`;
+    else g += `<text x="${mx}" y="138" text-anchor="middle" class="lb">${code}</text>${n?`<text x="${mx}" y="215" text-anchor="middle" class="ct">${n} today</text>`:""}`;
+    g += '</g>';
+  }
+  const wrap = el("div",{class:"sitemap",svg:`<svg viewBox="0 0 1100 340" xmlns="http://www.w3.org/2000/svg">${g}</svg>`});
+  wrap.querySelectorAll("g.seg").forEach(n=>n.addEventListener("click",()=>{ const a=byCode[n.dataset.code]; if(a) openArea(a.id); else toast(n.dataset.code+" is not set up yet — AGC can add it in Admin → Areas"); }));
+  return el("div",null, wrap, el("div",{class:"muted",style:"font-size:12px;text-align:center;margin-top:4px"},"Swipe sideways to see the whole site · turn your phone for a wider view"));
+}
+function openArea(id){ S.areaId=id; S.view="area"; render(); scrollTo(0,0); }
+function mapView(){
+  const areas = sortedAreas(); const today=todayKey();
+  return el("div",null, el("h1",null,"Select your work area"),
+    el("p",{class:"muted",style:"margin-top:-6px"},"Tap the area where you'll work, then generate a permit number."),
+    el("div",{class:"card",style:"padding:8px"}, siteMap()),
+    areas.length ? el("div",{class:"areas"}, areas.map(a=>{ const all=S.permits.filter(p=>p.areaId===a.id); const t=all.filter(p=>p.day===today).length;
+      return el("button",{class:"atile",onclick:()=>openArea(a.id)}, el("div",{class:"c"},a.code), el("div",{class:"n"},a.name||""), el("div",{class:"k"}, el("b",null,t)," today · ", all.length," total")); }))
+    : el("div",{class:"card empty"},"No areas yet. AGC can add areas in AGC Admin → Areas."));
+}
+
+/* ---------- area ---------- */
+function areaView(a){
+  const list = S.permits.filter(p=>p.areaId===a.id);
+  const today = list.filter(p=>p.day===todayKey()).length;
+  return el("div",null,
+    el("button",{class:"back",onclick:()=>{S.view="map";render();}},"← Site map"),
+    el("div",{class:"row",style:"margin-bottom:12px"}, el("div",{style:"flex:1"}, el("h1",{class:"mono",style:"margin:0"},a.code), el("div",{class:"muted"}, a.name||"", (a.name?" · ":""), today," issued today · ",list.length," total"))),
+    el("button",{class:"btn accent big",style:"margin-bottom:16px",onclick:()=>openGenerate(a)},"+ Generate new permit"),
+    list.length ? el("div",{class:"plist"}, list.map(permitCard)) : el("div",{class:"card empty"},"No permits in this area yet."));
+}
+
+/* ---------- permits list ---------- */
+function permitCard(p){
+  const thumb = el("div",{class:"thumb"}, p.hasPhoto ? el("img",{src:photoUrl(p.id),alt:"",loading:"lazy"}) : el("span",{svg:ICON.doc}), p.status==="cancelled"?el("div",{class:"xmark"}):null);
+  return el("button",{class:"pcard",onclick:()=>openPermit(p.id)}, thumb,
+    el("div",{class:"pmeta"}, el("div",{class:"row",style:"gap:8px"}, el("span",{class:"serial"},p.serial), statusChip(p.status)),
+      p.type ? el("div",{class:"sub",style:"color:var(--ink);font-weight:600"}, p.type) : null,
+      el("div",{class:"sub"}, p.companyName||"", " · ", userName(p.createdBy)),
+      el("div",{class:"sub"}, fmtDT(p.createdAt)),
+      p.description ? el("div",{class:"sub"}, p.description) : null));
+}
+const PERMIT_TYPES = ["Hot Work Permit","Excavation Permit","Work at Height Permit","Cold Work Permit","Confined Space Permit","Lifting Permit"];
+const STATUS_LABEL = {issued:"Issued",awaiting_photo:"Awaiting photo",cancelled:"Cancelled",pending:"Pending",approved:"Approved",suspended:"Suspended",rejected:"Rejected"};
+const statusChip = s => el("span",{class:"status st-"+s}, STATUS_LABEL[s]||s);
+function permitsView(){
+  const f=S.filt; const q=f.q.trim().toUpperCase();
+  const list = S.permits.filter(p => (!q || String(p.serial).toUpperCase().includes(q) || String(p.description||"").toUpperCase().includes(q))
+    && (!f.area || p.areaId===f.area) && (!f.company || p.companyId===f.company) && (!f.status || p.status===f.status) && (!f.type || p.type===f.type) && (!f.day || p.day===f.day));
+  const sel = (key, opts, ph) => el("select",{class:"in-f",id:"flt_"+key,value:f[key],onchange:e=>{f[key]=e.target.value;render();}}, el("option",{value:""},ph), opts);
+  return el("div",null, el("h1",null,"All permits"),
+    el("div",{class:"filters"},
+      el("input",{class:"in-f",id:"flt_q",placeholder:"Search serial or work…",value:f.q,oninput:e=>{f.q=e.target.value;render();}}),
+      sel("area", sortedAreas().map(a=>el("option",{value:a.id},a.code)), "All areas"),
+      sel("company", S.companies.map(c=>el("option",{value:c.id},c.name)), "All companies"),
+      sel("type", PERMIT_TYPES.map(t=>el("option",{value:t},t)), "All permit types"),
+      sel("status", ["issued","awaiting_photo","cancelled"].map(s=>el("option",{value:s},STATUS_LABEL[s])), "Any status"),
+      el("input",{class:"in-f",type:"date",id:"flt_day",value:f.day,onchange:e=>{f.day=e.target.value;render();}})),
+    el("div",{class:"row",style:"margin-bottom:10px"}, el("span",{class:"muted"}, list.length+" permit"+(list.length===1?"":"s")), el("div",{class:"spacer"}),
+      (f.q||f.area||f.company||f.status||f.day||f.type) ? el("button",{class:"btn small ghost",onclick:()=>{S.filt={q:"",area:"",company:"",status:"",day:"",type:""};render();}},"Clear filters") : null),
+    list.length ? el("div",{class:"plist"}, list.slice(0,300).map(permitCard)) : el("div",{class:"card empty"},"No permits match."));
+}
+
+/* ---------- modal ---------- */
+function openModal(title, ...content){
+  const m=$("#modal"); m.classList.remove("hidden");
+  const sheet = el("div",{class:"sheet"}, el("div",{class:"sheet-h"}, el("h2",null,title), el("button",{class:"x",onclick:closeModal,"aria-label":"Close"},"×")), content);
+  m.replaceChildren(sheet); m.onclick = e => { if (e.target===m) closeModal(); };
+  return sheet;
+}
+function closeModal(){ const m=$("#modal"); m.classList.add("hidden"); m.replaceChildren(); }
+
+/* ---------- generate permit ---------- */
+function openGenerate(a){
+  const desc = el("textarea",{class:"in-f",placeholder:"Short description of the work (optional)",rows:2});
+  const type = el("select",{class:"in-f"}, el("option",{value:""},"Select permit type…"), PERMIT_TYPES.map(t=>el("option",{value:t},t)));
+  const btn = el("button",{class:"btn primary big",onclick:()=>busy(btn, async()=>{
+    if (!type.value) throw new Error("Select the permit type");
+    const p = await createPermit(a, desc.value.trim(), type.value);
+    showSerial(p);
+  })},"Generate permit number");
+  openModal("New permit · "+a.code, el("p",{class:"muted"},"The app will reserve the next serial number for ",el("b",{class:"mono"},a.code),". Write it on the permit, then take a photo of the permit."),
+    el("label",{class:"f"}, el("span",null,"Permit type"), type), el("label",{class:"f"}, el("span",null,"Work description"), desc), btn);
+}
+async function createPermit(a, description, ptype){
+  const d = await api("/api/permits",{areaId:a.id, type:ptype, description});
+  await refresh();
+  return S.permitsById[d.serial] || {id:d.serial, serial:d.serial};
+}
+function photoPicker(onFile){
+  const input = el("input",{type:"file",accept:"image/*",onchange:e=>{ const f=e.target.files&&e.target.files[0]; e.target.value=""; if (f) onFile(f); }});
+  return el("label",{class:"btn accent big filebtn"}, el("span",{svg:ICON.cam,style:"display:inline-flex"}), "Take / choose photo of permit", input);
+}
+function showSerial(p){
+  const status = el("div");
+  const sheet = openModal("Permit number generated",
+    el("div",{class:"bigserial"}, p.serial),
+    el("p",{class:"muted",style:"text-align:center;margin-top:0"},"Write this number on the paper permit, then take a clear photo of it."),
+    status,
+    photoPicker(f => uploadPhoto(p.id, f, status)),
+    el("button",{class:"btn ghost",style:"width:100%;margin-top:10px",onclick:()=>{closeModal();toast(p.serial+" saved — add the photo later from the permit.");}},"Add photo later"));
+}
+async function uploadPhoto(serial, file, statusEl){
+  const set = (cls,msg)=>{ if(statusEl) statusEl.replaceChildren(el("div",{class:"notice "+cls},msg)); };
+  try {
+    set("","Preparing photo…");
+    const img = await loadImage(file);
+    const full = await compress(img, 1800, 380000, 0.8);
+    const thumb = await compress(img, 240, 16000, 0.6);
+    set("","Uploading…");
+    await api("/api/permits/"+encodeURIComponent(serial)+"/photo",{full, thumb});
+    await refresh();
+    toast("Permit "+serial+" uploaded");
+    openPermit(serial);
+  } catch(e){ set("bad", writeErr(e) + (e && e.code ? " ["+e.code+"]" : "")); }
+}
+
+/* ---------- permit detail ---------- */
+async function openPermit(id){
+  const p = S.permits.find(x=>x.id===id); if (!p) return;
+  const photo = el("div",{class:"photo"}, p.hasPhoto ? el("img",{src:photoUrl(p.id),alt:"Permit photo",style:"filter:blur(2px)"}) : el("div",{class:"empty"},"No photo uploaded yet"),
+    p.status==="cancelled" ? el("div",{class:"wm"}, el("span",null,"CANCELLED")) : null);
+  const actions = el("div",{class:"grid",style:"margin-top:8px"});
+  const u = me(); const mine = isAGC() || u.companyId===p.companyId;
+  if (!p.hasPhoto && mine){ const st=el("div"); actions.append(st, photoPicker(f=>uploadPhoto(p.id,f,st))); }
+  if (canCancel(p)) actions.append(el("button",{class:"btn ghost",style:"color:var(--bad);border-color:#e7b9b5",onclick:()=>openCancel(p)},"Cancel this permit"));
+  openModal("Permit "+p.serial,
+    p.status==="cancelled" ? el("div",{class:"notice bad"}, el("b",null,"Cancelled"), " by ", userName(p.cancelledBy), " on ", fmtDT(p.cancelledAt), p.cancelReason?el("div",null,"Reason: ",p.cancelReason):null) : null,
+    photo,
+    el("div",{class:"kv"},
+      el("div",null,"Serial"), el("div",{class:"mono"},p.serial),
+      el("div",null,"Status"), el("div",null,statusChip(p.status)),
+      el("div",null,"Permit type"), el("div",null,p.type||"—"),
+      el("div",null,"Area"), el("div",null,p.areaCode, areaOf(p.areaId)&&areaOf(p.areaId).name ? " · "+areaOf(p.areaId).name : ""),
+      el("div",null,"Company"), el("div",null,p.companyName||""),
+      el("div",null,"Issued by"), el("div",null,userName(p.createdBy)),
+      el("div",null,"Issued at"), el("div",null,fmtDT(p.createdAt)),
+      p.description ? [el("div",null,"Work"), el("div",null,p.description)] : null,
+      p.photoAt ? [el("div",null,"Photo added"), el("div",null,fmtDT(p.photoAt))] : null),
+    actions);
+  if (p.hasPhoto){
+    const im=el("img",{src:photoUrl(p.id,"full"),alt:"Permit photo"});
+    im.onload=()=>{ const old=photo.querySelector("img"); if(old && old!==im) old.replaceWith(im); };
+    im.style.cursor="zoom-in"; im.onclick=()=>{ const ov=el("div",{class:"modal",style:"align-items:center;z-index:70;padding:8px",onclick:()=>ov.remove()}, el("img",{src:im.src,style:"max-width:100%;max-height:100%;border-radius:8px"})); document.body.append(ov); };
+  }
+}
+function openCancel(p){
+  const reason = el("textarea",{class:"in-f",placeholder:"Why is this permit cancelled?",rows:3});
+  const btn = el("button",{class:"btn danger big",onclick:()=>busy(btn, async()=>{
+    if (reason.value.trim().length<3) throw new Error("Please enter a reason");
+    await api("/api/permits/"+encodeURIComponent(p.id)+"/cancel",{reason:reason.value.trim()}); await refresh();
+    toast(p.serial+" cancelled"); closeModal();
+  })},"Mark as cancelled");
+  openModal("Cancel "+p.serial, el("p",{class:"muted"},"Permits are never deleted. This one stays in the register with a CANCELLED mark and everyone can still open it."), el("label",{class:"f"},el("span",null,"Reason"),reason), btn);
+}
+/* ---------- my account ---------- */
+function settingsView(){
+  const u=me(); const c=companyOf(u.companyId);
+  if (S.form.myname==null) S.form.myname=u.name;
+  const nbtn=el("button",{class:"btn primary",onclick:()=>busy(nbtn,async()=>{
+    const name=(S.form.myname||"").trim().replace(/\s+/g," ");
+    if (name.length<3) throw new Error("Enter your full name");
+    await api("/api/account/name",{name}); await refresh(); toast("Name updated — use it next time you sign in"); })},"Save name");
+  const pbtn=el("button",{class:"btn primary",onclick:()=>busy(pbtn,async()=>{
+    const cur=S.form.pcur||"", n1=S.form.pnew||"", n2=S.form.pnew2||"";
+    if (n1!==n2) throw new Error("The new PINs don't match");
+    await api("/api/account/pin",{current:cur, pin:n1});
+    S.form.pcur=S.form.pnew=S.form.pnew2=""; render(); toast("PIN changed"); })},"Change PIN");
+  const pin = k => bind(k,{cls:"pinbox",attrs:{type:"password",inputMode:"numeric",maxLength:6,placeholder:"••••"}});
+  return el("div",null, el("h1",null,"My account"),
+    el("div",{class:"card"}, el("div",{class:"kv",style:"margin:0"}, el("div",null,"Company"), el("div",null,c?c.name:""), el("div",null,"Permits issued"), el("div",null,S.permits.filter(p=>p.createdBy===u.id).length))),
+    el("div",{class:"card"}, el("h2",null,"Account name"), el("label",{class:"f"}, el("span",null,"Name (used to sign in)"), bind("myname")), nbtn),
+    el("div",{class:"card"}, el("h2",null,"Change PIN"),
+      el("label",{class:"f"}, el("span",null,"Current PIN"), pin("pcur")),
+      el("label",{class:"f"}, el("span",null,"New PIN (4–6 digits)"), pin("pnew")),
+      el("label",{class:"f"}, el("span",null,"Repeat new PIN"), pin("pnew2")), pbtn),
+    el("button",{class:"btn ghost big",onclick:()=>signOut()},"Sign out"));
+}
+
+/* ---------- AGC admin ---------- */
+function adminView(){
+  const t=S.adminTab; const pending=S.users.filter(u=>u.status==="pending").length;
+  const tb=(id,l)=>el("button",{class:t===id?"on":"",onclick:()=>{S.adminTab=id;S.placing=null;render();}},l);
+  let body = t==="users"?adminUsers(): t==="companies"?adminCompanies(): t==="areas"?adminAreas(): adminApprovals();
+  return el("div",null, el("h1",null,"AGC Admin"), el("div",{class:"tabs"}, tb("approvals","Approvals"+(pending?` (${pending})`:"")), tb("users","Users"), tb("companies","Companies"), tb("areas","Areas & map")), body);
+}
+async function setUser(u, patch, msg){ await api("/api/users/"+u.id+"/status",{status:patch.status}); await refresh(); if(msg) toast(msg); }
+function adminApprovals(){
+  const list = S.users.filter(u=>u.status==="pending").sort((a,b)=>String(a.createdAt).localeCompare(b.createdAt));
+  if (!list.length) return el("div",{class:"card empty"},"No accounts waiting for approval.");
+  return el("div",{class:"card"}, list.map(u=>{ const c=companyOf(u.companyId);
+    const ok=el("button",{class:"btn primary small",onclick:()=>busy(ok,()=>setUser(u,{status:"approved",approvedBy:me().id,approvedAt:new Date().toISOString()},u.name+" approved"))},"Approve");
+    const no=el("button",{class:"btn ghost small",onclick:()=>busy(no,()=>setUser(u,{status:"rejected",approvedBy:me().id,approvedAt:new Date().toISOString()},u.name+" rejected"))},"Reject");
+    return el("div",{class:"listrow"}, el("div",{class:"grow"}, el("b",null,u.name), el("div",{class:"muted",style:"font-size:13px"}, c?c.name:"Unknown company", c&&c.type!=="main"?" · "+(c.type==="subcontractor"?"Subcontractor":"Contractor"):" · AGC staff", " · requested ", fmtDT(u.createdAt))), ok, no); }));
+}
+function adminUsers(){
+  const list = S.users.filter(u=>u.status!=="pending").sort((a,b)=>a.name.localeCompare(b.name));
+  return el("div",{class:"card"}, list.length? list.map(u=>{ const c=companyOf(u.companyId); const self=u.id===me().id;
+    const n=S.permits.filter(p=>p.createdBy===u.id).length;
+    const tog = u.status==="approved"
+      ? el("button",{class:"btn ghost small",disabled:self,onclick:()=>busy(tog,()=>setUser(u,{status:"suspended"},u.name+" suspended"))},"Suspend")
+      : el("button",{class:"btn primary small",onclick:()=>busy(tog,()=>setUser(u,{status:"approved",approvedBy:me().id,approvedAt:new Date().toISOString()},u.name+" re-activated"))},"Activate");
+    return el("div",{class:"listrow"}, el("div",{class:"grow"}, el("b",null,u.name), " ", statusChip(u.status), el("div",{class:"muted",style:"font-size:13px"}, c?c.name:"", " · ", n, " permits")),
+      el("button",{class:"btn ghost small",onclick:()=>openResetPin(u)},"Reset PIN"), tog); }) : el("div",{class:"empty"},"No users yet."));
+}
+function openResetPin(u){
+  const a=el("input",{class:"in-f pinbox",type:"password",inputMode:"numeric",maxLength:6}), b=el("input",{class:"in-f pinbox",type:"password",inputMode:"numeric",maxLength:6});
+  const btn=el("button",{class:"btn primary big",onclick:()=>busy(btn,async()=>{
+    if(!/^\d{4,6}$/.test(a.value)) throw new Error("PIN must be 4–6 digits"); if(a.value!==b.value) throw new Error("PINs don't match");
+    await api("/api/users/"+u.id+"/pin",{pin:a.value}); toast("PIN reset for "+u.name); closeModal(); })},"Set new PIN");
+  openModal("Reset PIN · "+u.name, el("p",{class:"muted"},"Give the new PIN to the person directly."), el("label",{class:"f"},el("span",null,"New PIN"),a), el("label",{class:"f"},el("span",null,"Repeat PIN"),b), btn);
+}
+function adminCompanies(){
+  const list=[...S.companies].sort((a,b)=>(a.type==="main"?-1:b.type==="main"?1:a.name.localeCompare(b.name)));
+  return el("div",null,
+    el("button",{class:"btn primary",style:"margin-bottom:12px",onclick:openAddCompany},"+ Add contractor / subcontractor"),
+    el("div",{class:"card"}, list.map(c=>{ const parent=c.parentId&&companyOf(c.parentId); const users=S.users.filter(u=>u.companyId===c.id&&u.status==="approved").length;
+      const tog = c.type==="main" ? null : el("button",{class:"btn ghost small",onclick:()=>busy(tog,async()=>{ await api("/api/companies/"+c.id+"/active",{active:c.active===false}); await refresh(); toast(c.name+(c.active===false?" enabled":" disabled")); })}, c.active===false?"Enable":"Disable");
+      return el("div",{class:"listrow"}, el("div",{class:"grow"}, el("b",null,c.name), c.active===false?el("span",{class:"status st-suspended",style:"margin-left:6px"},"Disabled"):null,
+        el("div",{class:"muted",style:"font-size:13px"}, c.type==="main"?"Main contractor":c.type==="subcontractor"?"Subcontractor":"Contractor", parent?" of "+parent.name:"", " · ", users, " active users · ", S.permits.filter(p=>p.companyId===c.id).length, " permits")), tog); })));
+}
+function openAddCompany(){
+  const name=el("input",{class:"in-f",placeholder:"e.g. MBC"});
+  const parent=el("select",{class:"in-f"}, el("option",{value:""},"— none —"), S.companies.filter(c=>c.type!=="subcontractor").map(c=>el("option",{value:c.id},c.name)));
+  const pwrap=el("label",{class:"f hidden"},el("span",null,"Works under (contractor)"),parent);
+  const type=el("select",{class:"in-f",onchange:()=>pwrap.classList.toggle("hidden",type.value!=="subcontractor")}, el("option",{value:"contractor"},"Contractor"), el("option",{value:"subcontractor"},"Subcontractor"));
+  const btn=el("button",{class:"btn primary big",onclick:()=>busy(btn,async()=>{
+    const n=name.value.trim(); if(n.length<2) throw new Error("Enter the company name");
+    if (S.companies.some(c=>normName(c.name)===normName(n))) throw new Error("That company already exists");
+    await api("/api/companies",{name:n,type:type.value,parentId:parent.value||null}); await refresh();
+    toast(n+" added — their staff can now create accounts"); closeModal(); })},"Add company");
+  openModal("Add company", el("label",{class:"f"},el("span",null,"Company name"),name), el("label",{class:"f"},el("span",null,"Type"),type), pwrap,
+    el("p",{class:"muted",style:"font-size:13px"},"After adding, staff of this company can sign up. Each account still needs your approval."), btn);
+}
+function adminAreas(){
+  const areas=sortedAreas();
+  return el("div",null,
+    el("p",{class:"muted",style:"margin-top:0;font-size:13px"},"Areas on the site map: LINK3, IC4, LINK4, LINK5, IC6, LINK6, IC7, LINK7, IC8, LINK8. Extra areas you add here appear as tiles under the map."),
+    el("div",{class:"row",style:"margin-bottom:12px"}, el("button",{class:"btn primary",onclick:()=>openAreaForm()},"+ Add area")),
+    el("div",{class:"card"}, areas.length? areas.map(a=>{ const n=S.permits.filter(p=>p.areaId===a.id).length;
+      return el("div",{class:"listrow"}, el("div",{class:"grow"}, el("b",{class:"mono"},a.code), " ", el("span",{class:"muted"},a.name||""), el("div",{class:"muted",style:"font-size:13px"}, n," permits · next serial ", a.code+"-"+pad((counterGuess(a))+1))),
+        el("button",{class:"btn ghost small",onclick:()=>openAreaForm(a)},"Edit")); }) : el("div",{class:"empty"},"No areas yet.")));
+}
+const counterGuess = a => Math.max(0,...S.permits.filter(p=>p.areaId===a.id).map(p=>p.seq||0));
+function openAreaForm(a){
+  const code=el("input",{class:"in-f mono",placeholder:"e.g. IC61",value:a?a.code:"",disabled:!!a});
+  const name=el("input",{class:"in-f",placeholder:"e.g. Intensive Care block, Level 1",value:a?(a.name||""):""});
+  const btn=el("button",{class:"btn primary big",onclick:()=>busy(btn,async()=>{
+    if (a){ await api("/api/areas/"+a.id,{name:name.value.trim()}); await refresh(); toast("Area updated"); closeModal(); return; }
+    const c=code.value.trim().toUpperCase().replace(/\s+/g,"");
+    if(!/^[A-Z0-9][A-Z0-9-]{0,15}$/.test(c)) throw new Error("Use letters, numbers and dashes only (e.g. IC61)");
+    if (S.areas.some(x=>String(x.code).toUpperCase()===c)) throw new Error("That area code already exists");
+    await api("/api/areas",{code:c,name:name.value.trim()}); await refresh();
+    toast(c+" added — now place it on the map"); closeModal(); })}, a?"Save":"Add area");
+  openModal(a?"Edit "+a.code:"Add area", el("label",{class:"f"},el("span",null,"Area code (used in the serial number)"),code),
+    a?el("p",{class:"muted",style:"font-size:13px;margin-top:-6px"},"The code can't change once created, so serial numbers stay consistent."):null,
+    el("label",{class:"f"},el("span",null,"Description (optional)"),name), btn);
+}
+
+/* ---------- boot ---------- */
+async function refresh(){
+  const d = await api("/api/data?since="+S.since);
+  S.v=d.v; S.meObj=d.me; S.isAGC=d.isAGC; S.companies=d.companies; S.users=d.users; S.areas=d.areas;
+  for (const p of d.permits){ S.permitsById[p.id]=p; if (p.updatedAt>S.since) S.since=p.updatedAt; }
+  S.permits=Object.values(S.permitsById).sort((a,b)=>String(b.createdAt).localeCompare(a.createdAt));
+  S.dataReady=true; render();
+}
+async function boot(){
+  try {
+    const pub = await api("/api/public"); S.pubCompanies=pub.companies; S.needsSetup=pub.needsSetup;
+    if (S.token){ S.meObj = await api("/api/me"); if (S.meObj && S.meObj.status==="approved") await refresh(); }
+    S.ready=true; S.loadErr=null; render();
+  } catch(e){ if (!S.ready){ S.loadErr="Can't reach the server. Check your internet connection."; } render(); }
+}
+setInterval(async()=>{
+  if (!S.token || !S.meObj || document.hidden) return;
+  try { if (S.meObj.status!=="approved"){ S.meObj=await api("/api/me"); if(S.meObj.status==="approved") await refresh(); else return; }
+    const {v} = await api("/api/version"); if (v!==S.v) await refresh(); } catch {}
+}, 15000);
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && S.token && S.meObj && S.meObj.status==="approved") api("/api/version").then(r=>{ if(r.v!==S.v) refresh(); }).catch(()=>{}); });
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(()=>{});
+render(); boot();
+</script>
+</body>
+</html>
