@@ -377,7 +377,7 @@
     "// Sixth Front's own servers (server/ in the game's source, on Cloudflare) pass everyone's state along: they",
     "// work from any network, with no direct connection between players, and keep the one list of open games that",
     "// every copy of the game sees. The game itself still runs in the host's page.",
-    "const SERVERS = '';",
+    "const SERVERS = 'wss://sixthfront.ali-merheb.workers.dev';",
     "const serverBase = () => {",
     "  let s = '';",
     "  try { s = localStorage.getItem('sixthfront.mp.server') || ''; } catch (e) { /* no storage */ }",

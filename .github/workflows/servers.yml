@@ -50,7 +50,20 @@ jobs:
           [ -n "$URL" ] || exit 0
           sleep 8
           curl -fsS "$URL/"; echo
-          # a WebSocket handshake to the list of open games: expect "101 Switching Protocols"
-          curl -sS -i -m 6 -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
-            -H 'Sec-WebSocket-Key: c2l4dGhmcm9udHNlcnZlcg==' "$URL/v1/lobby" 2>/dev/null | head -n 1 | tee ws.txt || true
-          grep -q ' 101' ws.txt
+          # a game over WebSockets: one page hosts, another joins and gets the host's state
+          URL="$URL" node -e '
+            const base = process.env.URL.replace(/^http/, "ws"), code = "QZQZ";
+            const open = (p) => new Promise((res, rej) => { const ws = new WebSocket(base + p); const got = []; ws.onmessage = (e) => got.push(String(e.data)); ws.onopen = () => res({ ws, got }); ws.onerror = () => rej(new Error("no connection to " + p)); });
+            const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+            (async () => {
+              const h = await open("/v1/game/" + code + "?host=1"); await wait(800);
+              if (!h.got[0] || h.got[0][0] !== "H") throw new Error("host: " + h.got.join(" | "));
+              h.ws.send("m{\"r\":\"h\"}"); await wait(300);
+              const c = await open("/v1/game/" + code); await wait(800);
+              if (!c.got.some((m) => m.startsWith("Pm"))) throw new Error("join: " + c.got.join(" | "));
+              const l = await open("/v1/lobby"); await wait(800);
+              if (!l.got[0] || l.got[0][0] !== "H") throw new Error("lobby: " + l.got.join(" | "));
+              console.log("WebSocket games and lobby: OK");
+              process.exit(0);
+            })().catch((e) => { console.error(e.message); process.exit(1); });
+          '

@@ -582,7 +582,8 @@ Object keeps the list of open games every copy of the game sees, and one per gam
 WebSockets, so players reach each other from any network. The game itself still runs in the host's game. A dropped
 connection comes back by itself. The servers deploy from `.github/workflows/servers.yml` whenever `server/`
 changes (it needs the repository secret `CLOUDFLARE_API_TOKEN`, made from Cloudflare's "Edit Cloudflare Workers"
-token template); their address is `SERVERS` at the top of the Multiplayer mod's public-servers section (a page can
+token template). They are at `https://sixthfront.ali-merheb.workers.dev` (`SERVERS` in the Multiplayer mod's
+public-servers section) (a page can
 try another with `localStorage['sixthfront.mp.server']`). To run them on your computer: `npx wrangler dev` in
 `server/`.
 
