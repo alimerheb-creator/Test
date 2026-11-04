@@ -35,15 +35,22 @@ jobs:
             exit 0
           fi
           export CLOUDFLARE_API_TOKEN="$TOKEN"
-          if [ -n "$ACCOUNT" ]; then export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"; fi
-          npx --yes wrangler@4 deploy
+          if [ -z "$ACCOUNT" ]; then
+            ACCOUNT=$(curl -s -H "Authorization: Bearer $TOKEN" "https://api.cloudflare.com/client/v4/accounts" | jq -r '.result[0].id')
+          fi
+          export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"
+          npx --yes wrangler@4 deploy 2>&1 | tee deploy.log
+          test "${PIPESTATUS[0]}" -eq 0
       - name: Check the servers answer
         working-directory: server
-        env:
-          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          if [ -z "$TOKEN" ]; then exit 0; fi
-          sleep 5
-          URL=$(grep -o 'https://sixthfront\.[a-z0-9-]*\.workers\.dev' ~/.config/.wrangler/logs/*.log 2>/dev/null | head -n 1 || true)
-          echo "Servers: ${URL:-see the deploy step}"
-          if [ -n "$URL" ]; then curl -fsS "$URL/"; fi
+          [ -f deploy.log ] || exit 0
+          URL=$(grep -oE 'https://sixthfront\.[a-z0-9-]+\.workers\.dev' deploy.log | head -n 1)
+          echo "Servers: $URL"
+          [ -n "$URL" ] || exit 0
+          sleep 8
+          curl -fsS "$URL/"; echo
+          # a WebSocket handshake to the list of open games: expect "101 Switching Protocols"
+          curl -sS -i -m 6 -H 'Connection: Upgrade' -H 'Upgrade: websocket' -H 'Sec-WebSocket-Version: 13' \
+            -H 'Sec-WebSocket-Key: c2l4dGhmcm9udHNlcnZlcg==' "$URL/v1/lobby" 2>/dev/null | head -n 1 | tee ws.txt || true
+          grep -q ' 101' ws.txt
