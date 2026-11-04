@@ -1,0 +1,49 @@
+# Deploys the public game servers (server/) to Cloudflare Workers whenever they change, or by hand from the
+# Actions tab. Needs the repository secret CLOUDFLARE_API_TOKEN (a Cloudflare API token made from the
+# "Edit Cloudflare Workers" template); CLOUDFLARE_ACCOUNT_ID is only needed if the token reaches more than one
+# account. The servers' address is printed at the end of the deploy step.
+name: Game servers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/battlefield-6-game-2iu72e]
+    paths:
+      - 'server/**'
+      - '.github/workflows/servers.yml'
+
+concurrency:
+  group: servers
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Deploy to Cloudflare
+        working-directory: server
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::Add the CLOUDFLARE_API_TOKEN secret (Settings > Secrets and variables > Actions) to deploy the game servers."
+            exit 0
+          fi
+          export CLOUDFLARE_API_TOKEN="$TOKEN"
+          if [ -n "$ACCOUNT" ]; then export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"; fi
+          npx --yes wrangler@4 deploy
+      - name: Check the servers answer
+        working-directory: server
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then exit 0; fi
+          sleep 5
+          URL=$(grep -o 'https://sixthfront\.[a-z0-9-]*\.workers\.dev' ~/.config/.wrangler/logs/*.log 2>/dev/null | head -n 1 || true)
+          echo "Servers: ${URL:-see the deploy step}"
+          if [ -n "$URL" ]; then curl -fsS "$URL/"; fi

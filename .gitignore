@@ -7,3 +7,4 @@ ios/www/
 ios/build/
 ios/SixthFront.xcodeproj/
 ios/SixthFront/Info.plist
+server/.wrangler/

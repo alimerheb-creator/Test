@@ -122,7 +122,7 @@ function scorchTexture() {
   return t;
 }
 
-class ParticleSystem {
+export class ParticleSystem {
   constructor(scene, max, additive, map) {
     this.max = max;
     this.count = 0;

@@ -213,6 +213,57 @@ export class GameAudio {
     }
   }
 
+  // Rain: a hiss of drops with a soft roar under it, as loud as it rains; under a roof duller and further off
+  setRain(level, cover = 0) {
+    if (!this.ready) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    if (!this.rain) {
+      if (level <= 0.01) return;
+      const n = ctx.createBufferSource();
+      n.buffer = this.noiseBuf; n.loop = true;
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 700;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+      const g = ctx.createGain(); g.gain.value = 0;
+      n.connect(hp).connect(lp).connect(g).connect(this.master);
+      const n2 = ctx.createBufferSource();
+      n2.buffer = this.noiseBuf; n2.loop = true; n2.playbackRate.value = 0.7;
+      const lp2 = ctx.createBiquadFilter(); lp2.type = 'lowpass'; lp2.frequency.value = 420;
+      const g2 = ctx.createGain(); g2.gain.value = 0;
+      n2.connect(lp2).connect(g2).connect(this.master);
+      n.start(); n2.start();
+      this.rain = { n, n2, lp, g, g2, level: -1, cover: -1 };
+    }
+    const R = this.rain;
+    if (Math.abs(level - R.level) < 0.01 && Math.abs(cover - R.cover) < 0.02) return;
+    R.level = level; R.cover = cover;
+    R.g.gain.setTargetAtTime(level * (0.085 - 0.05 * cover), t, 0.4);
+    R.g2.gain.setTargetAtTime(level * level * 0.1, t, 0.4);
+    R.lp.frequency.setTargetAtTime(7000 - 5200 * cover, t, 0.3);
+  }
+
+  // Thunder (far: 0 overhead .. 1 far off): a crack and a long rolling rumble, all round you
+  thunder(far = 0.5) {
+    if (!this.ready) return;
+    const ctx = this.ctx, t = ctx.currentTime, dur = 3 + far * 3;
+    const out = ctx.createGain(); out.gain.value = 0.55 - far * 0.3;
+    out.connect(this.master);
+    if (this.reverb) { const w = ctx.createGain(); w.gain.value = 0.5; out.connect(w).connect(this.reverb); }
+    if (far < 0.45) {
+      const k = this._noise(t, 0.4);
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
+      k.connect(hp).connect(this._env(t, 0.9 - far, 0.002, 0.25)).connect(out);
+    }
+    const n = this._noise(t, dur + 0.5);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(420 - far * 220, t); lp.frequency.linearRampToValueAtTime(90, t + dur);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.linearRampToValueAtTime(1.6, t + 0.15 + far * 0.5);
+    for (let i = 1; i < 5; i++) env.gain.linearRampToValueAtTime(rand(0.5, 1.4) * (1 - i / 6), t + 0.3 + far * 0.5 + i * dur / 6);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(lp).connect(env).connect(out);
+  }
+
   // a skyscraper coming down: a deep roar that builds and goes on for as long as it falls, crashes in it
   collapse(x, y, z, dur = 10) {
     if (!this.ready) return;

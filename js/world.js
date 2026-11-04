@@ -360,6 +360,27 @@ let GRID_HALF = 320, GN = Math.ceil((GRID_HALF * 2) / CELL);
 
 export const SUN_DIR = new THREE.Vector3(-0.78, 0.42, -0.36).normalize();
 
+// Rain: a lower, heavier sky over any time of day. Its colours go grey (as light or dark as they were, and a little
+// darker), the sun mostly hides, the clouds close up, the air thickens and there are no sunbeams
+const _rc = new THREE.Color(), _rg = new THREE.Color();
+function rainSky(p, r) {
+  for (const k of ['skyTop', 'horizon', 'ground', 'sunColor', 'sunLight', 'hemiSky', 'cloudColor', 'cloudLit']) {
+    if (!p[k]) continue;
+    _rc.set(p[k]);
+    const l = _rc.r * 0.3 + _rc.g * 0.59 + _rc.b * 0.11;
+    p[k] = '#' + _rc.lerp(_rg.setRGB(l * 0.93, l * 0.97, l * 1.04), 0.82 * r).multiplyScalar(1 - 0.2 * r).getHexString();
+  }
+  // the light comes from all over the sky instead of the sun: soft, with hardly a shadow
+  p.clouds = 1;
+  p.sunIntensity = +p.sunIntensity * (1 - 0.82 * r);
+  p.hemiIntensity = +p.hemiIntensity * (1 + 0.5 * r);
+  p.envIntensity = +p.envIntensity * (1 + 0.35 * r);
+  p.exposure = (p.exposure !== undefined ? +p.exposure : 1) * (1 + 0.1 * r);
+  p.fogNear = +p.fogNear * (1 - 0.6 * r);
+  p.fogFar = +p.fogFar * (1 - 0.48 * r);
+  p.haze = (p.haze !== undefined ? +p.haze : 1) * (1 - 0.85 * r);
+}
+
 export const ATMOSPHERE_PRESETS = {
   dusk: {
     skyTop: '#587a9e', horizon: '#d2bf9f', ground: '#a08f78', sunColor: '#ffd29a', sunLight: '#ffdcb0', sunIntensity: 3.0,
@@ -666,7 +687,7 @@ export class World {
     // layers of rock, wavering and broken by cracks
     mat.onBeforeCompile = (sh) => {
       const L = this.lightU();
-      sh.uniforms.uCloudT = L.cloudT; sh.uniforms.uCloudAmt = L.cloudAmt;
+      sh.uniforms.uCloudT = L.cloudT; sh.uniforms.uCloudAmt = L.cloudAmt; sh.uniforms.uWet = L.wet;
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', '#include <common>\nvarying vec3 vTWorld; varying vec3 vTNrm;' + (FIELDS ? '\nattribute float farm; varying float vFarm;' : '') + (AL ? '\nattribute vec2 alp; varying vec2 vAlp;' : ''))
         .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvTWorld = (modelMatrix * vec4(transformed, 1.0)).xyz; vTNrm = normal;' + (FIELDS ? ' vFarm = farm;' : '') + (AL ? ' vAlp = alp;' : ''));
@@ -683,7 +704,7 @@ export class World {
       }
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
-          varying vec3 vTWorld; varying vec3 vTNrm; uniform float uCloudT; uniform float uCloudAmt;
+          varying vec3 vTWorld; varying vec3 vTNrm; uniform float uCloudT; uniform float uCloudAmt; uniform float uWet;
           ${FIELDS ? '#define T_FIELDS\n varying float vFarm; uniform vec3 uField[8]; uniform float uFieldN; uniform vec4 uFieldRot; uniform float uFieldSize; uniform vec3 uHedge;' : ''}
           ${AL ? '#define T_ALPS\n varying vec2 vAlp; uniform vec3 uSunDir;' + (LOWQ ? '' : '\n#define T_CANOPY') : ''}
           float tHash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -772,6 +793,19 @@ export class World {
           // snow: the vertex colour carries it; the ground texture only as a faint grain
           diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93 + topTex.r * 0.1), vAlp.y);
           #endif`)
+        // rain: the ground darker and glossier, puddles standing in the flat places
+        .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+          if (uWet > 0.001) {
+            float tWet = uWet * (1.0 - steep * 0.5);
+            #ifdef T_ALPS
+            tWet *= 1.0 - vAlp.y;
+            #endif
+            float tPud = tWet * smoothstep(0.6, 0.72, tNoise(vTWorld.xz * 0.12 + 5.0) * 0.72 + tNoise(vTWorld.xz * 0.47) * 0.28)
+              * (1.0 - smoothstep(0.02, 0.07, 1.0 - tn.y));
+            diffuseColor.rgb *= 1.0 - tWet * 0.32 - tPud * 0.3;
+            roughnessFactor = mix(roughnessFactor, 0.45, tWet * 0.7);
+            roughnessFactor = mix(roughnessFactor, 0.05, tPud);
+          }`)
         .replace('#include <normal_fragment_begin>', 'vec2 tNUv = steep > 0.5 ? sideUv : vNormalMapUv;\n' + THREE.ShaderChunk.normal_fragment_begin.replaceAll('vNormalMapUv', 'tNUv'))
         .replace('#include <normal_fragment_maps>', THREE.ShaderChunk.normal_fragment_maps.replaceAll('vNormalMapUv', 'tNUv'));
     };
@@ -1140,7 +1174,10 @@ export class World {
 
   // Time of day / weather. opts: { preset, ...overrides } (see ATMOSPHERE_PRESETS)
   applyAtmosphere(opts = {}) {
+    this.atmosphereIn = opts;
     const p = { ...(ATMOSPHERE_PRESETS[opts.preset] || ATMOSPHERE_PRESETS.dusk), ...opts };
+    // rain (see weather.js) on top of whatever sky this is
+    if (this.weatherKind) rainSky(p, this.weatherKind === 2 ? 1 : 0.72);
     const e = THREE.MathUtils.degToRad(clamp(+p.sunElevation, 3, 89)), a = THREE.MathUtils.degToRad(+p.sunAzimuth);
     SUN_DIR.set(Math.cos(e) * Math.sin(a), Math.sin(e), Math.cos(e) * Math.cos(a)).normalize();
     const u = this.skyMat.uniforms;
@@ -1222,7 +1259,7 @@ export class World {
   // Light the shaders share: the time for drifting cloud shadows, how cloudy it is, the sun's way and colour (for
   // light through leaves and grass)
   lightU() {
-    return this._lightU || (this._lightU = { cloudT: { value: 0 }, cloudAmt: { value: 0.4 }, sunDir: { value: SUN_DIR }, sunCol: { value: new THREE.Color(1, 0.9, 0.75) } });
+    return this._lightU || (this._lightU = { cloudT: { value: 0 }, cloudAmt: { value: 0.4 }, wet: { value: 0 }, sunDir: { value: SUN_DIR }, sunCol: { value: new THREE.Color(1, 0.9, 0.75) } });
   }
 
   updateSky(camPos) {

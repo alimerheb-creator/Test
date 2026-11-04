@@ -6,6 +6,7 @@ import { World } from './world.js';
 import { weatherMaterial } from './textures.js';
 import { Buildings } from './buildings.js';
 import { Towers } from './towers.js';
+import { Weather } from './weather.js';
 import { Effects } from './effects.js';
 import { GameAudio } from './audio.js';
 import { Input } from './input.js';
@@ -77,6 +78,7 @@ export class Game extends Emitter {
     this.buildings.generate();
     this.towers = new Towers(this);
     this.towers.generate();
+    this.weather = new Weather(this);
     this.grass = new Grass(this);
     this.post = new PostFX(renderer);
     progress(0.65, 'Arming both sides');
@@ -275,6 +277,8 @@ export class Game extends Emitter {
     this.buildings.reset();
     this.towers.reset();
     this.world.reset();
+    this.weather.clear();
+    this.weather.pick();
     this.mode.reset(RULES.startTickets > 0 ? RULES.startTickets : st.tickets);
     this.time = 0;
     this.timeScale = 1;
@@ -450,6 +454,7 @@ export class Game extends Emitter {
 
     this.world.updateSky(cam.position);
     this.world.updateWater(dt);
+    this.weather.update(dt);
     _f.set(0, 0, -1).applyQuaternion(cam.quaternion);
     _v.copy(cam.position).addScaledVector(_f, 40);
     this.world.updateShadow(_v);

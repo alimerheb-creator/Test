@@ -47,7 +47,7 @@ export const VEHICLES = {
   tank: { name: 'MBT-6 ARBITER', health: 1000, speed: 11, reverse: 5, turnRate: 0.8, turretSpeed: 1.15, reload: 3.2, botReload: 4.8, respawn: 35, perTeam: 2 },
 };
 
-// Lighting / weather. preset: dusk | noon | overcast | night (fields below override the preset)
+// Lighting / weather. preset: dusk | noon | overcast | night (fields below override the preset); rain: 1 rain, 2 a storm
 export const ATMOSPHERE = { preset: 'dusk' };
 
 export const TEAMS = [
@@ -208,6 +208,7 @@ export const DEFAULT_SETTINGS = {
   battleType: 'normal',   // which battle the main menu starts: 'normal' or a battle mod's id
   botsPerTeam: 12,
   side: 0,               // the side you play on: 0 or 1 (VANGUARD or ONYX, picked on the deploy screen)
+  weather: 'auto',       // auto (the map's, and now and then rain), clear, rain or storm
   difficulty: 'normal',
   tickets: 250,
   sensitivity: 1.0,

@@ -131,6 +131,7 @@ const SCHEMA = {
     hemiGround: colorStr, cloudColor: colorStr, cloudLit: colorStr,
     sunIntensity: num(0, 10), hemiIntensity: num(0, 5), fogNear: num(0, 2000), fogFar: num(10, 4000), clouds: num(0, 1),
     stars: num(0, 2), sunElevation: num(3, 89), sunAzimuth: num(-360, 360), exposure: num(0.2, 4), envIntensity: num(0, 3),
+    rain: num(0, 2),
   },
   terrain: { seed: num(0, 1000000), hills: num(0, 4), bumps: num(0, 4), mountains: num(0, 3), valley: num(-5, 5), level: num(-80, 80), deep: num(1, 6) },
   palette: { grass: colorStr, grass2: colorStr, dirt: colorStr, rock: colorStr, peak: colorStr, town: colorStr, road: colorStr, sand: colorStr, seabed: colorStr, sea: colorStr, shallows: colorStr, forest: colorStr, snow: colorStr },

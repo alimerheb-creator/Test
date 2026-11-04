@@ -52,6 +52,7 @@ export class UI {
     bind('set-sens', 'sensitivity', Number, () => { $('sens-val').textContent = s.sensitivity.toFixed(2); });
     bind('set-fov', 'fov', Number, () => { $('fov-val').textContent = `${s.fov}°`; });
     bind('set-quality', 'quality', (v) => v, () => g.applyQuality());
+    bind('set-weather', 'weather', (v) => v, () => { if (g.weather && g.state === 'menu') g.weather.pick(); });
     bind('set-vol', 'volume', Number, () => { g.audio.setVolume(s.volume); $('vol-val').textContent = `${Math.round(s.volume * 100)}%`; });
     bind('set-tsens', 'touchSens', Number, () => { g.input.touchSens = s.touchSens; this._syncLabels(); });
     bind('set-bscale', 'buttonScale', Number, () => { this.applyTouchLayout(); this._syncLabels(); });

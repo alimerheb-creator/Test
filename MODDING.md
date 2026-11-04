@@ -282,7 +282,8 @@ Tune the bot skill levels `easy`, `normal` and `hard`: `reaction` (`[min, max]` 
 `preset`: `dusk` (default), `noon`, `overcast` or `night`. Any of these override the preset: colours
 `skyTop`, `horizon`, `ground`, `sunColor`, `sunLight`, `hemiSky`, `hemiGround`, `cloudColor`, `cloudLit`;
 numbers `sunIntensity`, `hemiIntensity`, `fogNear`, `fogFar`, `clouds` (0–1), `stars` (0–2),
-`sunElevation` (degrees), `sunAzimuth` (degrees), `exposure`, `envIntensity`. A low sun (10–25 degrees) in front of
+`sunElevation` (degrees), `sunAzimuth` (degrees), `exposure`, `envIntensity`, and `rain`: `1` rain or `2` a storm
+(when the player's WEATHER setting is AUTO; it greys the sky, wets the ground and thickens the air). A low sun (10–25 degrees) in front of
 the player lays a long glittering path on a sea, and sun shafts show when looking toward a bright sun.
 
 ### `botNames`

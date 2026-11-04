@@ -101,6 +101,12 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 - **Destruction**: every building is made of wall, floor and stair panels with hit points. Rockets,
   40mm grenades, C-4 and tank shells blow holes in walls, upper floors lose their support, and when
   enough of the ground floor is gone the whole building collapses on anyone inside.
+- **Weather**: rain and storms (WEATHER in the settings: AUTO, where a grey sky often rains and a clear one now
+  and then, or always CLEAR, RAIN or STORM). Rain falls in slanting streaks round you, splashes on the ground and the
+  sea, and streams past a fast plane in long lines; the ground goes dark and glossy with puddles standing in the flat
+  places, mirroring the sky; the light goes soft and grey with hardly a shadow, and you see less far. A storm brings
+  wind, harder rain, lightning that lights up the whole sky and thunder rolling in after it. You hear the rain, duller
+  under a roof, and it stops when you go indoors.
 - **Skyscrapers** on every map, in every kind of battle (infantry, tanks, aviation, naval): clusters of glass, dark
   bronze and concrete towers, 50 to 280 metres tall, some set back near the top, with plant rooms, masts and red
   lights for the aircraft, lit windows at night, and some already burning when the battle starts. Their lobbies stand
@@ -567,13 +573,23 @@ the tickets and the buildings, everyone plays their own soldier, and tanks, jets
 whoever gets in. Up to 8 players. It works in every battle type: the host's battle decides, and if you have a
 different one picked, the game room shows a button that switches over and joins again by itself.
 
-Games are public: anyone with the game and the code can join, from the Android app, a browser copy of the game
-(for example on GitHub Pages) or the game's claude.ai page. Players find each other through the free public
-PeerJS server (it only passes connection offers along) and then connect directly over WebRTC; every player connects
-to the host. Some strict networks (certain mobile carriers and company networks) block direct connections, and
-there is no relay server, so a player on such a network can't join. On the claude.ai page, if the PeerJS server
-can't be reached, the game falls back to the page's own room, which only people the page is shared with can use.
-To try it on one computer, open the page with `?mplocal` in two tabs of the same browser.
+Games are public: anyone with the game can see them in the OPEN GAMES list or join with the code, from the Android,
+Windows or iPhone and iPad app, a browser copy of the game or the game's claude.ai page. **QUICK MATCH** joins the
+fullest open game playing your battle type, or hosts one if there is none.
+
+**Public servers.** Games run through Sixth Front's own servers (`server/`, on Cloudflare Workers): one Durable
+Object keeps the list of open games every copy of the game sees, and one per game passes everyone's state along over
+WebSockets, so players reach each other from any network. The game itself still runs in the host's game. A dropped
+connection comes back by itself. The servers deploy from `.github/workflows/servers.yml` whenever `server/`
+changes (it needs the repository secret `CLOUDFLARE_API_TOKEN`, made from Cloudflare's "Edit Cloudflare Workers"
+token template); their address is `SERVERS` at the top of the Multiplayer mod's public-servers section (a page can
+try another with `localStorage['sixthfront.mp.server']`). To run them on your computer: `npx wrangler dev` in
+`server/`.
+
+When the servers can't be reached, the game falls back to connecting players directly: they find each other through
+the free public PeerJS server and connect over WebRTC (some strict mobile and company networks block that), and on the
+claude.ai page, to the page's own room, which only people the page is shared with can use. To try it on one
+computer, open the page with `?mplocal` in two tabs of the same browser.
 
 ## Mods
 
@@ -660,6 +676,7 @@ The game is split into small ES modules under `js/`:
 | `config.js` | Teams, map layout, weapons, classes, scoring, AI difficulty |
 | `world.js` | Heightmap terrain, sky, lighting, trees/rocks/props, collision grid and raycasts |
 | `buildings.js` | Destructible buildings, collapse logic, rubble |
+| `weather.js` | Rain and storms: the falling drops, splashes, wet ground, lightning and thunder |
 | `towers.js` | Skyscrapers: placing them, their facades, fires, the collapse (dust, sparks, falling slabs) and rubble |
 | `soldier.js` | Soldier movement physics, health/downed state, animated model |
 | `weapons.js` | Guns, hitscan bullets, projectiles, explosions, crates, melee, spotting |
