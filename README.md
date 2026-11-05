@@ -581,6 +581,11 @@ If the player whose game is running the server leaves (or their game stops, for 
 background), everyone on it comes back in a moment later and one of them takes over with a new round.
 **QUICK MATCH** takes you to the server for the battle type you have picked.
 
+**Chat**: in battle press **ENTER**, type and press ENTER again (TAB switches between everyone and your team only,
+ESC closes it); on a phone or tablet press **CHAT** at the top. Lines show above the minimap for a few seconds, your
+side's names in blue and the other side's in red, with who joined and who left. The game room has its own chat box,
+and MUTE there hides everyone else's lines.
+
 Anyone can also host their own game with a 4-letter code: it shows in the OPEN GAMES list, and friends join with the
 code, from the Android, Windows or iPhone and iPad app, a browser copy of the game or the game's claude.ai page.
 
