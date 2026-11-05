@@ -573,9 +573,16 @@ the tickets and the buildings, everyone plays their own soldier, and tanks, jets
 whoever gets in. Up to 8 players. It works in every battle type: the host's battle decides, and if you have a
 different one picked, the game room shows a button that switches over and joins again by itself.
 
-Games are public: anyone with the game can see them in the OPEN GAMES list or join with the code, from the Android,
-Windows or iPhone and iPad app, a browser copy of the game or the game's claude.ai page. **QUICK MATCH** joins the
-fullest open game playing your battle type, or hosts one if there is none.
+**Four servers are always open**, one per battle type: **1 INFANTRY**, **2 TANKS**, **3 AVIATION** and **4 NAVAL**.
+The SERVERS list shows what each is playing (map, mode, players, in battle or between rounds). Press JOIN and you are
+in its battle (the game switches to that battle type first if needed). In an empty server you start the battle
+yourself and everyone who comes after joins you; when a round ends the next one starts by itself 15 seconds later.
+If the player whose game is running the server leaves (or their game stops, for example the app goes to the
+background), everyone on it comes back in a moment later and one of them takes over with a new round.
+**QUICK MATCH** takes you to the server for the battle type you have picked.
+
+Anyone can also host their own game with a 4-letter code: it shows in the OPEN GAMES list, and friends join with the
+code, from the Android, Windows or iPhone and iPad app, a browser copy of the game or the game's claude.ai page.
 
 **Public servers.** Games run through Sixth Front's own servers (`server/`, on Cloudflare Workers): one Durable
 Object keeps the list of open games every copy of the game sees, and one per game passes everyone's state along over

@@ -8,14 +8,17 @@
 //   GET /                      a status line
 //   GET /v1/lobby              WebSocket: the list of open games
 //   GET /v1/game/ABCD?host=1   WebSocket: host the game ABCD (or join it, without host=1)
+//   GET /v1/server/1..4        WebSocket: one of the four servers that are always open. Whoever comes into an
+//                              empty one hosts its game; a host that has gone quiet for 6 s gives way to the next
 //
 // Messages are text. The page sends a channel letter and its whole state on that channel:
 //   m{...}  the game's slow state (who is in, the score, ...)    f{...}  the fast state, ~15 times a second
 //   l{...}  a lobby advert
 // The server passes it to everyone else in the room as P<channel><sender's 8-letter id><state>, and sends
-//   H{"id":..}  your id, first thing after you connect (then everyone's last state)
+//   H{"id":..,"host":1}  your id (and whether you host, on a server), first thing (then everyone's last state)
 //   B<id>       that player left
-//   E<code>     could not connect: taken (that code is hosted already), nogame, full, busy
+//   E<code>     could not connect: taken (that code is hosted already), nogame, full, busy; or stale (a quiet host
+//               replaced on a server)
 // "ping" is answered "pong" without waking the room, to keep connections open through quiet spells.
 import { DurableObject } from 'cloudflare:workers';
 
@@ -23,6 +26,7 @@ const MAX_GAME = 10;      // 8 players, and room for two of them coming back aft
 const MAX_LOBBY = 4000;
 const MAX_MSG = 65536;
 const MAX_RATE = 90;      // messages a second from one page
+const STALE_MS = 6000;    // a host this quiet on a server has stopped (its game closed or in the background)
 const ID_CHARS = 'abcdefghijkmnpqrstuvwxyz23456789';
 
 const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => ID_CHARS[b & 31]).join('');
@@ -36,6 +40,7 @@ export default {
     }
     let room = '';
     if (url.pathname === '/v1/lobby') room = 'lobby';
+    else if (/^\/v1\/server\/[1-4]$/.test(url.pathname)) room = 'server:' + url.pathname.slice(-1);
     else {
       const m = /^\/v1\/game\/([A-Za-z]{4})$/.exec(url.pathname);
       if (m) room = 'game:' + m[1].toUpperCase();
@@ -54,14 +59,16 @@ export class Room extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.lobby = false;
-    this.socks = new Map();  // id -> { ws, host, m, f, l, n, t }
+    this.srv = false;
+    this.socks = new Map();  // id -> { ws, host, m, f, l, n, t, last }
     this.ids = new Map();    // ws -> id
     // back from hibernation: the connections are still open; their ids (and lobby adverts) were kept with them
     for (const ws of ctx.getWebSockets()) {
       const a = ws.deserializeAttachment();
       if (!a || !a.id) continue;
       if (a.lobby) this.lobby = true;
-      this.socks.set(a.id, { ws, host: !!a.host, m: '', f: '', l: a.l || '', n: 0, t: 0 });
+      if (a.srv) this.srv = true;
+      this.socks.set(a.id, { ws, host: !!a.host, m: '', f: '', l: a.l || '', n: 0, t: 0, last: 0 });
       this.ids.set(ws, a.id);
     }
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
@@ -69,8 +76,10 @@ export class Room extends DurableObject {
 
   async fetch(req) {
     const url = new URL(req.url);
-    this.lobby = url.searchParams.get('room') === 'lobby';
-    const host = !this.lobby && url.searchParams.get('host') === '1';
+    const room = url.searchParams.get('room') || '';
+    this.lobby = room === 'lobby';
+    this.srv = room.startsWith('server:');
+    let host = !this.lobby && url.searchParams.get('host') === '1';
     const [client, server] = Object.values(new WebSocketPair());
     const refuse = (code) => {
       server.accept();
@@ -80,6 +89,19 @@ export class Room extends DurableObject {
     };
     if (this.lobby) {
       if (this.socks.size >= MAX_LOBBY) return refuse('busy');
+    } else if (this.srv) {
+      // an always-open server: the first one in hosts; a host gone quiet gives way
+      let cur = [...this.socks].find(([, s]) => s.host);
+      if (cur && Date.now() - cur[1].last > STALE_MS) {
+        const [hid, hs] = cur;
+        try { hs.ws.send('Estale'); hs.ws.close(4001, 'stale'); } catch (e) { /* gone */ }
+        this.socks.delete(hid);
+        this.ids.delete(hs.ws);
+        for (const o of this.socks.values()) { try { o.ws.send('B' + hid); } catch (e) { /* closing */ } }
+        cur = null;
+      }
+      host = !cur;
+      if (this.socks.size >= MAX_GAME) return refuse('full');
     } else {
       const hosted = [...this.socks.values()].some((s) => s.host);
       if (host && hosted) return refuse('taken');
@@ -90,10 +112,10 @@ export class Room extends DurableObject {
     let id = (url.searchParams.get('id') || '').slice(0, 8);
     if (id.length !== 8 || /[^a-z0-9]/.test(id) || this.socks.has(id)) id = newId();
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ id, host: host ? 1 : 0, lobby: this.lobby ? 1 : 0 });
-    this.socks.set(id, { ws: server, host, m: '', f: '', l: '', n: 0, t: 0 });
+    server.serializeAttachment({ id, host: host ? 1 : 0, lobby: this.lobby ? 1 : 0, srv: this.srv ? 1 : 0 });
+    this.socks.set(id, { ws: server, host, m: '', f: '', l: '', n: 0, t: 0, last: Date.now() });
     this.ids.set(server, id);
-    server.send('H' + JSON.stringify({ id, n: this.socks.size }));
+    server.send('H' + JSON.stringify({ id, n: this.socks.size, host: host ? 1 : 0 }));
     for (const [oid, o] of this.socks) {
       if (oid === id) continue;
       if (o.m) server.send('Pm' + oid + o.m);
@@ -108,6 +130,7 @@ export class Room extends DurableObject {
     const id = this.ids.get(ws), me = id && this.socks.get(id);
     if (!me) return;
     const t = Date.now();
+    me.last = t;
     if (t - me.t > 1000) { me.t = t; me.n = 0; }
     if (++me.n > MAX_RATE) return;
     const c = msg[0];
