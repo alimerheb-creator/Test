@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { MOVE, PLAY_HALF, SCORE, RULES } from './config.js';
 import { clamp, lerp, rand, wrapAngle, yawTo, dirFromAngles } from './util.js';
-import { gunTextures } from './textures.js';
+import { gunTextures, camoTextures } from './textures.js';
 
 const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Vector3();
 const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _pc = new THREE.Vector3();
@@ -20,6 +20,7 @@ const seg = (p, a, b) => ease((p - a) / (b - a));
 
 // ---------------------------------------------------------------- viewmodel construction
 const VM_MATS = {};
+const GLOVE = 0x75634a;
 // steel and polymer get the grain textures and catch the sky in their reflections
 function gunMaterial(color, metalness, roughness, emissive) {
   const T = gunTextures(), steel = metalness >= 0.3;
@@ -35,8 +36,13 @@ function vmMats() {
   VM_MATS.poly = gunMaterial(0x2c2e31, 0.05, 0.7);
   VM_MATS.tan = new THREE.MeshStandardMaterial({ color: 0x8a7a5c, roughness: 0.8 });
   VM_MATS.olive = new THREE.MeshStandardMaterial({ color: 0x55603f, roughness: 0.8 });
-  VM_MATS.glove = new THREE.MeshStandardMaterial({ color: 0x2e2a25, roughness: 0.9 });
-  VM_MATS.sleeve = new THREE.MeshStandardMaterial({ color: 0x5f5e44, roughness: 0.95 });
+  // flat dark earth polymer: the furniture of the rifles
+  VM_MATS.fde = gunMaterial(0x7b6a4f, 0.05, 0.62);
+  // coyote tactical gloves with dark cuffs and palms; camouflage sleeves (a mod's plain uniform colour replaces it)
+  const camo = camoTextures();
+  VM_MATS.glove = new THREE.MeshStandardMaterial({ color: GLOVE, roughness: 0.82, normalMap: camo.normal, normalScale: new THREE.Vector2(0.5, 0.5) });
+  VM_MATS.palm = new THREE.MeshStandardMaterial({ color: 0x262624, roughness: 0.9 });
+  VM_MATS.sleeve = new THREE.MeshStandardMaterial({ color: 0xffffff, map: camo.map, normalMap: camo.normal, normalScale: new THREE.Vector2(0.8, 0.8), roughness: 0.96 });
   VM_MATS.lens = new THREE.MeshBasicMaterial({ color: 0x7fc4a8, transparent: true, opacity: 0.14, depthWrite: false });
   VM_MATS.dot = new THREE.MeshBasicMaterial({ color: 0xff3020 });
   VM_MATS.blade = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.25, metalness: 0.9 });
@@ -76,7 +82,7 @@ function roundedBox(sx, sy, sz, k = 0.2, rmax = 0.006) {
 }
 
 function box(g, mat, sx, sy, sz, x, y, z, rx = 0, ry = 0, rz = 0) {
-  const m = new THREE.Mesh(mat === VM_MATS.glove ? roundedBox(sx, sy, sz, 0.42, 0.02) : roundedBox(sx, sy, sz), mat);
+  const m = new THREE.Mesh(mat === VM_MATS.glove || mat === VM_MATS.palm ? roundedBox(sx, sy, sz, 0.42, 0.02) : roundedBox(sx, sy, sz), mat);
   m.position.set(x, y, z);
   m.rotation.set(rx, ry, rz);
   g.add(m);
@@ -125,9 +131,9 @@ function detailGun(kind, g, parts, M) {
       box(g, M.metal, 0.028, 0.03, 0.035, 0, 0.012, -0.478); // gas block
       box(g, M.metal, 0.01, 0.032, 0.012, 0, 0.043, -0.478); // front sight post
       for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 2 + 0.4; box(g, M.dark, 0.004, 0.004, 0.045, Math.cos(a) * 0.0168, 0.005 + Math.sin(a) * 0.0168, -0.672); }
-      box(g, M.poly, 0.04, 0.018, 0.13, 0, 0.031, 0.22); // cheek riser
+      box(g, M.fde, 0.04, 0.018, 0.13, 0, 0.031, 0.22); // cheek riser
       box(g, M.rubber, 0.05, 0.088, 0.018, 0, -0.016, 0.306); // butt pad
-      for (let i = 0; i < 4; i++) box(parts.mag, M.poly, 0.037, 0.007, 0.058, 0, 0.045 - i * 0.03, 0.002); // magazine ribs
+      for (let i = 0; i < 4; i++) box(parts.mag, M.fde, 0.037, 0.007, 0.058, 0, 0.045 - i * 0.03, 0.002); // magazine ribs
       break;
     }
     case 'smg': {
@@ -186,6 +192,17 @@ function detailGun(kind, g, parts, M) {
   }
 }
 
+// a sleeve along +z from the wrist (z = -0.5, narrow) to the elbow (z = 0.5), scaled to its length
+let _sleeveGeo = null;
+const SLEEVE_GEO = () => _sleeveGeo || (_sleeveGeo = new THREE.CylinderGeometry(0.031, 0.04, 1, 22, 1).rotateX(-Math.PI / 2));
+function sleeve(g, a, b, r0, r1) {
+  const d = new THREE.Vector3().subVectors(b, a);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, d.length(), 22, 1).rotateX(-Math.PI / 2), vmMats().sleeve);
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  m.lookAt(b);
+  g.add(m);
+  return m;
+}
 function limb(g, mat, a, b, t) {
   const d = new THREE.Vector3().subVectors(b, a);
   const len = d.length();
@@ -241,15 +258,15 @@ function buildViewmodel(kind) {
     case 'ar': {
       box(g, M.metal, 0.055, 0.075, 0.34, 0, 0, -0.05);
       box(g, M.metal, 0.045, 0.02, 0.32, 0, 0.047, -0.06);
-      box(g, M.poly, 0.062, 0.062, 0.26, 0, -0.002, -0.33);
+      box(g, M.fde, 0.062, 0.062, 0.26, 0, -0.002, -0.33);
       cyl(g, M.metal, 0.011, 0.011, 0.2, 0, 0.005, -0.55);
       cyl(g, M.poly, 0.017, 0.017, 0.06, 0, 0.005, -0.66);
-      box(g, M.poly, 0.032, 0.09, 0.042, 0, -0.07, 0.07, -0.3);
-      box(g, M.poly, 0.046, 0.07, 0.2, 0, -0.012, 0.2);
+      box(g, M.fde, 0.032, 0.09, 0.042, 0, -0.07, 0.07, -0.3);
+      box(g, M.fde, 0.046, 0.07, 0.2, 0, -0.012, 0.2);
       box(g, M.metal, 0.012, 0.018, 0.03, 0.03, 0.0, -0.08); // mag release / ejection port
       reflex(g, M, 0.085, -0.07);
       const mag = part(g, parts, 'mag', 0, -0.105, -0.1, 0.22);
-      box(mag, M.poly, 0.034, 0.15, 0.07, 0, 0, 0);
+      box(mag, M.fde, 0.034, 0.15, 0.07, 0, 0, 0);
       box(mag, M.metal, 0.038, 0.012, 0.074, 0, -0.078, 0);
       const bolt = part(g, parts, 'bolt', 0, 0.06, 0.1);
       box(bolt, M.metal, 0.05, 0.01, 0.018, 0, 0, 0);
@@ -437,7 +454,8 @@ function finishViewmodel(g, parts, o) {
   box(g, M.glove, 0.017, 0.017, 0.052, rh.x - 0.01, rh.y + 0.034, rh.z - 0.075);
   box(g, M.glove, 0.019, 0.019, 0.055, rh.x + 0.032, rh.y + 0.03, rh.z - 0.03);
   box(g, M.poly, 0.05, 0.02, 0.06, rh.x + 0.012, rh.y + 0.005, rh.z + 0.02); // knuckle guard
-  limb(g, M.sleeve, new THREE.Vector3(0.035, rh.y - 0.02, rh.z + 0.05), new THREE.Vector3(0.12, -0.2, 0.35), 0.075);
+  box(g, M.palm, 0.062, 0.07, 0.04, rh.x + 0.03, rh.y - 0.014, rh.z + 0.07, -0.5); // the glove's cuff
+  sleeve(g, new THREE.Vector3(0.04, rh.y - 0.03, rh.z + 0.08), new THREE.Vector3(0.13, -0.22, 0.38), 0.034, 0.045);
   const lhBase = new THREE.Vector3(0.0, foreY, foreZ);
   const lh = new THREE.Group();
   lh.position.copy(lhBase);
@@ -445,10 +463,12 @@ function finishViewmodel(g, parts, o) {
   // fingers up the far side of the handguard, the thumb along the near side
   for (let i = 0; i < 4; i++) box(lh, M.glove, 0.017, 0.05, 0.019, -0.044, 0.006, -0.036 + i * 0.023);
   box(lh, M.glove, 0.018, 0.018, 0.06, 0.03, 0.01, -0.012);
-  // The forearm runs from the wrist to an elbow that stays put, so it stretches as the hand moves
-  const forearm = new THREE.Mesh(roundedBox(0.062, 0.062, 1, 0.45, 0.03), M.sleeve);
+  box(lh, M.palm, 0.062, 0.06, 0.035, -0.024, -0.038, 0.048); // the glove's cuff
+  // The forearm runs from the wrist to an elbow that stays put (out to the left, as you hold a rifle), so it
+  // stretches as the hand moves: a sleeve wider at the elbow
+  const forearm = new THREE.Mesh(SLEEVE_GEO(), M.sleeve);
   g.add(forearm);
-  const elbow = new THREE.Vector3(-0.16, -0.36, 0.16);
+  const elbow = new THREE.Vector3(-0.22, -0.34, 0.15);
   g.add(lh);
   // A shotgun shell the left hand carries while loading
   const shell = new THREE.Group();
@@ -600,8 +620,11 @@ export class PlayerController {
   // The sleeves and gloves on the first-person arms (a mod puts you in another army's uniform; null: the default)
   setSleeves(sleeve = null, glove = null) {
     const M = vmMats();
-    M.sleeve.color.set(sleeve ?? 0x5f5e44);
-    M.glove.color.set(glove ?? 0x2e2a25);
+    // the camouflage, or a mod's plain uniform colour
+    const camo = sleeve == null ? camoTextures().map : null;
+    if (M.sleeve.map !== camo) { M.sleeve.map = camo; M.sleeve.needsUpdate = true; }
+    M.sleeve.color.set(sleeve ?? 0xffffff);
+    M.glove.color.set(glove ?? GLOVE);
   }
 
   // Keep the weapon in your hands lit like the world around it (mods can switch to night)

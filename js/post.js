@@ -200,8 +200,8 @@ const COMPOSITE = `uniform sampler2D tScene; uniform sampler2D tBloom; uniform s
     // grade: saturation, split toning, gentle contrast curve
     float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
     col = mix(vec3(l), col, saturation * (1.0 - lowHp * 0.75));
-    col *= mix(vec3(0.94, 1.0, 1.05), vec3(1.05, 1.0, 0.93), smoothstep(0.05, 0.75, l));
-    col = mix(col, col * col * (3.0 - 2.0 * col), 0.22);
+    col *= mix(vec3(0.92, 0.99, 1.07), vec3(1.06, 1.0, 0.92), smoothstep(0.05, 0.75, l));
+    col = mix(col, col * col * (3.0 - 2.0 * col), 0.34);
     col = mix(col, col * vec3(1.35, 0.55, 0.5), lowHp * 0.35);
     vec2 q = uv - 0.5; q.x *= aspect;
     col *= 1.0 - vignette * dot(q, q) * 1.5;
@@ -228,7 +228,7 @@ export class PostFX {
     this.compMat = mat(COMPOSITE, {
       tScene: { value: null }, tBloom: { value: null }, useBloom: { value: true }, tRays: { value: null }, rays: { value: 0 }, blur: { value: 0 },
       bloomStrength: { value: 0.22 }, exposure: { value: 1.05 }, vignette: { value: 0.2 }, grain: { value: 0 }, sharpen: { value: 0.3 },
-      time: { value: 0 }, saturation: { value: 1.08 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
+      time: { value: 0 }, saturation: { value: 1.0 }, hurt: { value: 0 }, lowHp: { value: 0 }, aspect: { value: 1 },
       sunPos: { value: new THREE.Vector2(-1, -1) }, sunVis: { value: 0 },
       tAO: { value: null }, useAO: { value: false }, aoStrength: { value: 0.65 }, tDepth: { value: null }, vmMask: { value: false },
       heat: { value: Array.from({ length: 8 }, () => new THREE.Vector4()) }, heatN: { value: 0 }, useFXAA: { value: false }, texelS: { value: new THREE.Vector2() },

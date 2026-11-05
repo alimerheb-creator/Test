@@ -724,6 +724,14 @@ export class World {
           float tMix = smoothstep(0.28, 0.72, tNoise(vTWorld.xz * 0.045));
           vec4 topTex = mix(topA, topB, tMix * 0.65);
           diffuseColor *= mix(topTex, sideTex, steep);
+          // close to you the ground gets the fine grain of its texture at five times the scale (grit, pebbles),
+          // normalised by the texture's own average so it neither darkens nor lightens
+          float tNear = 1.0 - smoothstep(12.0, 50.0, distance(vTWorld, cameraPosition));
+          if (tNear > 0.0) {
+            float tDet = dot(texture2D(map, vMapUv * 5.3 + 0.31).rgb, vec3(0.333));
+            float tAvg = dot(texture2D(map, vec2(0.5), 12.0).rgb, vec3(0.333));
+            diffuseColor.rgb *= mix(1.0, clamp(tDet / max(tAvg, 0.05), 0.55, 1.6), tNear * 0.55 * (1.0 - steep));
+          }
           float mac = tNoise(vTWorld.xz * 0.0061) * 0.55 + tNoise(vTWorld.xz * 0.023 + 11.0) * 0.3 + tNoise(vTWorld.xz * 0.09 + 3.0) * 0.15;
           float dry = smoothstep(0.35, 0.8, tNoise(vTWorld.xz * 0.0105 + 41.0));
           diffuseColor.rgb *= mix(vec3(0.84, 0.88, 0.86), vec3(1.1, 1.07, 0.98), mac);

@@ -256,6 +256,29 @@ export function gunTextures() {
   return GUN_TEX;
 }
 
+// The cloth of the sleeves in your view: soft blotches of sand, khaki, brown and olive (an arid camouflage of our
+// own) over a fine twill weave, tiling; and a normal map of the weave and the cloth's creases
+let CAMO_TEX = null;
+export function camoTextures() {
+  if (CAMO_TEX) return CAMO_TEX;
+  const S = 256;
+  const cols = [[150, 134, 102], [121, 108, 81], [92, 80, 60], [101, 102, 74]];
+  const a = heightField(S, (u, v) => pfbm(u, v, 4, 4));
+  const b = heightField(S, (u, v) => pfbm(u + 0.53, v + 0.19, 6, 3));
+  const weave = (x, y) => ((x + y) % 4 < 2 ? 0.55 : 0) + hash2(x * 3 + 1, y * 5 + 2) * 0.45;
+  const map = tex(canvasFrom(S, (x, y, o) => {
+    const i = y * S + x, A = a[i], B = b[i];
+    let c = cols[0];
+    if (A > 0.55) c = cols[2]; else if (A > 0.47) c = cols[1];
+    if (B > 0.58) c = cols[3];
+    const w = 0.9 + weave(x, y) * 0.14;
+    o[0] = clamp255(c[0] * w); o[1] = clamp255(c[1] * w); o[2] = clamp255(c[2] * w);
+  }));
+  const h = heightField(S, (u, v, x, y) => weave(x, y) * 0.35 + pfbm(u, v * 0.5, 3, 3) * 0.9);
+  CAMO_TEX = { map, normal: tex(normalCanvas(S, h, 1.4), false) };
+  return CAMO_TEX;
+}
+
 // MeshStandardMaterial whose texture coordinates come from world position (triplanar-lite),
 // so scaled instanced boxes keep a consistent texel density. Supports a matching normal map.
 export function worldUVMaterial({ map, normalMap = null, normalScale = 1, scale = 0.25, color = 0xffffff, roughness = 0.92, metalness = 0 }) {
