@@ -84,9 +84,12 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
             self.web.evaluateJavaScript(js) { result, _ in
                 NSLog("SixthFront: %@ audio-session: %@", String(describing: result ?? "no page"), AVAudioSession.sharedInstance().category.rawValue)
             }
-            if self.testMode && n == 5 {
+            // from the 5th report on: start a battle once per page load (again after the game reloads itself, for
+            // example with lighter graphics after a WebGL failure)
+            if self.testMode && n >= 5 {
                 let start = """
-                (function () { const g = window.__game; if (!g || g.state !== 'menu') return;
+                (function () { const g = window.__game; if (!g || g.state !== 'menu' || window.__sfTestStarted) return;
+                  window.__sfTestStarted = true;
                   g.audio.unlock(); g.startMatch();
                   setTimeout(() => { const b = document.getElementById('btn-deploy'); if (b) b.click(); }, 5000); })()
                 """

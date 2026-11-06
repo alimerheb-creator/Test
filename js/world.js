@@ -1522,10 +1522,13 @@ export class World {
   // reach, so simple (a few cones each, no trunk, no shadow, one draw call) and placed by their own random stream
   // (the battlefield's trees and the collision grid stay the same for everyone)
   _farForest(r, wet) {
-    const n = Math.round((this.game.qualityName() === 'medium' ? 2200 : 3600) * VEGETATION.trees);
+    // phones and tablets (MEDIUM): fewer and simpler, they have less GPU to spare
+    const light = this.game.qualityName() === 'medium';
+    const n = Math.round((light ? 1300 : 3600) * VEGETATION.trees);
     if (n < 50) return;
-    const parts = [[0, 0.62, 0.55], [0.38, 0.46, 0.45], [0.66, 0.28, 0.34]].map(([y0, rad, h]) => {
-      const c = new THREE.ConeGeometry(rad, h, 6, 1, true);
+    const tiers = light ? [[0, 0.6, 0.62], [0.5, 0.38, 0.5]] : [[0, 0.62, 0.55], [0.38, 0.46, 0.45], [0.66, 0.28, 0.34]];
+    const parts = tiers.map(([y0, rad, h]) => {
+      const c = new THREE.ConeGeometry(rad, h, light ? 5 : 6, 1, true);
       c.translate(0, y0 + h / 2, 0);
       // each tier darker underneath, lit at the top
       const p = c.attributes.position, col = [];
