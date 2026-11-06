@@ -545,7 +545,10 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
 - **Danger.** Enemy infantry fire shoulder-launched **Stinger** and **Igla** missiles (flares help), engineers fire
   RPGs, tank crews put their cannon on helicopters hovering low, and the airbases' C-RAM guns shred anything slow, or high and in their sights (go in low and fast).
 - **What the attack helicopters go for.** Tanks first, then installations and infantry; enemy helicopters only when
-  they come close. Nothing at the enemy's own HQ (its air defence covers it, and no shooting soldiers as they spawn).
+  they come close. Each crew flies its own way and changes it now and then: hovering at a distance and sidestepping,
+  circling the target nose-on, strafing runs (in fast, break away, come round again) or popping up from low behind
+  cover to fire and dropping back down. With nothing to hit they patrol spots of their own, and every helicopter
+  steers clear of the others, friend or foe (sideways apart, one climbing and one dropping). Nothing at the enemy's own HQ (its air defence covers it, and no shooting soldiers as they spawn).
 - **Transport helicopters** (NORMAL and TANK battles): a **UH-60M Black Hawk** for Vanguard (an M134 minigun in one
   gunner's window, an M240H with its ammo can and belt in the other) and a **Mi-8AMTSh** for Onyx (two PKTs), flown
   by bots. Each lands on its pad a little way out from its HQ and waits **20 seconds** with its doors open (longer
@@ -555,7 +558,12 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   climb in too. It flies out to the fight, circles it slowly (about 12 m/s, 30 m up) side-on, turning so your door
   faces the fight, while the door guns and everyone in the doors shoot at the enemy below (the rounds go where the
   crosshair is; right mouse zooms the sight), lands short of the flag for 10 seconds to let everyone out, and goes back for more. **E** gets you
-  out: stepping down on the ground, jumping when low, with a parachute when high. If it's shot down, everyone aboard
+  out: stepping down on the ground, jumping when low, with a parachute when high.
+- **Little Birds:** an **MH-6M Little Bird** for Vanguard and an **MD 530F** for Onyx, small and quick, with no
+  door guns: four soldiers ride **outside on the benches over the skids**, two a side, and shoot with their own
+  weapons (BOARD at its pad, or **MH-6M · SKID BENCH** on the deploy screen). Each transport crew picks its own
+  route out (often round a flank), how wide and low it circles and how long it waits, so the two sides never fly
+  the same pattern. If it's shot down, everyone aboard
   goes down with it. Seen from outside, the camera stays out of walls and hills (it comes in closer instead).
 
 ### Gear: heat vision and camouflage
