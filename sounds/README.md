@@ -1,5 +1,8 @@
 # Sounds everyone hears
 
+The easiest way to give everyone your C-RAM alarm is in the game: pick AVIATION or NAVAL, then in the main menu's
+settings **LOAD REAL SOUND**, then **SHARE WITH EVERYONE** (signed in). A file here is the offline fallback.
+
 Put a recording here and every player hears it, in all three apps, from the next release.
 
 | File | What it is |

@@ -12,8 +12,13 @@
 //   GET  /v2/auth/google/start?sid=..          the page the game opens in the browser: on to Google
 //   GET  /v2/auth/google/callback              Google comes back here; the account is ready for the game
 //   GET  /v2/auth/poll?sid=..                  the game asks, every couple of seconds, if the sign-in is done
+//   GET  /v2/auth/alarm/info                   the C-RAM alarm everyone hears: { v, name, size, mine } or { v: 0 }
+//   GET  /v2/auth/alarm                        that recording
+//   POST /v2/auth/alarm {data: data URL, name} (signed in) share a recording with everyone. The first account to
+//                                              share one owns it; only that account can change or remove it after
+//   POST /v2/auth/alarm/remove                 (the owner) back to the built-in alarm for everyone
 // Errors: { error: code } with code one of bad_email, bad_password, bad_username, email_taken, name_taken,
-// wrong_login, locked, signed_out, not_enabled, pending.
+// wrong_login, locked, signed_out, not_enabled, pending, not_owner, bad_sound.
 import { DurableObject } from 'cloudflare:workers';
 
 const CORS = {
@@ -58,6 +63,9 @@ export class Accounts extends DurableObject {
       salt TEXT, hash TEXT, google TEXT UNIQUE, apple TEXT UNIQUE, created INTEGER)`);
     this.sql.exec('CREATE TABLE IF NOT EXISTS sessions (token TEXT PRIMARY KEY, uid INTEGER, created INTEGER)');
     this.sql.exec('CREATE TABLE IF NOT EXISTS pending (sid TEXT PRIMARY KEY, token TEXT, created INTEGER)');
+    // the shared alarm recording, in parts (a stored value is at most 2 MB), and what it is
+    this.sql.exec('CREATE TABLE IF NOT EXISTS sound (part INTEGER PRIMARY KEY, data BLOB)');
+    this.sql.exec('CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)');
     this.fails = new Map(); // email -> { n, at }: wrong passwords, to slow down guessing
   }
 
@@ -76,6 +84,16 @@ export class Accounts extends DurableObject {
     return s ? this.one('SELECT * FROM users WHERE id = ?', s.uid) : null;
   }
 
+  meta(k) { const r = this.one('SELECT v FROM meta WHERE k = ?', k); return r ? r.v : null; }
+  setMeta(k, v) { if (v === null) this.sql.exec('DELETE FROM meta WHERE k = ?', k); else this.sql.exec('INSERT OR REPLACE INTO meta (k, v) VALUES (?, ?)', k, String(v)); }
+
+  async alarmInfo(req) {
+    const v = Number(this.meta('alarmV') || 0), owner = this.meta('alarmOwner');
+    const u = await this.user(req);
+    const mine = !!(u && owner && String(u.id) === owner);
+    return v ? { v, name: this.meta('alarmName') || '', size: Number(this.meta('alarmSize') || 0), mine, canShare: mine } : { v: 0, canShare: !owner || mine, mine };
+  }
+
   out(u, token) { return { token, name: u.name || null, email: u.email || null, provider: u.google ? 'google' : u.apple ? 'apple' : 'email' }; }
 
   async fetch(req) {
@@ -85,6 +103,46 @@ export class Accounts extends DurableObject {
     if (req.method === 'POST') { try { body = await req.json(); } catch (e) { body = {}; } }
 
     if (path === '/config') return json({ google, apple: false });
+
+    // the C-RAM alarm everyone hears
+    if (path === '/alarm/info') return json(await this.alarmInfo(req));
+    if (path === '/alarm' && req.method === 'GET') {
+      const type = this.meta('alarmType');
+      if (!type) return err('not_found', 404);
+      const parts = this.sql.exec('SELECT data FROM sound ORDER BY part').toArray().map((r) => new Uint8Array(r.data));
+      const all = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+      let o = 0;
+      for (const p of parts) { all.set(p, o); o += p.length; }
+      return new Response(all, { headers: { ...CORS, 'content-type': type, 'cache-control': 'public, max-age=60' } });
+    }
+    if (path === '/alarm' && req.method === 'POST') {
+      const u = await this.user(req);
+      if (!u) return err('signed_out', 401);
+      const owner = this.meta('alarmOwner');
+      if (owner && owner !== String(u.id)) return err('not_owner', 403);
+      const m = /^data:(audio\/[a-z0-9.+-]+|video\/mp4|application\/octet-stream)?(?:;[^,]*)?;base64,([A-Za-z0-9+/=]+)$/i.exec(String(body.data || ''));
+      if (!m) return err('bad_sound');
+      let bytes;
+      try { bytes = unb64(m[2]); } catch (e) { return err('bad_sound'); }
+      if (bytes.length < 100 || bytes.length > 2.6e6) return err('bad_sound');
+      this.sql.exec('DELETE FROM sound');
+      for (let i = 0, k = 0; i < bytes.length; i += 1e6, k++) this.sql.exec('INSERT INTO sound (part, data) VALUES (?, ?)', k, bytes.slice(i, i + 1e6).buffer);
+      this.setMeta('alarmType', m[1] || 'audio/mpeg');
+      this.setMeta('alarmName', String(body.name || '').slice(0, 40));
+      this.setMeta('alarmSize', bytes.length);
+      this.setMeta('alarmV', Date.now());
+      this.setMeta('alarmOwner', u.id);
+      return json(await this.alarmInfo(req));
+    }
+    if (path === '/alarm/remove' && req.method === 'POST') {
+      const u = await this.user(req);
+      if (!u) return err('signed_out', 401);
+      const owner = this.meta('alarmOwner');
+      if (owner && owner !== String(u.id)) return err('not_owner', 403);
+      this.sql.exec('DELETE FROM sound');
+      for (const k of ['alarmType', 'alarmName', 'alarmSize', 'alarmV']) this.setMeta(k, null);
+      return json(await this.alarmInfo(req));
+    }
 
     if (path === '/register' && req.method === 'POST') {
       const email = cleanEmail(body.email), password = String(body.password || ''), name = String(body.username || '').trim();

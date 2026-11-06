@@ -1445,7 +1445,9 @@ export class World {
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
       this.scene.add(m);
     }
-    if (hd) this._farForest(hrng, wet);
+    // HIGH graphics and up (on MEDIUM, phones and tablets, the iPhone simulator lost its WebGL context with them)
+    const qn = this.game.qualityName();
+    if (qn === 'high' || qn === 'ultra') this._farForest(hrng, wet);
 
     // Bushes (no collision)
     const BUSH = [[0, 0.1, 0, 0.62], [0.45, -0.05, 0.1, 0.48], [-0.42, 0, -0.12, 0.5]];
@@ -1518,17 +1520,14 @@ export class World {
     this.scene.add(this.rockMesh);
   }
 
-  // MEDIUM graphics and up: forests on the hills around the battlefield, so they aren't bare. Far away and out of
+  // HIGH graphics and up: forests on the hills around the battlefield, so they aren't bare. Far away and out of
   // reach, so simple (a few cones each, no trunk, no shadow, one draw call) and placed by their own random stream
   // (the battlefield's trees and the collision grid stay the same for everyone)
   _farForest(r, wet) {
-    // phones and tablets (MEDIUM): fewer and simpler, they have less GPU to spare
-    const light = this.game.qualityName() === 'medium';
-    const n = Math.round((light ? 1300 : 3600) * VEGETATION.trees);
+    const n = Math.round(3600 * VEGETATION.trees);
     if (n < 50) return;
-    const tiers = light ? [[0, 0.6, 0.62], [0.5, 0.38, 0.5]] : [[0, 0.62, 0.55], [0.38, 0.46, 0.45], [0.66, 0.28, 0.34]];
-    const parts = tiers.map(([y0, rad, h]) => {
-      const c = new THREE.ConeGeometry(rad, h, light ? 5 : 6, 1, true);
+    const parts = [[0, 0.62, 0.55], [0.38, 0.46, 0.45], [0.66, 0.28, 0.34]].map(([y0, rad, h]) => {
+      const c = new THREE.ConeGeometry(rad, h, 6, 1, true);
       c.translate(0, y0 + h / 2, 0);
       // each tier darker underneath, lit at the top
       const p = c.attributes.position, col = [];
@@ -1537,7 +1536,8 @@ export class World {
       return c;
     });
     const geo = mergeParts(parts);
-    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, vertexColors: true });
+    // far away, so the cheap Lambert shading is enough
+    const mat = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
     const mesh = new THREE.InstancedMesh(geo, mat, n);
     const dummy = new THREE.Object3D(), col = new THREE.Color();
     const lim = WORLD_HALF - 40, inner = PLAY_HALF + 30;

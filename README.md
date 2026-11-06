@@ -108,7 +108,7 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   crouched or prone). Aiming, hold **Shift** to hold your breath and steady a shot for a few seconds.
 - **Shell shock**: a blast close to you rings your ears, dulls every sound to a thud and blurs your eyes for a few
   seconds; the closer it was, the longer it lasts.
-- **Forests on the hills** round the battlefield (MEDIUM graphics and up).
+- **Forests on the hills** round the battlefield (HIGH graphics and up).
 - **Weather**: rain and storms (WEATHER in the settings: AUTO, where a grey sky often rains and a clear one now
   and then, or always CLEAR, RAIN or STORM). Rain falls in slanting streaks round you, splashes on the ground and the
   sea, and streams past a fast plane in long lines; the ground goes dark and glossy with puddles standing in the flat
@@ -448,9 +448,11 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   within a few hundred metres (a message tells you you're under the radar). It takes a moment to lock on before it
   fires, and a fast jet crossing its sights or hugging the ground is hard for it to hit; one flying straight at it
   high up, or a slow one, takes the full stream.
-  A recording put in the game's [`sounds/`](sounds/) folder as `cram-alarm.mp3` plays in place of the siren and
-  voice for every player. Just for you: **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings
-  (MP3 or WAV under 2.5 MB; **BUILT-IN** goes back, **TEST** plays it).
+  Your own sound: **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings (pick AVIATION or NAVAL first;
+  MP3, M4A or WAV under 2.5 MB; **BUILT-IN** goes back, **TEST** plays it). Signed in, **SHARE WITH EVERYONE** then
+  puts it on the game servers and every player hears it in place of the siren and voice. The first account to share
+  one owns it: only that account can change it or **STOP SHARING**. Offline, a recording in the game's
+  [`sounds/`](sounds/) folder (`cram-alarm.mp3`) plays instead, if there is one.
 - **NAVAL**: battleships (Iowa / Sovetsky Soyuz: nine 406 mm guns in three turrets that fire together, eight
   Harpoons, four Phalanx guns), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates
   (Constellation / Grigorovich), corvettes (Freedom LCS / Buyan-M), patrol boats and attack submarines
