@@ -29,6 +29,8 @@ jobs:
         env:
           TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TURN_ID: ${{ secrets.TURN_KEY_ID }}
+          TURN_TOKEN: ${{ secrets.TURN_KEY_TOKEN }}
         run: |
           if [ -z "$TOKEN" ]; then
             echo "::warning::Add the CLOUDFLARE_API_TOKEN secret (Settings > Secrets and variables > Actions) to deploy the game servers."
@@ -41,6 +43,12 @@ jobs:
           export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"
           npx --yes wrangler@4 deploy 2>&1 | tee deploy.log
           test "${PIPESTATUS[0]}" -eq 0
+          # Cloudflare's TURN relay for players whose networks block direct connections (optional: the repository
+          # secrets TURN_KEY_ID and TURN_KEY_TOKEN, from Realtime > TURN Server in the Cloudflare dashboard)
+          if [ -n "$TURN_ID" ] && [ -n "$TURN_TOKEN" ]; then
+            printf '%s' "$TURN_ID" | npx --yes wrangler@4 secret put TURN_KEY_ID
+            printf '%s' "$TURN_TOKEN" | npx --yes wrangler@4 secret put TURN_KEY_TOKEN
+          fi
       - name: Check the servers answer
         working-directory: server
         run: |
@@ -51,6 +59,7 @@ jobs:
           sleep 8
           curl -fsS "$URL/"; echo
           # a game over WebSockets: one page hosts, another joins and gets the host's state
+          curl -fsS "$URL/v2/ice"; echo
           URL="$URL" node -e '
             const base = process.env.URL.replace(/^http/, "ws"), code = "QZQZ";
             const open = (p) => new Promise((res, rej) => { const ws = new WebSocket(base + p); const got = []; ws.onmessage = (e) => got.push(String(e.data)); ws.onopen = () => res({ ws, got }); ws.onerror = () => rej(new Error("no connection to " + p)); });

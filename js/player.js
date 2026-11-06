@@ -5,7 +5,7 @@ import { MOVE, PLAY_HALF, SCORE, RULES } from './config.js';
 import { clamp, lerp, rand, wrapAngle, yawTo, dirFromAngles } from './util.js';
 import { gunTextures, camoTextures } from './textures.js';
 
-const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Vector3();
+const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Vector3(), _bs = new THREE.Vector3();
 const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _pc = new THREE.Vector3();
 // Reload animation anchors, in gun space: the pouch (off screen, low left), the hand's grip on a magazine,
 // and where the hand waits below a shotgun's loading port
@@ -838,6 +838,18 @@ export class PlayerController {
     return out.set(cam.position.x + f.x * 0.7 + rx * side, cam.position.y + f.y * 0.7 - 0.1, cam.position.z + f.z * 0.7 + rz * side);
   }
 
+  // A hot barrel smokes: thin wisps curl up off the muzzle once you stop firing, more and longer the hotter it got
+  _barrelSmoke(dt) {
+    this.heat = Math.max(0, (this.heat || 0) - dt * 0.16);
+    if (this.heat < 0.22 || !this.vmRoot.visible || this.s.vehicle || this.game.time - (this.lastShotAt ?? -9) < 0.15) return;
+    this.smokeAcc = (this.smokeAcc || 0) + dt * (this.heat - 0.18) * 24;
+    if (this.smokeAcc < 1) return;
+    this.smokeAcc = Math.min(this.smokeAcc - 1, 2);
+    const m = this._muzzleWorld(_bs);
+    this.game.effects.smoke.add(m.x + rand(-0.01, 0.01), m.y, m.z + rand(-0.01, 0.01), rand(-0.04, 0.04), rand(0.22, 0.42), rand(-0.04, 0.04),
+      rand(1.0, 1.7), 0.02, rand(0.09, 0.15), 0xd6d4cf, 0.06 + this.heat * 0.09, -0.2, 1.4);
+  }
+
   _fire(dt) {
     const s = this.s, g = this.game, inp = g.input;
     if (this.switchT > 0 || this.meleeT > 0 || this.throwT > 0) return;
@@ -879,6 +891,11 @@ export class PlayerController {
           this.kick = Math.min(1.5, this.kick + (def.kind === 'bolt' ? 1.5 : 0.7));
           this.flashT = 0.045;
           this._eject();
+          // each shot leaves a faint puff, and heats the barrel: after a long burst it smokes
+          this.heat = Math.min(1, (this.heat || 0) + (def.kind === 'bolt' ? 0.3 : def.id === 'lmg' ? 0.045 : def.id === 'pistol' ? 0.05 : 0.065));
+          this.lastShotAt = g.time;
+          g.effects.smoke.add(muzzle.x, muzzle.y, muzzle.z, rand(-0.15, 0.15) + dir.x * 0.6, rand(0.1, 0.35) + dir.y * 0.6, rand(-0.15, 0.15) + dir.z * 0.6,
+            rand(0.35, 0.6), 0.04, rand(0.22, 0.34), 0xc4c1bb, 0.14, -0.3, 3);
           this.flash.material.rotation = Math.random() * Math.PI;
           const fs = def.id === 'lmg' ? 0.3 : def.id === 'pistol' ? 0.16 : 0.24;
           this.flash.scale.set(fs, fs, fs);
@@ -1139,6 +1156,7 @@ export class PlayerController {
       if (s.sprinting) fov += 6;
       if (s.slideT > 0) fov += 8;
       this._updateVM(dt, sp, bobX, bobY);
+      this._barrelSmoke(dt);
     } else {
       // Death camera: lying on the ground, looking toward whoever got you
       const k = s.lastAttacker;

@@ -139,6 +139,7 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
   sliding, prone, out-of-bounds timer.
 - **In your hands**: tactical gloves (coyote brown with dark cuffs and palms) and camouflage sleeves of woven cloth, the support arm reaching in from the lower left, and flat dark earth furniture (handguard, stock, grip, magazine) on the assault rifles. A mod's army uniform replaces the camouflage with its own colour.
+- **Barrel smoke**: each shot leaves a faint puff at the muzzle, and a barrel heated by a long burst smokes afterwards, thin wisps curling up past the sights.
 - **Graphics**: a gritty grade (a firmer contrast curve, cooler shadows and warmer lights), fine grit on the ground close to you, HDR rendering with ambient occlusion (from Medium up: soft shadowing in corners, under vehicles and where things meet the ground), sunlit haze (distant ground glows toward the sun), cloud shadows drifting over the land, heat haze shimmering behind jet engines and round explosions, sunlight glowing through leaves and grass when you look toward it, bullet holes in walls, crates, rock, metal and the ground, spent cases flying out of the ejection port (red shells from the shotgun), tank tracks pressed into the dirt behind every tank, soft contact shadows under distant soldiers and tanks (beyond the reach of the sun's shadows), ships of weathered steel (rust weeping down the sides, plate seams, a stained waterline, non-skid decks), ships trailing a wake of broken foam that spreads and fades behind them, bloom, sun glare and lens ghosts, ACES tone mapping with colour grading,
   film grain and vignette, image-based reflections (the weapon in your hands too: rounded machined edges, bead-blasted steel and stippled polymer, rail teeth, ports, sights, muzzle devices and butt pads, gloved fingers round the grip, a muzzle flash that lights the gun), ground that varies in big drier and greener patches instead of repeating, weathered and mud-spattered tanks with skirts, road wheels and tracks, plank crates, normal-mapped walls and ground, wind-blown grass and trees,
   textured smoke, MSAA (FXAA edge smoothing on Medium, where there is no MSAA, with a light sharpening after it) and soft shadows. The picture is kept clear: a light bloom only on what's really bright, a thin sunlit haze, a small sun glare, and the air clear enough to see well over a kilometre on the ground and several in the air. On a phone or tablet each quality has a budget of pixels (a big iPad's screen at full sharpness is more than its graphics can fill 60 times a second: Medium draws about 1.5 million pixels there), Medium leaves out the ambient occlusion and the traced reflections of the hills in the sea, the shadows are filtered more cheaply, the HUD is drawn at no more than about two million pixels with hard shadows behind its text, and the resolution steps down further (to 55%) and sooner when the frames come slowly. From Medium up: firs made of sprays of needles and broadleaf trees of
@@ -574,12 +575,13 @@ the tickets and the buildings, everyone plays their own soldier, and tanks, jets
 whoever gets in. Up to 8 players. It works in every battle type: the host's battle decides, and if you have a
 different one picked, the game room shows a button that switches over and joins again by itself.
 
-**Four servers are always open**, one per battle type: **1 INFANTRY**, **2 TANKS**, **3 AVIATION** and **4 NAVAL**.
-The SERVERS list shows what each is playing (map, mode, players, in battle or between rounds). Press JOIN and you are
-in its battle (the game switches to that battle type first if needed). In an empty server you start the battle
-yourself and everyone who comes after joins you; when a round ends the next one starts by itself 15 seconds later.
-If the player whose game is running the server leaves (or their game stops, for example the app goes to the
-background), everyone on it comes back in a moment later and one of them takes over with a new round.
+**Servers are always open for every battle type**: **INFANTRY**, **TANKS**, **AVIATION** and **NAVAL**, as many of
+each as players fill (INFANTRY 1, INFANTRY 2, ...; up to 99 of each, 8 players in each). The SERVERS list shows how
+many of each are running and how many people are on them. Press JOIN and you go into the fullest one with room (the
+game switches to that battle type first if needed); when they are all full, a new one opens. In an empty server you
+start the battle yourself and everyone who comes after joins you; when a round ends the next one starts by itself 15
+seconds later. If the player whose game is running the server leaves (or their game stops, for example the app goes
+to the background), everyone on it comes back in a moment later and one of them takes over with a new round.
 **QUICK MATCH** takes you to the server for the battle type you have picked.
 
 **Chat**: in battle press **ENTER**, type and press ENTER again (TAB switches between everyone and your team only,
@@ -590,15 +592,20 @@ and MUTE there hides everyone else's lines.
 Anyone can also host their own game with a 4-letter code: it shows in the OPEN GAMES list, and friends join with the
 code, from the Android, Windows or iPhone and iPad app, a browser copy of the game or the game's claude.ai page.
 
-**Public servers.** Games run through Sixth Front's own servers (`server/`, on Cloudflare Workers): one Durable
-Object keeps the list of open games every copy of the game sees, and one per game passes everyone's state along over
-WebSockets, so players reach each other from any network. The game itself still runs in the host's game. A dropped
-connection comes back by itself. The servers deploy from `.github/workflows/servers.yml` whenever `server/`
-changes (it needs the repository secret `CLOUDFLARE_API_TOKEN`, made from Cloudflare's "Edit Cloudflare Workers"
-token template). They are at `https://sixthfront.ali-merheb.workers.dev` (`SERVERS` in the Multiplayer mod's
-public-servers section) (a page can
-try another with `localStorage['sixthfront.mp.server']`). To run them on your computer: `npx wrangler dev` in
-`server/`.
+**Public servers.** Sixth Front's own servers (`server/`, on Cloudflare Workers) keep the list of open games every
+copy of the game sees and introduce the players: each player's game then connects **straight to the host's game**
+(WebRTC), and the host passes everyone's state along, so the servers carry almost nothing and Cloudflare's free plan
+goes a long way. A player whose network won't make a direct connection (some mobile and company networks) plays
+through the servers instead (the ONLINE line says VIA SERVER); with a TURN key set (below), Cloudflare's TURN relay
+carries those players instead (1,000 GB a month free). The game itself always runs in the host's game. A dropped
+connection comes back by itself.
+
+The servers deploy from `.github/workflows/servers.yml` whenever `server/` changes (it needs the repository secret
+`CLOUDFLARE_API_TOKEN`, made from Cloudflare's "Edit Cloudflare Workers" token template). For the TURN relay, make a
+TURN key in the Cloudflare dashboard (Realtime, TURN Server) and add its id and token as the repository secrets
+`TURN_KEY_ID` and `TURN_KEY_TOKEN`; the next deploy passes them to the servers. They are at
+`https://sixthfront.ali-merheb.workers.dev` (`SERVERS` in the Multiplayer mod's public-servers section; a page can try
+another with `localStorage['sixthfront.mp.server']`). To run them on your computer: `npx wrangler dev` in `server/`.
 
 When the servers can't be reached, the game falls back to connecting players directly: they find each other through
 the free public PeerJS server and connect over WebRTC (some strict mobile and company networks block that), and on the
