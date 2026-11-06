@@ -551,10 +551,22 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   by bots. Each lands on its pad a little way out from its HQ and waits **10 seconds** with its doors open: walk up
   and press **E** (BOARD on a phone). You take a **door gun** if one is free, seen from behind it: the mouse (a drag)
   aims it, FIRE shoots. Otherwise you sit in the open door with your own weapon (a sniper rifle works well). Bots
-  climb in too. It flies out to the fight, circles it side-on while the door guns and everyone in the doors shoot at
-  the enemy below, lands short of the flag for 10 seconds to let everyone out, and goes back for more. **E** gets you
+  climb in too. It flies out to the fight, circles it slowly (about 12 m/s, 30 m up) side-on, turning so your door
+  faces the fight, while the door guns and everyone in the doors shoot at the enemy below (the rounds go where the
+  crosshair is; right mouse zooms the sight), lands short of the flag for 10 seconds to let everyone out, and goes back for more. **E** gets you
   out: stepping down on the ground, jumping when low, with a parachute when high. If it's shot down, everyone aboard
-  goes down with it.
+  goes down with it. Seen from outside, the camera stays out of walls and hills (it comes in closer instead).
+
+### Gear: heat vision and camouflage
+
+**GEAR** on the main menu and the deploy screen (the **Gear** mod, built in) sells, for the Career's silver:
+
+- **Heat vision** (20,000 SL): press **N** (HEAT on a phone) on foot or riding in a helicopter for 12 seconds of
+  thermal sight: the world goes dark grey and every soldier glows white-hot, easy to pick out in shadow, smoke,
+  bushes and at a distance. It then recharges for 20 seconds (a bar at the top shows it).
+- **Camouflage suits**: DESERT, URBAN and SNOW (4,000 SL, seen 12% later), TIGER STRIPE (8,000 SL, 18%) and the
+  GHILLIE SUIT (16,000 SL, 28%, and 36% crouched or lying down). Bots spot you from that much less far away, and
+  your sleeves change to the suit. WOODLAND is the standard issue.
 
 ### Career and research
 
@@ -728,6 +740,7 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 | V or F | Knife (from behind: takedown) |
 | Q | Spot enemy |
 | E | Enter / exit tank, board / get out of a transport helicopter, hold to revive |
+| N | Heat vision (bought in GEAR) |
 | Tab / M | Scoreboard / full map |
 | Esc or P | Pause |
 

@@ -507,9 +507,10 @@ export class Game extends Emitter {
     this.audio.setListener(cam.position.x, cam.position.y, cam.position.z, cam.rotation.y);
 
     if (this.state === 'playing' || this.state === 'paused') this.hud.update(dt);
-    // soldiers outlined in light: your side cool, the enemy warm (SOLDIER OUTLINES in the settings)
-    if (P) setSoldierRim(P.team, this.settings.outlines === false ? 0 : 1);
     else if (this.state === 'deploy') this.ui.updateDeploy(dt);
+    // soldiers outlined in light: your side cool, the enemy warm (SOLDIER OUTLINES in the settings)
+    // (heat vision, the Gear mod's: every soldier white-hot)
+    if (P) setSoldierRim(P.team, this.settings.outlines === false ? 0 : 1, this.heatVision ? 1 : 0);
 
     this.grass.update(cam.position, this.time);
     if (render) {

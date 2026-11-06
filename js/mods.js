@@ -294,7 +294,7 @@ export const NORMAL_BATTLE = 'normal';
 // can't be switched off or removed
 // Part of the game: installed from the game's own folder and always on, and not shown on the MODS screen
 export const CORE_MODS = ['career', 'armory', 'helicopters', 'campaign', 'multiplayer', 'jets', 'bombers', 'vehicle-interiors',
-  'hd-weapons', 'hd-knife', 'heavy-arsenal', 'call-ins'];
+  'hd-weapons', 'hd-knife', 'heavy-arsenal', 'call-ins', 'gear'];
 // The battle types (picked on the main menu, so they are always installed and on) and the NORMAL battle's other
 // maps and modes (picked there too: one map and one mode at a time); not on the MODS screen either
 export const BUILTIN_BATTLES = ['tank-warfare', 'aviation', 'naval', 'all-out'];

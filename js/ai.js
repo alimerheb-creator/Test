@@ -118,6 +118,8 @@ export class BotBrain {
       const d = Math.sqrt(dx * dx + dz * dz);
       let r = range;
       if (e.stance === 2) r *= 0.5; else if (e.stance === 1) r *= 0.8;
+      // a camouflage suit (the Gear mod's): seen from less far away, a ghillie suit most of all lying down
+      if (e.conceal) r *= 1 - e.conceal * (e.stance > 0 ? 1.3 : 1);
       if (now - e.lastFireT < 1) r = Math.max(r, 95);
       if (d > r) continue;
       const ang = Math.abs(wrapAngle(yawTo(dx, dz) - s.yaw));

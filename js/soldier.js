@@ -439,9 +439,10 @@ function modelGeos(team, skin) {
 
 function soldierMaterial() {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.03, envMapIntensity: 0.55 });
-  const rim = (m.userData.rim = { value: new THREE.Color(0, 0, 0) });
+  const rim = (m.userData.rim = { value: new THREE.Color(0, 0, 0) }), heat = (m.userData.heat = { value: 0 });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uRim = rim;
+    sh.uniforms.uHeat = heat;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float camo;\nvarying float vCamo;\nvarying vec3 vObjP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCamo = camo;\nvObjP = position;');
@@ -453,9 +454,12 @@ function soldierMaterial() {
   float far = smoothstep(10.0, 120.0, length(vViewPosition));
   // the outline, and further off a glow over the whole figure (a far soldier is only a few pixels: no edge to light)
   totalEmissiveRadiance += uRim * (rimF * (0.2 + 0.8 * far) + 0.42 * far * far);
+  // heat vision: bodies glow white-hot, brightest face-on (the warm skin and breath), a little less at the edges
+  totalEmissiveRadiance += vec3(1.25, 1.18, 1.1) * uHeat * (1.0 - 0.45 * rimF);
 }`)
       .replace('#include <common>', `#include <common>
 uniform vec3 uRim;
+uniform float uHeat;
 varying float vCamo;
 varying vec3 vObjP;
 float sfH(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -481,11 +485,12 @@ if (vCamo > 0.01) {
 // Easier to see each other: a rim of light round every soldier, warm on the enemy and cool on your own side
 // (brighter at a distance, where they'd otherwise melt into the ground). strength 0 turns it off.
 const RIM_ENEMY = new THREE.Color(1.0, 0.36, 0.16), RIM_FRIEND = new THREE.Color(0.3, 0.55, 1.0);
-export function setSoldierRim(playerTeam, strength = 1) {
+export function setSoldierRim(playerTeam, strength = 1, heat = 0) {
   for (let t = 0; t < 2; t++) {
     const m = MATS[t];
     if (!m) continue;
-    m.userData.rim.value.copy(t === playerTeam ? RIM_FRIEND : RIM_ENEMY).multiplyScalar((t === playerTeam ? 0.32 : 0.7) * strength);
+    m.userData.rim.value.copy(t === playerTeam ? RIM_FRIEND : RIM_ENEMY).multiplyScalar((t === playerTeam ? 0.32 : 0.7) * strength * (1 - heat));
+    m.userData.heat.value = heat;
   }
 }
 
