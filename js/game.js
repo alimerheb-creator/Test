@@ -44,8 +44,22 @@ export class Game extends Emitter {
     const canvas = document.getElementById('game');
     this.canvas = canvas;
     const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-    this.isTouch = !!(coarse && 'ontouchstart' in window);
+    // an iPhone or iPad is always a touch device: with a keyboard and trackpad case its pointer reads as "fine",
+    // and an iPad says it is a Mac (it was taken for a computer: no touch controls, the desktop setting at the full
+    // resolution of its screen, more than its graphics could draw)
+    const ua = navigator.userAgent || '';
+    this.isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    this.isTouch = !!((coarse && 'ontouchstart' in window) || this.isIOS);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', stencil: false });
+    // the graphics can be reset under us (iOS does it when memory runs short): start again a setting lighter
+    // rather than freeze on a dead picture
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      if (this._glLost) return;
+      this._glLost = true;
+      try { window.dispatchEvent(new Event('pagehide')); } catch (err) { /* saving */ }
+      setTimeout(() => { if (window.__sfLighter && !window.__sfLighter('lost-' + Date.now())) location.reload(); }, 1500);
+    }, false);
     // (no blocking check of every shader as it compiles: it stalls the frame; the driver compiles in the background)
     renderer.debug.checkShaderErrors = false;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
