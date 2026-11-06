@@ -76,7 +76,11 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
                 const f = () => { k++; const n = performance.now(); if (n - t >= 2000) { window.__sfFps = Math.round(k * 1000 / (n - t)); k = 0; t = n; } requestAnimationFrame(f); };
                 requestAnimationFrame(f); }
               const g = window.__game;
-              return JSON.stringify({ state: g ? g.state : null, mods: g && g.mods ? g.mods.list.length : 0, fps: window.__sfFps || 0,
+              if (g && g.renderer && !window.__sfLostOn) { window.__sfLostOn = 1;
+                g.renderer.domElement.addEventListener('webglcontextlost', () => { window.__sfLost = Math.round(performance.now() / 1000); }); }
+              return JSON.stringify({ t: Math.round(performance.now() / 1000), lost: window.__sfLost || 0,
+                unlocked: window.__sfTestUnlocked ? Math.round(window.__sfTestUnlocked / 1000) : 0,
+                audioSession: navigator.audioSession ? navigator.audioSession.type : 'none', silentEl: !!(g && g.audio && g.audio._silentEl), state: g ? g.state : null, mods: g && g.mods ? g.mods.list.length : 0, fps: window.__sfFps || 0,
                 sound: g && g.audio && g.audio.ctx ? g.audio.ctx.state : 'none', quality: g && g.settings ? g.settings.quality : '',
                 pixels: g && g.renderer ? g.renderer.domElement.width + 'x' + g.renderer.domElement.height : '', error: window.__sfError || null });
             })()
@@ -84,13 +88,15 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
             self.web.evaluateJavaScript(js) { result, _ in
                 NSLog("SixthFront: %@ audio-session: %@", String(describing: result ?? "no page"), AVAudioSession.sharedInstance().category.rawValue)
             }
-            // from the 5th report on: start a battle once per page load (again after the game reloads itself, for
-            // example with lighter graphics after a WebGL failure)
+            // from the 5th report on: turn the sound on, and 10 seconds later start a battle, once per page load (again
+            // after the game reloads itself, for example with lighter graphics after a WebGL failure)
             if self.testMode && n >= 5 {
                 let start = """
                 (function () { const g = window.__game; if (!g || g.state !== 'menu' || window.__sfTestStarted) return;
+                  if (!window.__sfTestUnlocked) { window.__sfTestUnlocked = performance.now(); g.audio.unlock(); return; }
+                  if (performance.now() - window.__sfTestUnlocked < 9000) return;
                   window.__sfTestStarted = true;
-                  g.audio.unlock(); g.startMatch();
+                  g.startMatch();
                   setTimeout(() => { const b = document.getElementById('btn-deploy'); if (b) b.click(); }, 5000); })()
                 """
                 self.web.evaluateJavaScript(start, completionHandler: nil)
