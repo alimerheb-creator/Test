@@ -548,8 +548,9 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   they come close. Nothing at the enemy's own HQ (its air defence covers it, and no shooting soldiers as they spawn).
 - **Transport helicopters** (NORMAL and TANK battles): a **UH-60M Black Hawk** for Vanguard (an M134 minigun in one
   gunner's window, an M240H with its ammo can and belt in the other) and a **Mi-8AMTSh** for Onyx (two PKTs), flown
-  by bots. Each lands on its pad a little way out from its HQ and waits **10 seconds** with its doors open: walk up
-  and press **E** (BOARD on a phone). You take a **door gun** if one is free, seen from behind it: the mouse (a drag)
+  by bots. Each lands on its pad a little way out from its HQ and waits **20 seconds** with its doors open (longer
+  while you're running over to it): walk up and press **E** (BOARD on a phone). Or pick it on the deploy screen
+  (**HELI · UH-60M · DOOR GUN**) to start aboard, on a door gun if one is free, wherever it is. You take a **door gun** if one is free, seen from behind it: the mouse (a drag)
   aims it, FIRE shoots. Otherwise you sit in the open door with your own weapon (a sniper rifle works well). Bots
   climb in too. It flies out to the fight, circles it slowly (about 12 m/s, 30 m up) side-on, turning so your door
   faces the fight, while the door guns and everyone in the doors shoot at the enemy below (the rounds go where the
