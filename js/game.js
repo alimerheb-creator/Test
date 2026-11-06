@@ -433,11 +433,13 @@ export class Game extends Emitter {
   // ------------------------------------------------------------ loop
   _loop(t) {
     requestAnimationFrame((tt) => this._loop(tt));
+    // a dedicated server (the Multiplayer mod's, ?dedicated=): 30 updates a second, nothing drawn
+    if (this.dedicated && this._last && t - this._last < 31) return;
     const dt = Math.min(0.05, this._last ? (t - this._last) / 1000 : 0.016);
-    if (this._last) this._dynRes(t - this._last);
+    if (this._last && !this.dedicated) this._dynRes(t - this._last);
     this._last = t;
     try {
-      this.frame(dt);
+      this.frame(dt, !this.dedicated);
     } catch (e) {
       console.error(e);
     }
@@ -491,6 +493,8 @@ export class Game extends Emitter {
       }
       if (this.state === 'deploy' && this.redeployT > 0) this.redeployT -= dt;
     }
+    // (a dedicated server only runs the battle: no camera, screens or picture)
+    if (this.dedicated) { this.input.endFrame(); return; }
 
     const cam = this.camera;
     if (this.state === 'playing' || this.state === 'paused') { this.playerCtl.updateCamera(dt); this._seatCam(dt); }

@@ -1,0 +1,58 @@
+# Puts the game's dedicated servers on your own always-on machine (an Oracle Cloud free VM, see
+# dedicated/README.md) and updates them whenever the game changes. Needs two repository secrets:
+#   ORACLE_HOST     the machine's public IP address
+#   ORACLE_SSH_KEY  the private SSH key for it (the whole file)
+# and optionally ORACLE_USER (default: ubuntu). Without them this does nothing.
+name: Dedicated servers
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/battlefield-6-game-2iu72e]
+    paths:
+      - 'js/**'
+      - 'css/**'
+      - 'mods/**'
+      - 'sounds/**'
+      - 'index.html'
+      - 'android/prepare-web.mjs'
+      - 'dedicated/**'
+      - '.github/workflows/dedicated.yml'
+
+concurrency:
+  group: dedicated
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HOST: ${{ secrets.ORACLE_HOST }}
+      KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      USER_NAME: ${{ secrets.ORACLE_USER }}
+    steps:
+      - name: Secrets set?
+        id: check
+        run: |
+          if [ -z "$HOST" ] || [ -z "$KEY" ]; then echo "No ORACLE_HOST / ORACLE_SSH_KEY secrets: nothing to deploy."; echo "go=0" >> "$GITHUB_OUTPUT"; else echo "go=1" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.go == '1'
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.go == '1'
+        with:
+          node-version: 20
+      - name: Build the game
+        if: steps.check.outputs.go == '1'
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          node android/prepare-web.mjs dedicated/www
+      - name: Copy to the machine and restart the servers
+        if: steps.check.outputs.go == '1'
+        run: |
+          U="${USER_NAME:-ubuntu}"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_oracle
+          chmod 600 ~/.ssh/id_oracle
+          SSH="ssh -i $HOME/.ssh/id_oracle -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30"
+          tar czf - dedicated | $SSH "$U@$HOST" 'mkdir -p ~/sixthfront && rm -rf ~/sixthfront/dedicated && tar xzf - -C ~/sixthfront'
+          $SSH "$U@$HOST" 'bash ~/sixthfront/dedicated/setup.sh'

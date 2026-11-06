@@ -414,6 +414,17 @@ export class HUD {
       const w = g.playerCtl.tankWeapon === 0 ? v.gunName || '120MM CANNON' : `COAX MG  ${v.coax.reloading ? 'RELOADING' : v.coax.mag}`;
       this._set('vw', this.el.vweap, w);
       this.el.vreload.style.width = (g.playerCtl.tankWeapon === 0 ? clamp(1 - v.reload / VEHICLES.tank.reload, 0, 1) : 1) * 100 + '%';
+    } else if (P.state === 'alive' && P.gunnerHud) {
+      // manning a mounted gun (a mod's: a transport helicopter's door gun): its name and belt instead
+      const h = P.gunnerHud;
+      this._set('wn', this.el.wname, h.name);
+      this._set('wm', this.el.wmag, h.mag || '∞');
+      this._set('wch', this.el.wch, '');
+      this._set('wr', this.el.wres, '');
+      this._set('wmode', this.el.wmode, h.mode || 'AUTO');
+      this.el.wmag.classList.remove('low');
+      this._pips(null);
+      this._reloadBar(null);
     } else if (P.state === 'alive') {
       if (P.slot < 2) {
         const gun = P.gun;

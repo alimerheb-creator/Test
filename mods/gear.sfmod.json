@@ -67,7 +67,7 @@
     "const style = document.createElement('style');",
     "style.id = 'gear-style';",
     "style.textContent = `",
-    "#game.gr-heat { filter: grayscale(1) brightness(0.62) contrast(1.7); }",
+    "#game.gr-heat { filter: grayscale(1) brightness(0.72) contrast(1.4); }",
     "#gr-heat-hud { position: absolute; left: 50%; top: calc(64px + var(--safe-t)); transform: translateX(-50%); display: flex; align-items: center; gap: 8px;",
     "  font: 700 0.7rem var(--font-ui); letter-spacing: 0.2em; color: #fff; text-shadow: 0 1px 2px #000; pointer-events: none; z-index: 5; }",
     "#gr-heat-hud i { display: block; width: 90px; height: 5px; background: rgba(255,255,255,0.2); position: relative; }",

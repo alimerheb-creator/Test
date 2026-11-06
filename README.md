@@ -657,6 +657,10 @@ game switches to that battle type first if needed); when they are all full, a ne
 start the battle yourself and everyone who comes after joins you; when a round ends the next one starts by itself 15
 seconds later. If the player whose game is running the server leaves (or their game stops, for example the app goes
 to the background), everyone on it comes back in a moment later and one of them takes over with a new round.
+**Dedicated servers:** with an always-on machine (a free Oracle Cloud VM; see `dedicated/README.md`), the game itself
+runs there without a screen and hosts INFANTRY 1, TANKS 1, AVIATION 1, NAVAL 1 and ALL-OUT 1 and 2 around the clock,
+like Roblox servers: you never host, you just join; the bots fight on when nobody is in, and the server keeps going
+when you leave. If that machine is down, the servers fall back to a player hosting.
 The SERVERS list is a server browser: every server with a game going on its own line (players, map, mode, in battle or
 between rounds; the fullest first), the next empty ones of each battle type, tabs for the battle types and how many
 people are playing. **QUICK MATCH** takes you to the fullest server with room for the battle type you have picked.
