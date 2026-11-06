@@ -110,7 +110,7 @@ const SCHEMA = {
     jump: num(0, 40), accel: num(1, 400), airAccel: num(0, 400), slideSpeed: num(0, 60), slideTime: num(0, 5),
   },
   rules: {
-    gravity: num(1, 60), playerHealth: num(1, 1000), regenDelay: num(0, 60), regenRate: num(0, 500), damageScale: num(0, 10),
+    gravity: num(1, 60), playerHealth: num(1, 1000), regenDelay: num(0, 60), regenRate: num(0, 500), damageScale: num(0, 10), bulletDamage: num(0, 10),
     headshotScale: num(0, 10), explosionScale: num(0.1, 4), captureSpeed: num(0.1, 10), bleedSpeed: num(0, 10),
     reviveTime: num(0.2, 20), downedTime: num(1, 60), respawnTime: num(0.5, 60), spawnProtection: num(0, 10),
     fallDamage: bool, infiniteAmmo: bool, friendlyFire: bool, startTickets: num(0, 5000, true),

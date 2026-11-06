@@ -714,7 +714,8 @@ export class PlayerController {
   _checkBounds(dt) {
     const s = this.s;
     if (s.state !== 'alive') { this.oobT = 0; return; }
-    const out = Math.abs(s.pos.x) > PLAY_HALF || Math.abs(s.pos.z) > PLAY_HALF;
+    // (aboard a transport helicopter the pilot decides where you go: it loads up behind your HQ)
+    const out = !s.ride && (Math.abs(s.pos.x) > PLAY_HALF || Math.abs(s.pos.z) > PLAY_HALF);
     if (out) {
       this.oobT += dt;
       if (this.oobT > 10) {

@@ -145,7 +145,8 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   lock back when empty, and you can hear enemies reloading nearby.
 - **Battlefield staples**: downed state and revives, squads with squad spawning, spotting, suppression,
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
-  sliding, prone, out-of-bounds timer.
+  sliding, prone, out-of-bounds timer. Bullets do 70% of their old damage to soldiers (a rifle takes about six
+  body hits up close), so you have time to see where you're being shot from.
 - **In your hands**: tactical gloves (coyote brown with dark cuffs and palms) and camouflage sleeves of woven cloth, the support arm reaching in from the lower left, and flat dark earth furniture (handguard, stock, grip, magazine) on the assault rifles. A mod's army uniform replaces the camouflage with its own colour.
 - **Barrel smoke**: each shot leaves a faint puff at the muzzle, and a barrel heated by a long burst smokes afterwards, thin wisps curling up past the sights.
 - **Graphics**: a gritty grade (a firmer contrast curve, cooler shadows and warmer lights), fine grit on the ground close to you, HDR rendering with ambient occlusion (from Medium up: soft shadowing in corners, under vehicles and where things meet the ground), sunlit haze (distant ground glows toward the sun), cloud shadows drifting over the land, heat haze shimmering behind jet engines and round explosions, sunlight glowing through leaves and grass when you look toward it, bullet holes in walls, crates, rock, metal and the ground, spent cases flying out of the ejection port (red shells from the shotgun), tank tracks pressed into the dirt behind every tank, soft contact shadows under distant soldiers and tanks (beyond the reach of the sun's shadows), ships of weathered steel (rust weeping down the sides, plate seams, a stained waterline, non-skid decks), ships trailing a wake of broken foam that spreads and fades behind them, bloom, sun glare and lens ghosts, ACES tone mapping with colour grading,
@@ -523,6 +524,17 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   count; finish it and the enemy loses **15 tickets**. The bot pilots fly the missions too.
 - **Danger.** Enemy infantry fire shoulder-launched **Stinger** and **Igla** missiles (flares help), engineers fire
   RPGs, tank crews put their cannon on helicopters hovering low, and the airbases' C-RAM guns shred anything slow, or high and in their sights (go in low and fast).
+- **What the attack helicopters go for.** Tanks first, then installations and infantry; enemy helicopters only when
+  they come close. Nothing at the enemy's own HQ (its air defence covers it, and no shooting soldiers as they spawn).
+- **Transport helicopters** (NORMAL and TANK battles): a **UH-60M Black Hawk** for Vanguard (an M134 minigun in one
+  gunner's window, an M240H with its ammo can and belt in the other) and a **Mi-8AMTSh** for Onyx (two PKTs), flown
+  by bots. Each lands on its pad a little way out from its HQ and waits **10 seconds** with its doors open: walk up
+  and press **E** (BOARD on a phone). You take a **door gun** if one is free, seen from behind it: the mouse (a drag)
+  aims it, FIRE shoots. Otherwise you sit in the open door with your own weapon (a sniper rifle works well). Bots
+  climb in too. It flies out to the fight, circles it side-on while the door guns and everyone in the doors shoot at
+  the enemy below, lands short of the flag for 10 seconds to let everyone out, and goes back for more. **E** gets you
+  out: stepping down on the ground, jumping when low, with a parachute when high. If it's shot down, everyone aboard
+  goes down with it.
 
 ### Career and research
 
@@ -694,7 +706,7 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 | G | Frag grenade |
 | V or F | Knife (from behind: takedown) |
 | Q | Spot enemy |
-| E | Enter / exit tank, hold to revive |
+| E | Enter / exit tank, board / get out of a transport helicopter, hold to revive |
 | Tab / M | Scoreboard / full map |
 | Esc or P | Pause |
 

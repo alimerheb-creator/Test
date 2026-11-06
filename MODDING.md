@@ -227,6 +227,7 @@ Fields: `name` (16 chars), `primary` and `secondary` (weapon ids), `gadget` (gad
 | `regenDelay` | 5 | 0–60 | Seconds before health regenerates |
 | `regenRate` | 14 | 0–500 | Health per second (0 turns regeneration off) |
 | `damageScale` | 1 | 0–10 | Multiplies all damage |
+| `bulletDamage` | 0.7 | 0–10 | Multiplies bullet damage to soldiers |
 | `headshotScale` | 1 | 0–10 | Multiplies headshot bonuses |
 | `explosionScale` | 1 | 0.1–4 | Multiplies blast radius |
 | `captureSpeed` | 1 | 0.1–10 | Flag capture speed |

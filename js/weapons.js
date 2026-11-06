@@ -347,13 +347,14 @@ export class Combat {
       if (t < best) { best = t; victim = s; head = s._head; }
     }
     for (const v of g.vehicles) {
-      if (!v.alive || v === shooter.vehicle) continue;
+      // (not the helicopter the shooter rides in, firing from its door)
+      if (!v.alive || v === shooter.vehicle || v === shooter.ride) continue;
       const t = v.rayHit(o.x, o.y, o.z, dir.x, dir.y, dir.z, best);
       if (t < best) { best = t; veh = v; victim = null; }
     }
     const px = o.x + dir.x * best, py = o.y + dir.y * best, pz = o.z + dir.z * best;
     if (victim) {
-      const dmg = dmgAt(def, best) * (head ? def.head * RULES.headshotScale : 1) * dmgMul;
+      const dmg = dmgAt(def, best) * (head ? def.head * RULES.headshotScale : 1) * dmgMul * (RULES.bulletDamage ?? 1);
       const killed = victim.takeDamage(dmg, shooter, { weapon: def.name, headshot: head, dir: dir.clone() });
       g.effects.blood(px, py, pz, dir.x, dir.y, dir.z);
       if (shooter.isPlayer) g.hud.hitmarker(head, killed);

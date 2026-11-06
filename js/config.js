@@ -29,6 +29,7 @@ export const RULES = {
   regenDelay: 5,          // seconds without damage before health regenerates
   regenRate: 14,          // health per second
   damageScale: 1,         // multiplies all weapon/explosion damage
+  bulletDamage: 0.7,      // multiplies every bullet's damage to soldiers (a rifle takes about 6 body hits close up)
   headshotScale: 1,       // multiplies every weapon's headshot multiplier
   explosionScale: 1,      // multiplies explosion radius
   captureSpeed: 1,        // flag capture speed multiplier
