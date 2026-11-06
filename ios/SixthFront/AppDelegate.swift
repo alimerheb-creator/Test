@@ -8,8 +8,9 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // game sound mixes with music from other apps and follows the silent switch, like other games
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default, options: [.mixWithOthers])
+        // the game's sound plays even with the silent switch on (an "ambient" app is muted by it, which made the
+        // game seem to have no sound), and mixes with music from other apps
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
         try? AVAudioSession.sharedInstance().setActive(true)
         // the screen stays on while you play
         application.isIdleTimerDisabled = true
@@ -20,6 +21,12 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
         window.makeKeyAndVisible()
         self.window = window
         return true
+    }
+
+    // back in front: the sound starts again (iOS stops it while another app or a call has the speaker)
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        try? AVAudioSession.sharedInstance().setActive(true)
+        (window?.rootViewController as? GameViewController)?.resumeAudio()
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {

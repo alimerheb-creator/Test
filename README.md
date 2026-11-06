@@ -57,8 +57,10 @@ iPhone app is built by GitHub (below). Every release ships all three together.
 
 The iOS app is in [`ipa/SixthFront.ipa`](ipa/SixthFront.ipa) (about 2 MB, works offline except for multiplayer).
 GitHub builds it on a Mac from the same game files every time the game changes
-([`.github/workflows/ios.yml`](.github/workflows/ios.yml)), and starts it on an iPhone simulator to check the game
-comes up.
+([`.github/workflows/ios.yml`](.github/workflows/ios.yml)), and tests it on an iPhone and an iPad simulator: the app
+starts a battle by itself and reports its sound, frame rate and any script error every 5 seconds; the screenshots and
+reports go into [`ios/test/`](ios/test/). The game's sound plays with the silent switch on and comes back by itself after
+a call, Siri or another app.
 
 Apple only lets signed apps onto an iPhone, and signing needs an Apple account, so the file is unsigned: install it
 with a sideloading tool that signs it with your own Apple ID.
@@ -582,7 +584,9 @@ game switches to that battle type first if needed); when they are all full, a ne
 start the battle yourself and everyone who comes after joins you; when a round ends the next one starts by itself 15
 seconds later. If the player whose game is running the server leaves (or their game stops, for example the app goes
 to the background), everyone on it comes back in a moment later and one of them takes over with a new round.
-**QUICK MATCH** takes you to the server for the battle type you have picked.
+The SERVERS list is a server browser: every server with a game going on its own line (players, map, mode, in battle or
+between rounds; the fullest first), the next empty ones of each battle type, tabs for the battle types and how many
+people are playing. **QUICK MATCH** takes you to the fullest server with room for the battle type you have picked.
 
 **Chat**: in battle press **ENTER**, type and press ENTER again (TAB switches between everyone and your team only,
 ESC closes it); on a phone or tablet press **CHAT** at the top. Lines show above the minimap for a few seconds, your
@@ -614,8 +618,17 @@ computer, open the page with `?mplocal` in two tabs of the same browser.
 
 ## Mods
 
-Open **MODS** on the main menu to import a mod file, paste mod text, or add one of the bundled examples. Mods have
-full control of the game:
+**Built into the game**: everything realistic that started as a mod is part of the game now, always on and not on
+the MODS screen: jets, bombers, helicopters, the vehicle interiors, HD weapons and knife, the heavy arsenal, commander
+call-ins, multiplayer, the Career and Career Mode, and the TANKS, AVIATION and NAVAL battles. The NORMAL battle's other
+maps (Karsa Outskirts, Dust Ridge, Iron Forest, Old Town) and modes (Team Deathmatch, Capture the Flag, King of the
+Hill, Hardpoint) are picked under the battle cards on the main menu, one map and one mode at a time. (They ship in the
+game's own folder and are read from it at every start, so they take none of the phone's storage.) The MODS screen
+keeps the mods that change the rules for fun: Explosive Rounds, Jetpack, Moon Gravity, Bullet Time, Vampire Rounds,
+Random Wheel, Gun Game, Last Stand, Hardcore, Night Ops and Aggressive Reloads.
+
+Open **MODS** on the main menu to import a mod file, paste mod text, or add one of those. Mods have full control of the
+game:
 
 - Change or add weapons (with their own 3D models and reload styles), gadgets, projectiles and classes, and
   change movement, rules, scoring, tanks, team names and uniforms, bot skill, time of day and weather.

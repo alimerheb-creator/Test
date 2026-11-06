@@ -73,7 +73,24 @@ export class GameAudio {
       this.reverb.connect(this.reverbGain).connect(this.master);
       this._startWind();
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    this.resume();
+    // iOS stops the sound when a call, Siri or another app takes over, or the game goes to the background, and
+    // doesn't start it again by itself ("interrupted" or "suspended"): any touch, coming back to the front, or the
+    // app saying the interruption is over starts it again
+    if (!this._wake) {
+      this._wake = () => this.resume();
+      for (const ev of ['touchend', 'pointerup', 'keydown']) window.addEventListener(ev, this._wake, { capture: true, passive: true });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) this.resume(); });
+      window.addEventListener('pageshow', this._wake);
+      window.addEventListener('focus', this._wake);
+      window.__sfResumeAudio = this._wake;
+    }
+  }
+
+  resume() {
+    const c = this.ctx;
+    if (!c || c.state === 'running' || c.state === 'closed') return;
+    try { const r = c.resume(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* not now */ }
   }
 
   setVolume(v) {
@@ -458,6 +475,10 @@ export class GameAudio {
     }
     const e = this.engine, t = ctx.currentTime;
     const vol = active ? clamp(1 - dist / 90, 0, 1) * (0.18 + Math.abs(throttle) * 0.12) : 0;
+    // (only when it changed: four parameter changes every frame add up, on a phone above all)
+    const th = Math.round(Math.abs(throttle) * 20), vk = Math.round(vol * 200);
+    if (th === e.th && vk === e.vk) return;
+    e.th = th; e.vk = vk;
     e.g.gain.setTargetAtTime(vol, t, 0.1);
     e.o1.frequency.setTargetAtTime(34 + Math.abs(throttle) * 22, t, 0.3);
     e.o2.frequency.setTargetAtTime(51 + Math.abs(throttle) * 30, t, 0.3);

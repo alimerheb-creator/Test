@@ -292,7 +292,22 @@ const KNOWN_SECTIONS = new Set(['format', 'id', 'name', 'version', 'author', 'de
 export const NORMAL_BATTLE = 'normal';
 // Mods every game runs (the Career progression): the game installs and switches them on itself, and they
 // can't be switched off or removed
-export const CORE_MODS = ['career', 'armory', 'helicopters', 'campaign'];
+// Part of the game: installed from the game's own folder and always on, and not shown on the MODS screen
+export const CORE_MODS = ['career', 'armory', 'helicopters', 'campaign', 'multiplayer', 'jets', 'bombers', 'vehicle-interiors',
+  'hd-weapons', 'hd-knife', 'heavy-arsenal', 'call-ins'];
+// The battle types (picked on the main menu, so they are always installed and on) and the NORMAL battle's other
+// maps and modes (picked there too: one map and one mode at a time); not on the MODS screen either
+export const BUILTIN_BATTLES = ['tank-warfare', 'aviation', 'naval'];
+export const NORMAL_MAPS = [
+  { id: 'karsa-outskirts', name: 'KARSA OUTSKIRTS' }, { id: 'map-dust-ridge', name: 'DUST RIDGE' },
+  { id: 'map-iron-forest', name: 'IRON FOREST' }, { id: 'map-old-town', name: 'OLD TOWN' },
+];
+export const NORMAL_MODES = [
+  { id: 'team-deathmatch', name: 'TEAM DEATHMATCH' }, { id: 'mode-capture-the-flag', name: 'CAPTURE THE FLAG' },
+  { id: 'mode-king-of-the-hill', name: 'KING OF THE HILL' }, { id: 'mode-hardpoint', name: 'HARDPOINT' },
+];
+export const HIDDEN_MODS = [...CORE_MODS, ...BUILTIN_BATTLES, ...NORMAL_MAPS.map((o) => o.id), ...NORMAL_MODES.map((o) => o.id)];
+const FIXED_MODS = [...CORE_MODS, ...BUILTIN_BATTLES];
 
 // ---------------------------------------------------------------- manager
 export class ModManager {
@@ -346,7 +361,8 @@ export class ModManager {
   }
 
   // switched-on mods (counting the ones waiting for another battle type)
-  get activeCount() { return this.list.filter((m) => m.enabled && m.status !== 'error').length; }
+  // (the mods you switched on yourself: what is part of the game isn't counted)
+  get activeCount() { return this.list.filter((m) => m.enabled && m.status !== 'error' && !HIDDEN_MODS.includes(m.id)).length; }
 
   // known: mods already loaded (their text isn't read again unless it changed)
   _load(known) {
@@ -380,6 +396,12 @@ export class ModManager {
     let ok = true;
     for (const m of this.list) {
       if (m.savedText === m.text) continue;
+      // what is part of the game is read from the game's own folder at every start (see recoverMissing): it would
+      // fill the little storage a phone gives a page
+      if (HIDDEN_MODS.includes(m.id)) {
+        if (!m.notStored) { KV.remove(TEXT_PREFIX + m.id); m.notStored = true; }
+        continue;
+      }
       if (KV.set(TEXT_PREFIX + m.id, m.text)) m.savedText = m.text;
       else {
         ok = false;
@@ -540,7 +562,7 @@ export class ModManager {
   }
 
   remove(id) {
-    if (CORE_MODS.includes(id)) return;
+    if (FIXED_MODS.includes(id)) return;
     this._fresh();
     this.list = this.list.filter((m) => m.id !== id);
     this.missing = this.missing.filter((m) => m.id !== id);
@@ -549,7 +571,7 @@ export class ModManager {
   }
 
   setEnabled(id, on) {
-    if (!on && CORE_MODS.includes(id)) return;
+    if (!on && FIXED_MODS.includes(id)) return;
     this._fresh();
     const m = this.list.find((x) => x.id === id);
     if (m) { m.enabled = on; this._save(); }

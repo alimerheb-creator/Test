@@ -61,27 +61,44 @@ jobs:
             sleep $((i * 5))
           done
           exit 1
-      # a check that the game really starts in the app: run it on an iPhone simulator for a minute, log what the
-      # game reports (its state and the first script error) and take a screenshot
-      - name: Run it on an iPhone simulator
+      # a check that the game really works in the app: run it on an iPhone and an iPad simulator, where it starts a
+      # battle by itself (-sfTest), log what the game reports every 5 s (its state, sound, frame rate and the first
+      # script error) and take screenshots; they go into ios/test/ next to the app
+      - name: Run it on an iPhone and an iPad simulator
         continue-on-error: true
         run: |
           cd ios
+          mkdir -p test
           xcodebuild -project SixthFront.xcodeproj -scheme SixthFront -configuration Release -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO -quiet build
-          DEV=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")).devices;const all=Object.entries(d).filter(([k])=>k.includes("iOS")).flatMap(([,v])=>v);const p=all.find((x)=>/^iPhone \d+( Pro)?$/.test(x.name))||all.find((x)=>x.name.startsWith("iPhone"));console.log(p.udid)')
-          echo "simulator $DEV"
-          xcrun simctl boot "$DEV"
-          xcrun simctl bootstatus "$DEV" -b
-          xcrun simctl install "$DEV" build/sim/Build/Products/Release-iphonesimulator/SixthFront.app
-          xcrun simctl launch --console-pty "$DEV" com.sixthfront.game > build/sim.log 2>&1 &
-          sleep 70
-          xcrun simctl io "$DEV" screenshot build/iphone.png
-          grep "SixthFront:" build/sim.log || tail -40 build/sim.log
-      - uses: actions/upload-artifact@v4
+          pick() { xcrun simctl list devices available -j | node -e 'const re=new RegExp(process.argv[1]);const d=JSON.parse(require("fs").readFileSync(0,"utf8")).devices;const all=Object.entries(d).filter(([k])=>k.includes("iOS")).flatMap(([,v])=>v);const p=all.find((x)=>re.test(x.name));console.log(p?p.udid:"")' "$1"; }
+          for kind in iphone ipad; do
+            if [ "$kind" = iphone ]; then DEV=$(pick '^iPhone \d+( Pro)?$'); else DEV=$(pick '^iPad (Pro|Air)'); fi
+            [ -n "$DEV" ] || { echo "no $kind simulator"; continue; }
+            echo "$kind simulator $DEV"
+            xcrun simctl boot "$DEV"
+            xcrun simctl bootstatus "$DEV" -b
+            xcrun simctl install "$DEV" build/sim/Build/Products/Release-iphonesimulator/SixthFront.app
+            xcrun simctl launch --console-pty "$DEV" com.sixthfront.game -sfTest > "test/$kind.log" 2>&1 &
+            sleep 45
+            xcrun simctl io "$DEV" screenshot --type=jpeg "test/$kind-1.jpg"
+            sleep 50
+            xcrun simctl io "$DEV" screenshot --type=jpeg "test/$kind-2.jpg"
+            sleep 15
+            grep "SixthFront:" "test/$kind.log" > "test/$kind-report.txt" || tail -40 "test/$kind.log" > "test/$kind-report.txt"
+            cat "test/$kind-report.txt"
+            xcrun simctl shutdown "$DEV" || true
+          done
+          rm -f test/*.log
+      - name: Commit the test screenshots to ios/test/
         if: always()
-        with:
-          name: iphone-simulator
-          path: |
-            ios/build/iphone.png
-            ios/build/sim.log
+        continue-on-error: true
+        run: |
+          [ -d ios/test ] || exit 0
+          git add ios/test
+          git diff --cached --quiet && exit 0
+          git commit -m "iOS test screenshots $(node -p "require('./package.json').version") [ios-only] [skip ci]"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i * 5))
+          done

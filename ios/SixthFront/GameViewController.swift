@@ -1,3 +1,4 @@
+import AVFoundation
 import CoreMotion
 import UIKit
 import WebKit
@@ -44,17 +45,52 @@ final class GameViewController: UIViewController, WKNavigationDelegate, WKUIDele
         super.viewDidLoad()
         web.load(URLRequest(url: Self.startURL))
         reportStartup()
+        // a call, Siri or another app took the speaker and gave it back: the game's sound starts again
+        NotificationCenter.default.addObserver(self, selector: #selector(audioInterrupted(_:)),
+                                               name: AVAudioSession.interruptionNotification, object: nil)
     }
 
-    /// For the first minute, logs whether the game has started (and its first script error, if any), so a test
-    /// run on a simulator can tell from the log that the game came up.
+    @objc private func audioInterrupted(_ note: Notification) {
+        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+        try? AVAudioSession.sharedInstance().setActive(true)
+        resumeAudio()
+    }
+
+    func resumeAudio() {
+        web?.evaluateJavaScript("window.__sfResumeAudio && window.__sfResumeAudio()", completionHandler: nil)
+    }
+
+    /// A test run on a simulator (launched with -sfTest): the game starts a battle by itself and deploys you
+    private var testMode: Bool { ProcessInfo.processInfo.arguments.contains("-sfTest") }
+
+    /// For the first two minutes, logs whether the game has started, its sound, frame rate and first script error,
+    /// so a test run on a simulator can tell from the log how the game is doing.
     private func reportStartup(_ n: Int = 0) {
-        guard n < 12 else { return }
+        guard n < 24 else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
             guard let self = self else { return }
-            let js = "JSON.stringify({ state: window.__game ? window.__game.state : null, mods: window.__game && window.__game.mods ? window.__game.mods.list.length : 0, error: window.__sfError || null })"
+            let js = """
+            (function () {
+              if (!window.__sfFpsOn) { window.__sfFpsOn = 1; let k = 0, t = performance.now();
+                const f = () => { k++; const n = performance.now(); if (n - t >= 2000) { window.__sfFps = Math.round(k * 1000 / (n - t)); k = 0; t = n; } requestAnimationFrame(f); };
+                requestAnimationFrame(f); }
+              const g = window.__game;
+              return JSON.stringify({ state: g ? g.state : null, mods: g && g.mods ? g.mods.list.length : 0, fps: window.__sfFps || 0,
+                sound: g && g.audio && g.audio.ctx ? g.audio.ctx.state : 'none', quality: g && g.settings ? g.settings.quality : '',
+                pixels: g && g.renderer ? g.renderer.domElement.width + 'x' + g.renderer.domElement.height : '', error: window.__sfError || null });
+            })()
+            """
             self.web.evaluateJavaScript(js) { result, _ in
-                NSLog("SixthFront: %@", String(describing: result ?? "no page"))
+                NSLog("SixthFront: %@ audio-session: %@", String(describing: result ?? "no page"), AVAudioSession.sharedInstance().category.rawValue)
+            }
+            if self.testMode && n == 5 {
+                let start = """
+                (function () { const g = window.__game; if (!g || g.state !== 'menu') return;
+                  g.audio.unlock(); g.startMatch();
+                  setTimeout(() => { const b = document.getElementById('btn-deploy'); if (b) b.click(); }, 5000); })()
+                """
+                self.web.evaluateJavaScript(start, completionHandler: nil)
             }
             self.reportStartup(n + 1)
         }

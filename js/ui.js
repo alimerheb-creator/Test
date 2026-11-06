@@ -1,7 +1,7 @@
 // Menus: main menu with settings, the deploy screen (class + spawn), pause and after-action report.
 import { CLASSES, CLASS_ORDER, WEAPONS, GADGETS, DIFFICULTY, TEAMS, MAP } from './config.js';
 import { saveSettings, formatTime, esc } from './util.js';
-import { parseMod, slugify, CORE_MODS } from './mods.js';
+import { parseMod, slugify, CORE_MODS, BUILTIN_BATTLES, NORMAL_MAPS, NORMAL_MODES, HIDDEN_MODS } from './mods.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -264,9 +264,10 @@ export class UI {
 
   renderModList() {
     const g = this.game;
-    const list = g.mods.list;
     const statusText = { ok: 'ACTIVE', off: 'OFF', warn: 'ACTIVE · CHECK NOTES', error: 'ERROR', standby: 'ON · NOT IN THIS BATTLE' };
     const core = (m) => CORE_MODS.includes(m.id);
+    // what is part of the game (the realistic content, the battle types, maps and modes) isn't listed here
+    const list = g.mods.list.filter((m) => !HIDDEN_MODS.includes(m.id));
     $('mod-list').innerHTML = list.length ? list.map((m, i) => `
       <li class="mod-item ${m.status}">
         <div class="mod-top">
@@ -282,7 +283,7 @@ export class UI {
           <button class="btn ghost small" data-act="down" data-id="${esc(m.id)}" ${i === list.length - 1 ? 'disabled' : ''}>DOWN</button>
           ${core(m) ? '' : `<button class="btn ghost small danger" data-act="remove" data-id="${esc(m.id)}">REMOVE</button>`}
         </div>
-      </li>`).join('') : '<li class="mod-empty">No mods installed yet. Import a mod file or add one of the examples below.</li>';
+      </li>`).join('') : '<li class="mod-empty">No extra mods on. Everything realistic is already part of the game; the mods below change the rules for fun.</li>';
     this._renderExamples();
     this.updateModsButton();
     if (!g.mods.storageOk) this._modMsg('Your mod list could not be saved on this device (its storage is full or blocked), so these changes will be gone the next time the game starts.', true);
@@ -319,6 +320,7 @@ export class UI {
       if (!b || b.classList.contains('sel')) return;
       const g = this.game, id = g.mods.currentBattle();
       g.audio.unlock(); g.audio.click();
+      if (b.dataset.opt === 'nmap' || b.dataset.opt === 'nmode') { this._pickNormal(b.dataset.opt === 'nmap' ? NORMAL_MAPS : NORMAL_MODES, b.dataset.val); return; }
       g.setBattle(id, { [b.dataset.opt]: b.dataset.val });
     });
     this.renderBattles();
@@ -348,8 +350,12 @@ export class UI {
       <b>${esc(c.name)}</b><span>${esc(c.blurb || '')}</span></button>`).join('');
     // the picked battle's maps and modes
     const b = mods.battleEntry(cur);
-    const row = (kind, label, list, sel) => (list.length > 1 ? `<div class="bt-opts"><span>${label}</span>${list.map((o) => `<button class="bt-chip${o.id === sel ? ' sel' : ''}" data-opt="${kind}" data-val="${esc(o.id)}" title="${esc(o.blurb)}">${esc(o.name)}</button>`).join('')}</div>` : '');
-    const html = b ? row('map', 'MAP', b.battle.maps, mods.currentMap(cur)) + row('mode', 'MODE', b.battle.modes, mods.currentMode(cur)) : '';
+    const row = (kind, label, list, sel) => (list.length > 1 ? `<div class="bt-opts"><span>${label}</span>${list.map((o) => `<button class="bt-chip${o.id === sel ? ' sel' : ''}" data-opt="${kind}" data-val="${esc(o.id)}" title="${esc(o.blurb || '')}">${esc(o.name)}</button>`).join('')}</div>` : '');
+    // NORMAL: its own map and mode, or one of the built-in map and mode mods (one of each at a time)
+    const on = (o) => { const m = mods.list.find((x) => x.id === o.id); return !!(m && m.enabled); };
+    const nMap = (NORMAL_MAPS.find(on) || { id: '' }).id, nMode = (NORMAL_MODES.find(on) || { id: '' }).id;
+    const html = b ? row('map', 'MAP', b.battle.maps, mods.currentMap(cur)) + row('mode', 'MODE', b.battle.modes, mods.currentMode(cur))
+      : cur === 'normal' ? row('nmap', 'MAP', [{ id: '', name: 'KARSA VALLEY' }, ...NORMAL_MAPS], nMap) + row('nmode', 'MODE', [{ id: '', name: 'CONQUEST' }, ...NORMAL_MODES], nMode) : '';
     const el = $('mm-battle-opts');
     el.innerHTML = html;
     el.hidden = !html;
@@ -409,6 +415,24 @@ export class UI {
     }
   }
 
+  // A NORMAL battle map or mode: that one mod on (installed from the game's folder if needed), the others off
+  async _pickNormal(list, id) {
+    const g = this.game, mods = g.mods;
+    if (this._picking) return;
+    this._picking = true;
+    try {
+      for (const o of list) if (o.id !== id && mods.list.some((m) => m.id === o.id && m.enabled)) mods.setEnabled(o.id, false);
+      if (id) await this._ensureMod(id);
+      this._battleMsg('');
+      g.reloadMods();
+    } catch (e) {
+      this._battleMsg(`Could not switch: ${e.message}`, true);
+    } finally {
+      this._picking = false;
+      this.renderBattles();
+    }
+  }
+
   // Mods that came from the game's mods folder are kept up to date: when the game ships a newer version of one
   // you installed, or the same version changed since (mods/index.json has each file's hash), the game's copy
   // replaces it (switched on or off as before). Only a copy with a higher version number than the game's stays.
@@ -446,7 +470,7 @@ export class UI {
   async _ensureCore() {
     const g = this.game, mods = g.mods;
     let changed = false;
-    for (const id of CORE_MODS) {
+    for (const id of [...CORE_MODS, ...BUILTIN_BATTLES]) {
       const m = mods.list.find((x) => x.id === id);
       if (m && m.enabled) continue;
       try { await this._ensureMod(id); changed = true; } catch (err) { /* not shipped with this copy of the game */ }
@@ -458,7 +482,7 @@ export class UI {
   }
 
   _renderExamples() {
-    const ex = this.examples || [];
+    const ex = (this.examples || []).filter((m) => !HIDDEN_MODS.includes(slugify(m.id || m.name)));
     $('mod-examples-title').hidden = !ex.length;
     const installed = new Set(this.game.mods.list.map((m) => m.id));
     $('mod-examples').innerHTML = ex.map((m) => {
