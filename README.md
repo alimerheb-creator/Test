@@ -448,7 +448,8 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   within a few hundred metres (a message tells you you're under the radar). It takes a moment to lock on before it
   fires, and a fast jet crossing its sights or hugging the ground is hard for it to hit; one flying straight at it
   high up, or a slow one, takes the full stream.
-  To hear the real recording instead, use **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings
+  A recording put in the game's [`sounds/`](sounds/) folder as `cram-alarm.mp3` plays in place of the siren and
+  voice for every player. Just for you: **LOAD REAL SOUND** next to C-RAM ALARM in the main menu's settings
   (MP3 or WAV under 2.5 MB; **BUILT-IN** goes back, **TEST** plays it).
 - **NAVAL**: battleships (Iowa / Sovetsky Soyuz: nine 406 mm guns in three turrets that fire together, eight
   Harpoons, four Phalanx guns), cruisers (Ticonderoga / Slava), destroyers (Arleigh Burke / Sovremenny), frigates

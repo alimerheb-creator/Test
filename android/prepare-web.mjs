@@ -2,7 +2,7 @@
 // one bundled script (three.js included), local fonts, no import maps or CDN requests.
 //   node android/prepare-web.mjs [outDir]      (default: android/build/assets/www)
 import { build } from 'esbuild';
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,6 +28,8 @@ cpSync(join(root, 'css/style.css'), join(out, 'css/style.css'));
 cpSync(join(root, 'apple-touch-icon.png'), join(out, 'apple-touch-icon.png'));
 cpSync(join(root, 'android/fonts'), join(out, 'fonts'), { recursive: true });
 cpSync(join(root, 'mods'), join(out, 'mods'), { recursive: true });
+// sounds everyone hears (for example the C-RAM alarm, sounds/cram-alarm.mp3)
+if (existsSync(join(root, 'sounds'))) cpSync(join(root, 'sounds'), join(out, 'sounds'), { recursive: true });
 
 let html = readFileSync(join(root, 'index.html'), 'utf8');
 html = html

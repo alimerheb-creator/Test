@@ -11,6 +11,7 @@ on:
       - 'js/**'
       - 'css/**'
       - 'mods/**'
+      - 'sounds/**'
       - 'index.html'
       - 'android/fonts/**'
       - 'android/prepare-web.mjs'
