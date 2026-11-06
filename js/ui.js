@@ -64,6 +64,7 @@ export class UI {
     check('set-assist', 'aimAssist');
     check('set-autofire', 'autoFire');
     check('set-vibe', 'vibration');
+    check('set-outlines', 'outlines');
     this._syncLabels();
     $('btn-play').addEventListener('click', () => {
       g.audio.unlock();

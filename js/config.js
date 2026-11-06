@@ -115,7 +115,7 @@ export const ROADS = [
 // sheer sides (cliff 0.25-0.95: how far out the flat top reaches); gorges are canyons cut into the land along a path,
 // { path: [[x, z], ...], width, floor, wall }: floor is the height of the bottom, wall (0.25-0.95) how sheer the sides are;
 // fields turns the open, level ground into farmland: { size, colors: [...], hedge, angle } (plots of size metres)
-export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1, level: 0, deep: 1, water: null, islands: [], gorges: [], fields: null, alps: null, towers: null, palette: null };
+export const TERRAIN = { seed: 0, hills: 1, bumps: 1, mountains: 1, valley: 1, level: 0, deep: 1, water: null, islands: [], gorges: [], airfields: [], fields: null, alps: null, towers: null, palette: null };
 export const VEGETATION = { trees: 1, bushes: 1, rocks: 1, grass: 1 };
 export const MAP_PROPS = [];
 
@@ -213,6 +213,7 @@ export const DEFAULT_SETTINGS = {
   botsPerTeam: 12,
   side: 0,               // the side you play on: 0 or 1 (VANGUARD or ONYX, picked on the deploy screen)
   weather: 'auto',       // auto (the map's, and now and then rain), clear, rain or storm
+  outlines: true,        // a rim of light round soldiers (cool on your side, warm on the enemy): easier to spot
   difficulty: 'normal',
   tickets: 250,
   sensitivity: 1.0,

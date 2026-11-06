@@ -145,7 +145,10 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   lock back when empty, and you can hear enemies reloading nearby.
 - **Battlefield staples**: downed state and revives, squads with squad spawning, spotting, suppression,
   bullet damage falloff, headshots, hitmarkers, killfeed, score popups, scoreboard, minimap, full map,
-  sliding, prone, out-of-bounds timer. Bullets do 70% of their old damage to soldiers (a rifle takes about six
+  sliding, prone, out-of-bounds timer. **SOLDIER OUTLINES** (on unless you switch it off in the settings): a rim of
+  light round every soldier, warm on the enemy and cool on your side, that turns into a glow at a distance, so
+  people are easier to spot against the ground. Getting into a vehicle or a seat (and out of it) the view moves
+  there instead of jumping. Bullets do 70% of their old damage to soldiers (a rifle takes about six
   body hits up close), so you have time to see where you're being shot from.
 - **In your hands**: tactical gloves (coyote brown with dark cuffs and palms) and camouflage sleeves of woven cloth, the support arm reaching in from the lower left, and flat dark earth furniture (handguard, stock, grip, magazine) on the assault rifles. A mod's army uniform replaces the camouflage with its own colour.
 - **Barrel smoke**: each shot leaves a faint puff at the muzzle, and a barrel heated by a long burst smokes afterwards, thin wisps curling up past the sights.
@@ -484,6 +487,23 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   salvos, one back every 20 s). **V** (SMOKE) lays a **smoke screen**: for 16 s nobody can lock a missile on you,
   missiles already flying at you lose you, and the enemy loses sight of you beyond a few hundred metres (45 s to
   get it back). Missiles also miss sometimes, more often against small, fast boats. Bot captains do the same.
+- **ALL-OUT**: everything at once. Infantry, tanks, helicopters, jets, bombers and warships in one battle, with up
+  to **100 soldiers a side** (SOLDIERS PER SIDE: 25, 50, 75 or 100; 50 by default on a phone or tablet), on two maps
+  about 3 km across with seven flags:
+  - **Twin Rivers**: a navigable river on the east opening into a lake, a shallow one on the west, farms and
+    villages, and a downtown of skyscrapers in the middle.
+  - **Harbour City**: the sea all along the east, a river from an inland lake out to it, and a skyscraper city on
+    the coast.
+
+  Each side has an **airbase** at its end of the map: a **runway** (jets and bombers line up at its end, roll down
+  it with their wheels down, lift off and climb away), an apron with hangars, fuel tanks and a control tower, six
+  **helipads** where the helicopters stand (they come back **20 seconds** after one is lost; two transports and two
+  of each attack helicopter a side), and a **harbour** with a pier where your ships put to sea (a destroyer, a
+  frigate, a corvette and two patrol boats a side, crewed by bots now and then). Your own jets and bombers, the ones
+  you've bought, stand **parked on the apron**: walk up and press **E** (GET IN) and the view moves into the cockpit
+  as it lines up on the runway. Or pick your jet, bomber, helicopter or ship on the deploy screen. In deep water
+  soldiers swim. Online, two ALL-OUT servers take 16 players each; the bots fill each side up to 100, and a player
+  joining takes a bot's place (an ALL-OUT game is a lot to send: the host needs a good connection).
 
 ### Matchmaking: you fight your own level
 
@@ -618,7 +638,8 @@ whoever gets in. Up to 8 players. It works in every battle type: the host's batt
 different one picked, the game room shows a button that switches over and joins again by itself.
 
 **Servers are always open for every battle type**: **INFANTRY**, **TANKS**, **AVIATION** and **NAVAL**, as many of
-each as players fill (INFANTRY 1, INFANTRY 2, ...; up to 99 of each, 8 players in each). The SERVERS list shows how
+each as players fill (INFANTRY 1, INFANTRY 2, ...; up to 99 of each, 8 players in each), and **ALL-OUT 1** and
+**ALL-OUT 2** (16 players each, bots making up 100 a side). The SERVERS list shows how
 many of each are running and how many people are on them. Press JOIN and you go into the fullest one with room (the
 game switches to that battle type first if needed); when they are all full, a new one opens. In an empty server you
 start the battle yourself and everyone who comes after joins you; when a round ends the next one starts by itself 15

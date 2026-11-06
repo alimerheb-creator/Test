@@ -297,7 +297,7 @@ export const CORE_MODS = ['career', 'armory', 'helicopters', 'campaign', 'multip
   'hd-weapons', 'hd-knife', 'heavy-arsenal', 'call-ins'];
 // The battle types (picked on the main menu, so they are always installed and on) and the NORMAL battle's other
 // maps and modes (picked there too: one map and one mode at a time); not on the MODS screen either
-export const BUILTIN_BATTLES = ['tank-warfare', 'aviation', 'naval'];
+export const BUILTIN_BATTLES = ['tank-warfare', 'aviation', 'naval', 'all-out'];
 export const NORMAL_MAPS = [
   { id: 'karsa-outskirts', name: 'KARSA OUTSKIRTS' }, { id: 'map-dust-ridge', name: 'DUST RIDGE' },
   { id: 'map-iron-forest', name: 'IRON FOREST' }, { id: 'map-old-town', name: 'OLD TOWN' },
@@ -524,13 +524,17 @@ export class ModManager {
   // run in the normal battle; every other mod runs everywhere.
   _activeIn(m, battle) {
     if (!m.enabled) return false;
-    if (m.battle) return m.id === battle;
     const b = this.battleEntry(battle);
+    // (another battle mod a battle needs runs as its guest: its script, not its map or rules, see _guest)
+    if (m.battle) return m.id === battle || !!(b && b.battle.needs.includes(m.id));
     if (b && b.battle.needs.includes(m.id)) return true;
     if (m.battles) return m.battles.includes(battle);
     if (m.hasMap) return battle === NORMAL_BATTLE;
     return true;
   }
+
+  // A battle mod running inside another battle that needs it (ALL-OUT needs Naval for its ships): only its script
+  _guest(m, battle) { return !!(m.battle && m.id !== battle); }
 
   // The order mods are applied in: the list order, except that battle mods come last
   _ordered() { return [...this.list.filter((m) => !m.battle), ...this.list.filter((m) => m.battle)]; }
@@ -589,7 +593,7 @@ export class ModManager {
   // ---------------------------------------------------------------- maps
   _mapSig() {
     const battle = this.currentBattle();
-    return JSON.stringify([battle, this.currentMap(battle), this.currentMode(battle), this.list.filter((m) => m.hasMap && this._activeIn(m, battle)).map((m) => this._mapSection(m, battle))]);
+    return JSON.stringify([battle, this.currentMap(battle), this.currentMode(battle), this.list.filter((m) => m.hasMap && this._activeIn(m, battle) && !this._guest(m, battle)).map((m) => this._mapSection(m, battle))]);
   }
 
   // True when the enabled map mods differ from the map the world was built with
@@ -600,7 +604,7 @@ export class ModManager {
     const P = this.pristine.MAP;
     const battle = this.currentBattle();
     this.mapBattle = battle;
-    const maps = this.list.filter((m) => m.hasMap && this._activeIn(m, battle));
+    const maps = this.list.filter((m) => m.hasMap && this._activeIn(m, battle) && !this._guest(m, battle));
     // the size goes first: everything else on the map is placed (and clamped) inside it
     applyMapSize(undefined);
     for (const m of maps) { const s = this._mapSection(m, battle); if (isObj(s) && s.size !== undefined) this._applySize(s.size, []); }
@@ -630,7 +634,7 @@ export class ModManager {
 
   _applyMap(map, log) {
     if (!isObj(map)) { log.push('map: expected an object'); return; }
-    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'fields', 'alps', 'towers', 'palette', 'atmosphere'];
+    const known = ['name', 'flags', 'hq', 'buildings', 'addBuildings', 'roads', 'props', 'randomProps', 'terrain', 'vegetation', 'size', 'water', 'islands', 'gorges', 'fields', 'alps', 'towers', 'airfields', 'palette', 'atmosphere'];
     if (map.palette !== undefined) {
       if (!isObj(map.palette)) log.push('map.palette: expected an object like { "grass": "#c9b48a" }');
       else { const p = {}; applyFields(p, map.palette, SCHEMA.palette, 'map.palette', {}, log); TERRAIN.palette = p; }
@@ -657,6 +661,18 @@ export class ModManager {
           if (c !== undefined) out.push(clamp(+c, 0.25, 0.95));
           return out;
         });
+      }
+    }
+    // level strips for runways, aprons and helipads: [{ x, z, length, width, yaw (degrees), h }]
+    if (map.airfields !== undefined) {
+      if (!Array.isArray(map.airfields)) log.push('map.airfields: expected a list of { "x": 0, "z": 0, "length": 1000, "width": 60, "yaw": 0 }');
+      else {
+        TERRAIN.airfields = map.airfields.slice(0, 16).filter((a, i) => {
+          const ok = isObj(a) && Number.isFinite(a.x) && Number.isFinite(a.z) && Number.isFinite(a.length) && Number.isFinite(a.width);
+          if (!ok) log.push(`map.airfields[${i}]: expected { "x", "z", "length", "width" }`);
+          return ok;
+        }).map((a) => ({ x: clamp(a.x, -6000, 6000), z: clamp(a.z, -6000, 6000), length: clamp(a.length, 10, 3000), width: clamp(a.width, 10, 400),
+          yaw: (Number(a.yaw) || 0) * Math.PI / 180, h: Number.isFinite(a.h) ? clamp(a.h, -100, 600) : undefined }));
       }
     }
     if (map.gorges !== undefined) {
@@ -844,7 +860,8 @@ export class ModManager {
       if (!m.enabled) { m.status = 'off'; continue; }
       if (!this._activeIn(m, battle)) { m.status = 'standby'; m.messages = [this._standbyText(m)]; continue; }
       try {
-        this._apply(m);
+        if (this._guest(m, battle)) { const mod = m.mod; if (mod.script !== undefined) this._runScript(m, Array.isArray(mod.script) ? mod.script.join('\n') : mod.script); }
+        else this._apply(m);
         m.status = m.messages.length ? 'warn' : 'ok';
       } catch (e) {
         m.status = 'error';

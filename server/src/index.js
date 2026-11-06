@@ -35,11 +35,12 @@ import { DurableObject } from 'cloudflare:workers';
 export { Accounts } from './accounts.js';
 
 const MAX_GAME = 10;      // 8 players, and room for two of them coming back after a dropped connection
+const MAX_ALL_OUT = 18;   // an ALL-OUT server: 16 players (and two coming back)
 const MAX_LOBBY = 4000;
 const MAX_MSG = 65536;
 const MAX_RATE = 90;      // messages a second from one page
 const STALE_MS = 7000;    // a host this quiet on a server has stopped (its game closed or in the background)
-const SERVER_RE = /^\/v2\/server\/((?:inf|tank|air|sea)-[1-9]\d?)$/;
+const SERVER_RE = /^\/v2\/server\/((?:inf|tank|air|sea|aio)-[1-9]\d?)$/;
 const ID_CHARS = 'abcdefghijkmnpqrstuvwxyz23456789';
 
 const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => ID_CHARS[b & 31]).join('');
@@ -123,6 +124,7 @@ export class Room extends DurableObject {
     this.lobby = room === 'lobby';
     this.srv = room.startsWith('server:') || room.startsWith('s2:');
     this.v2 = room.startsWith('g2:') || room.startsWith('s2:');
+    const cap = room.startsWith('s2:aio-') ? MAX_ALL_OUT : MAX_GAME;
     let host = !this.lobby && url.searchParams.get('host') === '1';
     const [client, server] = Object.values(new WebSocketPair());
     const refuse = (code) => {
@@ -145,12 +147,12 @@ export class Room extends DurableObject {
         cur = null;
       }
       host = !cur;
-      if (this.socks.size >= MAX_GAME) return refuse('full');
+      if (this.socks.size >= cap) return refuse('full');
     } else {
       const hosted = [...this.socks.values()].some((s) => s.host);
       if (host && hosted) return refuse('taken');
       if (!host && !hosted) return refuse('nogame');
-      if (this.socks.size >= MAX_GAME) return refuse('full');
+      if (this.socks.size >= cap) return refuse('full');
     }
     // a page coming back after a dropped connection keeps its id, so the others see the same player
     let id = (url.searchParams.get('id') || '').slice(0, 8);

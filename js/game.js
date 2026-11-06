@@ -13,7 +13,7 @@ import { Effects } from './effects.js';
 import { GameAudio } from './audio.js';
 import { Input } from './input.js';
 import { Combat } from './weapons.js';
-import { Soldier, clearSoldierModelCache } from './soldier.js';
+import { Soldier, clearSoldierModelCache, setSoldierRim } from './soldier.js';
 import { BotBrain } from './ai.js';
 import { Tank } from './vehicles.js';
 import { PlayerController } from './player.js';
@@ -372,6 +372,29 @@ export class Game extends Emitter {
     this.effects.setScale(this.renderer.domElement.height, this.camera.fov);
   }
 
+  // Getting into a vehicle, out of it or into a seat: the view moves there instead of jumping (climbing up into a
+  // tank's turret, into a cockpit, down out of a helicopter's door)
+  _seatCam(dt) {
+    const P = this.player, cam = this.camera;
+    if (!P) return;
+    const seat = P.state === 'alive' ? P.vehicle || P.ride || null : undefined;
+    const S = this._seat || (this._seat = { seat: null, pos: new THREE.Vector3(), quat: new THREE.Quaternion(), from: null, t: 1, ok: false });
+    if (seat !== S.seat) {
+      // (not when you deploy straight into it from the map, or die: only a change you make on the spot)
+      const near = S.ok && S.pos.distanceTo(cam.position) < (this._seatFar ? 1500 : 40) && seat !== undefined && S.seat !== undefined;
+      S.seat = seat;
+      if (near) { S.from = { pos: S.pos.clone(), quat: S.quat.clone() }; S.t = 0; }
+    }
+    if (S.from && S.t < 1) {
+      S.t = Math.min(1, S.t + dt / 0.75);
+      const k = S.t * S.t * (3 - 2 * S.t);
+      cam.position.lerpVectors(S.from.pos, cam.position, k);
+      cam.quaternion.slerpQuaternions(S.from.quat, cam.quaternion, k);
+      if (S.t >= 1) S.from = null;
+    }
+    S.pos.copy(cam.position); S.quat.copy(cam.quaternion); S.ok = true;
+  }
+
   pause() {
     if (this.state !== 'playing') return;
     this.state = 'paused';
@@ -470,7 +493,7 @@ export class Game extends Emitter {
     }
 
     const cam = this.camera;
-    if (this.state === 'playing' || this.state === 'paused') this.playerCtl.updateCamera(dt);
+    if (this.state === 'playing' || this.state === 'paused') { this.playerCtl.updateCamera(dt); this._seatCam(dt); }
     else if (this.state === 'deploy') this._deployCam(dt);
     else this._menuCam(dt);
 
@@ -484,6 +507,8 @@ export class Game extends Emitter {
     this.audio.setListener(cam.position.x, cam.position.y, cam.position.z, cam.rotation.y);
 
     if (this.state === 'playing' || this.state === 'paused') this.hud.update(dt);
+    // soldiers outlined in light: your side cool, the enemy warm (SOLDIER OUTLINES in the settings)
+    if (P) setSoldierRim(P.team, this.settings.outlines === false ? 0 : 1);
     else if (this.state === 'deploy') this.ui.updateDeploy(dt);
 
     this.grass.update(cam.position, this.time);

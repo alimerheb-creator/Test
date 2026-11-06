@@ -406,6 +406,9 @@ export const ATMOSPHERE_PRESETS = {
   },
 };
 
+// how far a point is from a flat zone's centre (a round one) or from its edge (an airfield strip: 0 on it)
+const zoneDist = (f, x, z) => (f.rect ? f.rect(x, z) : Math.hypot(x - f.x, z - f.z));
+
 export class World {
   constructor(game) {
     this.game = game;
@@ -509,7 +512,7 @@ export class World {
     const patch = fbm2(x * 0.0065 + 11, z * 0.0065 + 4, 3);
     f *= lerp(smoothstep(-0.05, 0.25, patch), smoothstep(-0.6, -0.35, patch), smoothstep(0.015, 0.07, slope));
     for (const z0 of this.flatZones) {
-      const d = Math.hypot(x - z0.x, z - z0.z);
+      const d = zoneDist(z0, x, z);
       if (d < z0.r1 + 30) f *= smoothstep(z0.r0 * 0.7, z0.r1 + 30, d);
     }
     return clamp(f, 0, 1);
@@ -536,6 +539,15 @@ export class World {
       this.flatZones.push({ x: f.x, z: f.z, r0: f.flat, r1: f.flat + 34, h: this._raw(f.x, f.z), town: f.town ? 1 : 0.7 });
     }
     for (const q of HQS) this.flatZones.push({ x: q.x, z: q.z, r0: 36, r1: 70, h: this._raw(q.x, q.z), town: 0.8 });
+    // airfields: level strips for runways, aprons and helipads ({ x, z, length, width, yaw, h }), clear of trees
+    for (const a of TERRAIN.airfields || []) {
+      const c = Math.cos(a.yaw || 0), s = Math.sin(a.yaw || 0), hl = a.length / 2, hw = a.width / 2;
+      const rect = (x, z) => {
+        const dx = x - a.x, dz = z - a.z, u = Math.abs(dx * c - dz * s) - hl, v = Math.abs(dx * s + dz * c) - hw;
+        return Math.hypot(Math.max(0, u), Math.max(0, v));
+      };
+      this.flatZones.push({ x: a.x, z: a.z, rect, r0: 3, r1: 55, h: a.h ?? this._raw(a.x, a.z), town: 0.35 });
+    }
     for (const b of BUILDINGS) {
       const inFlag = FLAGS.some((f) => Math.hypot(b[0] - f.x, b[1] - f.z) < f.flat - 8);
       if (inFlag) continue;
@@ -547,6 +559,7 @@ export class World {
   _heightFn(x, z) {
     let h = this._raw(x, z);
     for (const f of this.flatZones) {
+      if (f.rect) { const d = f.rect(x, z); if (d < f.r1) h = lerp(h, f.h, 1 - smoothstep(f.r0, f.r1, d)); continue; }
       const dx = x - f.x, dz = z - f.z;
       const d2 = dx * dx + dz * dz;
       if (d2 > f.r1 * f.r1) continue;
@@ -635,7 +648,7 @@ export class World {
       c.copy(grassA).lerp(grassB, clamp(0.5 + fbm2(x * 0.035, z * 0.035, 3), 0, 1));
       c.lerp(dirt, smoothstep(0.08, 0.4, fbm2(x * 0.011 + 40, z * 0.011 - 20, 3)) * 0.8);
       for (const f of this.flatZones) {
-        const d = Math.hypot(x - f.x, z - f.z);
+        const d = zoneDist(f, x, z);
         if (d < f.r0 + 8) c.lerp(town, (1 - smoothstep(f.r0 * 0.6, f.r0 + 8, d)) * f.town * 0.85);
       }
       let onRoad = 0;
@@ -669,7 +682,7 @@ export class World {
       if (farm) {
         let f = smoothstep(0.035, 0.012, slope) * smoothstep(80, 60, y);
         if (this.water !== null) f *= smoothstep(1.5, 4, y - this.water);
-        for (const z0 of this.flatZones) if (z0.town > 0.5) f *= smoothstep(z0.r0 * 0.8, z0.r1 + 30, Math.hypot(x - z0.x, z0.z - z));
+        for (const z0 of this.flatZones) if (z0.town > 0.5) f *= smoothstep(z0.r0 * 0.8, z0.r1 + 30, zoneDist(z0, x, z));
         if (Math.abs(x) < PLAY_HALF + 40 && Math.abs(z) < PLAY_HALF + 40) {
           let dm = Infinity;
           for (const s of segs) { const d2 = segDist2(x, z, s[0], s[1], s[2], s[3]); if (d2 < dm) dm = d2; }
@@ -1236,7 +1249,7 @@ export class World {
   grassDensity(x, z) {
     let d = 1 - smoothstep(0.08, 0.4, fbm2(x * 0.011 + 40, z * 0.011 - 20, 3)) * 0.6;
     for (const f of this.flatZones) {
-      const dist = Math.hypot(x - f.x, z - f.z);
+      const dist = zoneDist(f, x, z);
       if (dist < f.r0 + 8) d -= (1 - smoothstep(f.r0 * 0.55, f.r0 + 8, dist)) * f.town * 1.25;
     }
     if (Math.abs(x) < PLAY_HALF + 40 && Math.abs(z) < PLAY_HALF + 40) d -= 1 - smoothstep(3, 6.5, this._roadDist(x, z));
@@ -1395,7 +1408,7 @@ export class World {
       if (!inside && Math.max(Math.abs(x), Math.abs(z)) < PLAY_HALF + 10) continue;
       const forest = fbm2(x * 0.01 + 5, z * 0.01 - 3, 3);
       if (rng() > smoothstep(-0.15, 0.3, forest) + 0.08) continue;
-      if (this.flatZones.some((f) => Math.hypot(x - f.x, z - f.z) < f.r0 + 3)) continue;
+      if (this.flatZones.some((f) => zoneDist(f, x, z) < f.r0 + 3)) continue;
       if (this._nearBuilding(x, z, 6)) continue;
       if (inside && this._roadDist(x, z) < 7) continue;
       const y = this.heightAt(x, z);
@@ -1461,6 +1474,7 @@ export class World {
       if (this._nearBuilding(x, z, 3)) continue;
       if (this._roadDist(x, z) < 4) continue;
       if (FLAGS.some((f) => Math.hypot(x - f.x, z - f.z) < f.radius + 2)) continue;
+      if (this.flatZones.some((f) => f.rect && f.rect(x, z) < 6)) continue;
       const y = this.heightAt(x, z);
       if (wet(y)) continue;
       const s = 0.6 + rng() * 1.1;
@@ -1491,7 +1505,7 @@ export class World {
       const lim = inside ? PLAY_HALF - 5 : WORLD_HALF - 80;
       const x = (rng() * 2 - 1) * lim, z = (rng() * 2 - 1) * lim;
       if (!inside && Math.max(Math.abs(x), Math.abs(z)) < PLAY_HALF + 10) continue;
-      if (this.flatZones.some((f) => Math.hypot(x - f.x, z - f.z) < f.r0)) continue;
+      if (this.flatZones.some((f) => zoneDist(f, x, z) < f.r0)) continue;
       if (this._nearBuilding(x, z, 5)) continue;
       if (inside && this._roadDist(x, z) < 6) continue;
       const y = this.heightAt(x, z);
@@ -1700,7 +1714,7 @@ export class World {
     while (n < 90 && tries < 3000) {
       tries++;
       const x = (rng() * 2 - 1) * (PLAY_HALF - 12), z = (rng() * 2 - 1) * (PLAY_HALF - 12);
-      if (this.flatZones.some((f) => Math.hypot(x - f.x, z - f.z) < f.r0 * 0.5)) continue;
+      if (this.flatZones.some((f) => zoneDist(f, x, z) < f.r0 * 0.5)) continue;
       const kind = rng();
       const rot = rng() < 0.5;
       const road = this._roadDist(x, z);

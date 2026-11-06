@@ -17,7 +17,8 @@ const _v = new THREE.Vector3(), _d = new THREE.Vector3();
 // Soldiers are built from smooth lathed limbs, rounded boxes and spheres, merged per body part with vertex
 // colours. A 'camo' vertex attribute marks fabric: the material paints a two-tone camouflage and cloth grain
 // on it in object space, so the pattern sticks to the uniform as the limbs move.
-let MAT = null;
+// one material per team: they differ only in the rim of light round the outline (see setSoldierRim)
+const MATS = [null, null];
 const GEO = new Map();
 const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _up = new THREE.Vector3(0, -1, 0);
 
@@ -438,12 +439,23 @@ function modelGeos(team, skin) {
 
 function soldierMaterial() {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.03, envMapIntensity: 0.55 });
+  const rim = (m.userData.rim = { value: new THREE.Color(0, 0, 0) });
   m.onBeforeCompile = (sh) => {
+    sh.uniforms.uRim = rim;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float camo;\nvarying float vCamo;\nvarying vec3 vObjP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCamo = camo;\nvObjP = position;');
     sh.fragmentShader = sh.fragmentShader
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+{
+  // the rim: soldiers stand out from the ground behind them, more the further away they are
+  float rimF = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 1.7);
+  float far = smoothstep(10.0, 120.0, length(vViewPosition));
+  // the outline, and further off a glow over the whole figure (a far soldier is only a few pixels: no edge to light)
+  totalEmissiveRadiance += uRim * (rimF * (0.2 + 0.8 * far) + 0.42 * far * far);
+}`)
       .replace('#include <common>', `#include <common>
+uniform vec3 uRim;
 varying float vCamo;
 varying vec3 vObjP;
 float sfH(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -464,6 +476,17 @@ if (vCamo > 0.01) {
 }`);
   };
   return m;
+}
+
+// Easier to see each other: a rim of light round every soldier, warm on the enemy and cool on your own side
+// (brighter at a distance, where they'd otherwise melt into the ground). strength 0 turns it off.
+const RIM_ENEMY = new THREE.Color(1.0, 0.36, 0.16), RIM_FRIEND = new THREE.Color(0.3, 0.55, 1.0);
+export function setSoldierRim(playerTeam, strength = 1) {
+  for (let t = 0; t < 2; t++) {
+    const m = MATS[t];
+    if (!m) continue;
+    m.userData.rim.value.copy(t === playerTeam ? RIM_FRIEND : RIM_ENEMY).multiplyScalar((t === playerTeam ? 0.32 : 0.7) * strength);
+  }
 }
 
 // Mods can recolour uniforms; drop cached geometry so the next soldiers pick it up
@@ -539,7 +562,7 @@ export class Soldier {
 
   // ------------------------------------------------------------ model
   _buildModel() {
-    if (!MAT) MAT = soldierMaterial();
+    const MAT = MATS[this.team] || (MATS[this.team] = soldierMaterial());
     const g = modelGeos(this.team, this.skin);
     this._geos = g;
     const root = new THREE.Group();
