@@ -59,8 +59,8 @@ The iOS app is in [`ipa/SixthFront.ipa`](ipa/SixthFront.ipa) (about 2 MB, works 
 GitHub builds it on a Mac from the same game files every time the game changes
 ([`.github/workflows/ios.yml`](.github/workflows/ios.yml)), and tests it on an iPhone and an iPad simulator: the app
 starts a battle by itself and reports its sound, frame rate and any script error every 5 seconds; the screenshots and
-reports go into [`ios/test/`](ios/test/). The game's sound plays with the silent switch on and comes back by itself after
-a call, Siri or another app.
+reports go into [`ios/test/`](ios/test/). The game's sound plays with the silent switch (or the mute button) on, from
+your first tap, and comes back by itself after a call, Siri or another app.
 
 Apple only lets signed apps onto an iPhone, and signing needs an Apple account, so the file is unsigned: install it
 with a sideloading tool that signs it with your own Apple ID.
@@ -103,6 +103,12 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 - **Destruction**: every building is made of wall, floor and stair panels with hit points. Rockets,
   40mm grenades, C-4 and tank shells blow holes in walls, upper floors lose their support, and when
   enough of the ground floor is gone the whole building collapses on anyone inside.
+- **Stamina and breathing**: about ten seconds of sprinting leaves you out of breath: you can't sprint until you have
+  your breath back, you are heard panting, and your sights rise and fall with your breathing (more with a scope, less
+  crouched or prone). Aiming, hold **Shift** to hold your breath and steady a shot for a few seconds.
+- **Shell shock**: a blast close to you rings your ears, dulls every sound to a thud and blurs your eyes for a few
+  seconds; the closer it was, the longer it lasts.
+- **Forests on the hills** round the battlefield (MEDIUM graphics and up).
 - **Weather**: rain and storms (WEATHER in the settings: AUTO, where a grey sky often rains and a clear one now
   and then, or always CLEAR, RAIN or STORM). Rain falls in slanting streaks round you, splashes on the ground and the
   sea, and streams past a fast plane in long lines; the ground goes dark and glossy with puddles standing in the flat
@@ -569,9 +575,28 @@ MOD FILE: the RESEARCH screen shows ∞ RP, silver and gold (what you unlock sta
 your aircraft take no damage and never run out of ammo, missiles, torpedoes, bombs or flares. Remove it to play
 normally.
 
+## Account and tutorial
+
+The first time the game starts it asks you to **sign in** or **create an account** (email, password and a username),
+or to **PLAY AS GUEST**. Your username is yours: nobody else can take it (big or small letters don't make a different
+name), and it is the name everyone sees in online games and on the scoreboard. **ACCOUNT** on the main menu changes it
+or signs you out. **Sign in with Google** shows up once the servers have a Google sign-in key (see below). Sign in
+with Apple needs a paid Apple developer account, so it is not there.
+
+Then the **TUTORIAL**: a short battle that teaches the basics one step at a time (look, walk, sprint, jump, crouch,
+aim, shoot, reload, throw a grenade, take a flag); each step ends when you have done it, and the enemy holds back
+until you have your flag. **SKIP TUTORIAL** (in the pause menu on a computer) ends it; **TUTORIAL** on the main menu
+plays it again.
+
+Accounts are kept on the game servers (a Durable Object, [`server/src/accounts.js`](server/src/accounts.js)):
+passwords are stored only as salted PBKDF2 hashes, and too many wrong passwords lock an account for 15 minutes.
+To turn on Google sign-in, make an OAuth client (type *Web application*) in the Google Cloud console with the
+redirect URI `https://sixthfront.ali-merheb.workers.dev/v2/auth/google/callback`, and add its ID and secret as the
+repository secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; the next servers deploy picks them up.
+
 ## Multiplayer
 
-Add the **Multiplayer** mod (MODS screen), then press **MULTIPLAYER** on the main menu. One player hosts a game and
+Press **MULTIPLAYER** on the main menu. One player hosts a game and
 gets a 4-letter code; anyone else joins with the code and picks a side. The host's game runs the bots, the flags,
 the tickets and the buildings, everyone plays their own soldier, and tanks, jets, bombers and ships are driven by
 whoever gets in. Up to 8 players. It works in every battle type: the host's battle decides, and if you have a
@@ -656,7 +681,7 @@ format and the whole script API are documented in [MODDING.md](MODDING.md), and
 | Key | Action |
 | --- | --- |
 | W A S D | Move |
-| Shift | Sprint |
+| Shift | Sprint (aiming: hold your breath) |
 | C / Ctrl | Crouch (while sprinting: slide) |
 | Z | Prone |
 | Space | Jump |
@@ -706,6 +731,8 @@ The game is split into small ES modules under `js/`:
 | File | What it does |
 | --- | --- |
 | `main.js` | Entry point and loading screen |
+| `account.js` | Signing in, creating an account, the username |
+| `tutorial.js` | The first-start tutorial |
 | `game.js` | Renderer, match lifecycle, main loop, camera modes |
 | `config.js` | Teams, map layout, weapons, classes, scoring, AI difficulty |
 | `world.js` | Heightmap terrain, sky, lighting, trees/rocks/props, collision grid and raycasts |

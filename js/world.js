@@ -1445,6 +1445,7 @@ export class World {
       if (m.instanceColor) m.instanceColor.needsUpdate = true;
       this.scene.add(m);
     }
+    if (hd) this._farForest(hrng, wet);
 
     // Bushes (no collision)
     const BUSH = [[0, 0.1, 0, 0.62], [0.45, -0.05, 0.1, 0.48], [-0.42, 0, -0.12, 0.5]];
@@ -1515,6 +1516,55 @@ export class World {
     this.rockMesh.receiveShadow = true;
     this.rockMesh.frustumCulled = false;
     this.scene.add(this.rockMesh);
+  }
+
+  // MEDIUM graphics and up: forests on the hills around the battlefield, so they aren't bare. Far away and out of
+  // reach, so simple (a few cones each, no trunk, no shadow, one draw call) and placed by their own random stream
+  // (the battlefield's trees and the collision grid stay the same for everyone)
+  _farForest(r, wet) {
+    const n = Math.round((this.game.qualityName() === 'medium' ? 2200 : 3600) * VEGETATION.trees);
+    if (n < 50) return;
+    const parts = [[0, 0.62, 0.55], [0.38, 0.46, 0.45], [0.66, 0.28, 0.34]].map(([y0, rad, h]) => {
+      const c = new THREE.ConeGeometry(rad, h, 6, 1, true);
+      c.translate(0, y0 + h / 2, 0);
+      // each tier darker underneath, lit at the top
+      const p = c.attributes.position, col = [];
+      for (let i = 0; i < p.count; i++) { const v = 0.6 + ((p.getY(i) - y0) / h) * 0.5; col.push(v, v * 1.02, v * 0.96); }
+      c.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      return c;
+    });
+    const geo = mergeParts(parts);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, vertexColors: true });
+    const mesh = new THREE.InstancedMesh(geo, mat, n);
+    const dummy = new THREE.Object3D(), col = new THREE.Color();
+    const lim = WORLD_HALF - 40, inner = PLAY_HALF + 30;
+    let k = 0, tries = 0;
+    while (k < n && tries < n * 30) {
+      tries++;
+      const x = (r() * 2 - 1) * lim, z = (r() * 2 - 1) * lim;
+      if (Math.max(Math.abs(x), Math.abs(z)) < inner) continue;
+      // in clumps and woods, thinning out up the slopes
+      const forest = fbm2(x * 0.008 + 11, z * 0.008 - 7, 3);
+      if (r() > smoothstep(-0.1, 0.35, forest) * 0.95) continue;
+      const y = this.heightAt(x, z);
+      if (y > 125 || wet(y) || this._nearBuilding(x, z, 8)) continue;
+      const slope = Math.abs(this.heightAt(x + 3, z) - y) + Math.abs(this.heightAt(x, z + 3) - y);
+      if (slope > 4.5) continue;
+      const h = 7 + r() * 9;
+      dummy.position.set(x, y - 0.6, z);
+      dummy.rotation.set(0, r() * 6.28, 0);
+      dummy.scale.set(h * 0.34, h, h * 0.34);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(k, dummy.matrix);
+      col.setHSL(0.27 + r() * 0.06, 0.3 + r() * 0.12, 0.1 + r() * 0.05);
+      mesh.setColorAt(k, col);
+      k++;
+    }
+    mesh.count = k;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.castShadow = false; mesh.receiveShadow = false; mesh.frustumCulled = false;
+    this.farForest = mesh;
+    this.scene.add(mesh);
   }
 
   destroyTree(i) {

@@ -47,6 +47,9 @@ export const VEHICLES = {
   tank: { name: 'MBT-6 ARBITER', health: 1000, speed: 11, reverse: 5, turnRate: 0.8, turretSpeed: 1.15, reload: 3.2, botReload: 4.8, respawn: 35, perTeam: 2 },
 };
 
+// Sixth Front's servers: accounts (and, through the Multiplayer mod, online games)
+export const SERVER_URL = 'https://sixthfront.ali-merheb.workers.dev';
+
 // Lighting / weather. preset: dusk | noon | overcast | night (fields below override the preset); rain: 1 rain, 2 a storm
 export const ATMOSPHERE = { preset: 'dusk' };
 

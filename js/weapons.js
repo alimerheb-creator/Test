@@ -478,6 +478,17 @@ export class Combat {
     const fxs = def.fxScale ?? clamp(r / 5.5, 0.6, 1.5);
     g.effects.explosion(x, y, z, fxs);
     g.audio.explosion(x, y, z, Math.min(1.4, fxs));
+    // shell shock: a blast close to you rings your ears and blurs your eyes for a few seconds
+    const P = g.player;
+    if (P && P.state === 'alive' && !P.vehicle) {
+      const c = P.chest(_c), d = Math.hypot(c.x - x, c.y - y, c.z - z), reach = r * 1.9 + 5;
+      if (d < reach) {
+        const a = Math.pow(1 - d / reach, 1.2) * (g.world.lineClear(x, y + 0.3, z, c.x, c.y, c.z) ? 1 : 0.5);
+        g.audio.shellShock(a);
+        g.hud.suppress(a * 2.5);
+        if (g.hud.shock) g.hud.shock(a);
+      }
+    }
     for (const s of g.soldiers) {
       if (s.state !== 'alive' || s.vehicle) continue;
       const c = s.chest(_c);

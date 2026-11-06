@@ -31,6 +31,8 @@ jobs:
           ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           TURN_ID: ${{ secrets.TURN_KEY_ID }}
           TURN_TOKEN: ${{ secrets.TURN_KEY_TOKEN }}
+          G_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          G_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           if [ -z "$TOKEN" ]; then
             echo "::warning::Add the CLOUDFLARE_API_TOKEN secret (Settings > Secrets and variables > Actions) to deploy the game servers."
@@ -49,6 +51,12 @@ jobs:
             printf '%s' "$TURN_ID" | npx --yes wrangler@4 secret put TURN_KEY_ID
             printf '%s' "$TURN_TOKEN" | npx --yes wrangler@4 secret put TURN_KEY_TOKEN
           fi
+          # signing in with Google (optional: the repository secrets GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, from an
+          # OAuth client in the Google Cloud console whose redirect URI is <servers>/v2/auth/google/callback)
+          if [ -n "$G_ID" ] && [ -n "$G_SECRET" ]; then
+            printf '%s' "$G_ID" | npx --yes wrangler@4 secret put GOOGLE_CLIENT_ID
+            printf '%s' "$G_SECRET" | npx --yes wrangler@4 secret put GOOGLE_CLIENT_SECRET
+          fi
       - name: Check the servers answer
         working-directory: server
         run: |
@@ -60,6 +68,8 @@ jobs:
           curl -fsS "$URL/"; echo
           # a game over WebSockets: one page hosts, another joins and gets the host's state
           curl -fsS "$URL/v2/ice"; echo
+          # accounts: the sign-in servers answer
+          curl -fsS "$URL/v2/auth/config"; echo
           URL="$URL" node -e '
             const base = process.env.URL.replace(/^http/, "ws"), code = "QZQZ";
             const open = (p) => new Promise((res, rej) => { const ws = new WebSocket(base + p); const got = []; ws.onmessage = (e) => got.push(String(e.data)); ws.onopen = () => res({ ws, got }); ws.onerror = () => rej(new Error("no connection to " + p)); });

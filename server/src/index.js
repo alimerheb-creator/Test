@@ -32,6 +32,7 @@
 //   b<json>      from the host: everyone's state in one message for those players, arrives as Q<json>
 //   H{..,"hid":<host id>}, B<id>, E<code> as above. A host keeps its place by pinging at least every 7 s.
 import { DurableObject } from 'cloudflare:workers';
+export { Accounts } from './accounts.js';
 
 const MAX_GAME = 10;      // 8 players, and room for two of them coming back after a dropped connection
 const MAX_LOBBY = 4000;
@@ -51,6 +52,13 @@ export default {
       return Response.json({ game: 'Sixth Front', servers: 'online', protocol: 2, turn: !!(env.TURN_KEY_ID && env.TURN_KEY_TOKEN) }, { headers: CORS });
     }
     if (url.pathname === '/v2/ice') return iceServers(env);
+    // accounts (see accounts.js): one Durable Object for all of them
+    if (url.pathname.startsWith('/v2/auth/')) {
+      if (req.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: { ...CORS, 'access-control-allow-headers': 'content-type, authorization', 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-max-age': '86400' } });
+      }
+      return env.ACCOUNTS.get(env.ACCOUNTS.idFromName('accounts')).fetch(req);
+    }
     let room = '';
     if (url.pathname === '/v1/lobby') room = 'lobby';
     else if (/^\/v1\/server\/[1-4]$/.test(url.pathname)) room = 'server:' + url.pathname.slice(-1);

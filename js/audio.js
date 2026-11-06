@@ -41,6 +41,7 @@ export class GameAudio {
   }
 
   unlock() {
+    this._playbackSession();
     if (!this.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
@@ -50,7 +51,12 @@ export class GameAudio {
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -14; comp.knee.value = 12; comp.ratio.value = 4;
       comp.attack.value = 0.003; comp.release.value = 0.25;
-      this.master.connect(comp).connect(ctx.destination);
+      // a close explosion dulls everything for a few seconds (shellShock)
+      this.dull = ctx.createBiquadFilter();
+      this.dull.type = 'lowpass';
+      this.dull.frequency.value = 20000;
+      this.comp = comp;
+      this.master.connect(this.dull).connect(comp).connect(ctx.destination);
       // Shared white noise
       const len = ctx.sampleRate * 2;
       this.noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -87,7 +93,34 @@ export class GameAudio {
     }
   }
 
+  // iOS plays a page's sound as "ambient": the silent switch mutes it whatever the volume (the app's own audio
+  // setting doesn't reach the page, which plays from another process). A page that says its sound is "playback" is
+  // heard with the switch on: the Audio Session API (iOS 16.4 and later); before it, a silent sound looping in an
+  // <audio> element (once one plays, the page's sound counts as playback). Needs a touch the first time.
+  _playbackSession() {
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) { /* not here */ }
+    if (navigator.audioSession || this._silentEl) return;
+    const ua = navigator.userAgent || '';
+    if (!(/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1))) return;
+    // a quarter of a second of silence: 8 kHz, 8 bits
+    const n = 2000, b = new Uint8Array(44 + n), v = new DataView(b.buffer);
+    const tag = (o, t) => { for (let i = 0; i < 4; i++) b[o + i] = t.charCodeAt(i); };
+    tag(0, 'RIFF'); v.setUint32(4, 36 + n, true); tag(8, 'WAVE'); tag(12, 'fmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); tag(36, 'data'); v.setUint32(40, n, true); b.fill(128, 44);
+    let bin = '';
+    for (let i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+    const el = document.createElement('audio');
+    el.setAttribute('playsinline', '');
+    el.setAttribute('x-webkit-airplay', 'deny');
+    el.loop = true;
+    el.src = 'data:audio/wav;base64,' + btoa(bin);
+    this._silentEl = el;
+    try { const r = el.play(); if (r && r.catch) r.catch(() => { this._silentEl = null; }); } catch (e) { this._silentEl = null; }
+  }
+
   resume() {
+    if (!this._silentEl || navigator.audioSession) this._playbackSession();
     const c = this.ctx;
     if (!c || c.state === 'running' || c.state === 'closed') return;
     try { const r = c.resume(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* not now */ }
@@ -205,6 +238,39 @@ export class GameAudio {
     o.connect(og).connect(out);
     o.start(t); o.stop(t + 1);
     this._track(o);
+  }
+
+  // a blast close by: your ears ring and everything sounds far away for a few seconds (a = 0..1, how close)
+  shellShock(a) {
+    if (!this.ready || a < 0.12) return;
+    const ctx = this.ctx, t = ctx.currentTime, f = this.dull.frequency;
+    const low = 1800 - 1450 * a, back = 1.4 + a * 4;
+    f.cancelScheduledValues(t);
+    f.setValueAtTime(low, t);
+    f.setValueAtTime(low, t + back * 0.35);
+    f.exponentialRampToValueAtTime(20000, t + back);
+    if (this._ringUntil > t) return;
+    this._ringUntil = t + back * 0.6;
+    const o = ctx.createOscillator();
+    o.frequency.setValueAtTime(3500 + Math.random() * 600, t);
+    const g = this._env(t, 0.012 + a * 0.05, 0.06, back * 0.9);
+    o.connect(g).connect(this.comp);
+    o.start(t); o.stop(t + back + 0.2);
+    this._track(o);
+  }
+
+  // out of breath after a long sprint (a = 0..1)
+  breath(a, inhale) {
+    if (!this.ready) return;
+    const ctx = this.ctx, t = ctx.currentTime, d = inhale ? 0.42 : 0.5;
+    const n = this._noise(t, d + 0.1);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(inhale ? 1500 : 900, t);
+    bp.frequency.linearRampToValueAtTime(inhale ? 2000 : 650, t + d);
+    bp.Q.value = 1.4;
+    const g = this._env(t, 0.03 + a * 0.07, inhale ? 0.12 : 0.05, d);
+    n.connect(bp).connect(g).connect(this.master);
   }
 
   crumble(x, y, z, big = false) {

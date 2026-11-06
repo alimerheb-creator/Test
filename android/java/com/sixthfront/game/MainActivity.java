@@ -98,8 +98,12 @@ public class MainActivity extends Activity {
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                // Stay inside the bundled game
-                return url == null || !url.startsWith("https://" + HOST + "/");
+                // Stay inside the bundled game; web addresses (signing in with Google, links) open in the browser
+                if (url == null || url.startsWith("https://" + HOST + "/")) return url == null;
+                if (url.startsWith("https://") || url.startsWith("http://")) {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Exception e) { /* no browser */ }
+                }
+                return true;
             }
         });
 

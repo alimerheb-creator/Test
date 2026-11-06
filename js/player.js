@@ -640,6 +640,8 @@ export class PlayerController {
     this.recoilAccum = 0;
     this.bobPhase = 0;
     this.swayX = 0; this.swayY = 0;
+    // stamina: sprinting runs it down; out of breath you can't sprint and your aim moves with your breathing
+    this.stamina = 1; this.winded = false; this.breathOff = { x: 0, y: 0 }; this.holdT = 0; this.breathT = 0;
     this.switchT = 0;
     this.meleeT = 0;
     this.throwT = 0;
@@ -770,9 +772,10 @@ export class PlayerController {
     const gun = s.gun;
     const canAds = s.slot < 2 || s.gadget.id === 'rpg' || s.gadget.id === 'ugl';
     const wantAds = inp.down('ads') && canAds && s.slideT <= 0;
-    const wantSprint = inp.down('sprint') && mv.y > 0.5 && !wantAds && s.stance !== 2 && s.slideT <= 0 && !inp.down('fire');
+    const wantSprint = inp.down('sprint') && mv.y > 0.5 && !wantAds && s.stance !== 2 && s.slideT <= 0 && !inp.down('fire') && !this.winded;
     if (wantSprint && s.stance === 1) s.setStance(0);
     s.sprinting = wantSprint && s.stance === 0;
+    this._stamina(dt, wantAds);
     const adsTime = s.slot < 2 ? gun.def.adsTime : 0.25;
     // You can't aim down sights while your hands are busy swapping a magazine
     const busy = gun && s.slot < 2 && gun.reloading && gun.type !== 'shell';
@@ -816,6 +819,34 @@ export class PlayerController {
       if (this.spotT <= 0) { this.spotT = 0.4; g.combat.spot(s, 0.05, 320); }
     }
     this._interact(dt);
+  }
+
+  // stamina and breathing. A long sprint (about 10 s) leaves you out of breath: no sprinting until you have your
+  // breath back, you are heard panting, and your sights rise and fall with your breathing. Aiming, SHIFT holds your
+  // breath to steady a shot for a few seconds.
+  _stamina(dt, ads) {
+    const s = this.s, g = this.game, inp = g.input;
+    const holding = ads && s.adsT > 0.8 && inp.down('sprint') && this.stamina > 0.05 && this.holdT < 5;
+    if (s.sprinting) this.stamina = Math.max(0, this.stamina - dt / 10);
+    else if (holding) this.stamina = Math.max(0, this.stamina - dt / 14);
+    else this.stamina = Math.min(1, this.stamina + dt / (s.stance > 0 ? 5 : 7) * (Math.hypot(s.vel.x, s.vel.z) > 1 ? 0.6 : 1));
+    this.holdT = holding ? this.holdT + dt : ads && inp.down('sprint') ? this.holdT : 0;
+    if (this.stamina <= 0) { if (!this.winded) g.hud.toast('OUT OF BREATH'); this.winded = true; } else if (this.stamina > 0.4) this.winded = false;
+    const tired = clamp(1 - this.stamina / 0.65, 0, 1);
+    // panting
+    if (tired > 0.25 && !holding) {
+      this.breathT -= dt;
+      if (this.breathT <= 0) { this.breathIn = !this.breathIn; this.breathT = lerp(0.85, 0.42, tired); g.audio.breath(tired, this.breathIn); }
+    }
+    // the sights move with your breathing (more with a scope, less crouched or prone, not while holding your breath)
+    const scope = s.slot < 2 && s.gun.def.scope ? 2.2 : 1;
+    const amp = s.adsT * (holding ? 0.08 : 1) * (0.0012 + tired * 0.006) * scope * (s.stance === 2 ? 0.35 : s.stance === 1 ? 0.7 : 1);
+    const now = g.time, rate = 1 + tired * 1.4;
+    const ox = Math.sin(now * 0.9 * rate) * amp * 0.7 + Math.sin(now * 0.37) * amp * 0.3;
+    const oy = Math.sin(now * 1.8 * rate + 0.6) * amp * 0.5;
+    s.yaw += ox - this.breathOff.x;
+    s.pitch = clamp(s.pitch + oy - this.breathOff.y, -1.45, 1.45);
+    this.breathOff.x = ox; this.breathOff.y = oy;
   }
 
   currentSpread() {

@@ -7,6 +7,8 @@ import { weatherMaterial } from './textures.js';
 import { Buildings } from './buildings.js';
 import { Towers } from './towers.js';
 import { Weather } from './weather.js';
+import { Account } from './account.js';
+import { Tutorial } from './tutorial.js';
 import { Effects } from './effects.js';
 import { GameAudio } from './audio.js';
 import { Input } from './input.js';
@@ -149,7 +151,13 @@ export class Game extends Emitter {
     this.newMatch();
     this.state = 'menu';
     this.ui.show('main');
+    // your account (sign in on a first start) and the tutorial
+    this.tutorial = new Tutorial(this);
+    this.account = new Account(this);
     progress(1, 'Ready');
+    let again = false;
+    try { again = sessionStorage.getItem('sixthfront.tutorial') === '1'; } catch (e) { /* no storage */ }
+    if (!again) setTimeout(() => { if (this.state === 'menu') this.account.welcome(); }, 900);
     requestAnimationFrame((t) => this._loop(t));
   }
 
@@ -469,6 +477,7 @@ export class Game extends Emitter {
     this.world.updateSky(cam.position);
     this.world.updateWater(dt);
     this.weather.update(dt);
+    if (this.tutorial) this.tutorial.update(dt);
     _f.set(0, 0, -1).applyQuaternion(cam.quaternion);
     _v.copy(cam.position).addScaledVector(_f, 40);
     this.world.updateShadow(_v);

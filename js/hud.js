@@ -127,6 +127,7 @@ export class HUD {
       this.el.suppress.style.opacity = '0';
       this.hurtFlash = 0;
       this.suppression = 0;
+      if (this.shockT) { this.shockT = 0; document.getElementById('game').style.filter = ''; }
       this.dmgMarks.length = 0;
     }
   }
@@ -310,6 +311,8 @@ export class HUD {
   }
 
   suppress(a) { this.suppression = Math.min(1, this.suppression + a * 0.35); }
+  // shell shock: the picture blurs and loses its colour for a moment (a = 0..1)
+  shock(a) { this.shockT = Math.min(1, Math.max(this.shockT || 0, a)); }
 
   setPrompt(text, progress = -1) {
     const p = this.el.prompt;
@@ -514,6 +517,11 @@ export class HUD {
     const lowHp = P.state === 'alive' ? clamp((0.5 - P.health / RULES.playerHealth) / 0.5, 0, 1) : 0;
     this.el.vignette.style.opacity = String(clamp(lowHp * 0.7 + this.hurtFlash * 0.5, 0, 1));
     this.el.suppress.style.opacity = String(this.suppression * 0.85);
+    if (this.shockT > 0) {
+      this.shockT = Math.max(0, this.shockT - dt * 0.33);
+      const k = this.shockT, cv = document.getElementById('game');
+      cv.style.filter = k > 0.02 ? `blur(${(k * k * 5).toFixed(2)}px) saturate(${(1 - k * 0.7).toFixed(2)}) brightness(${(1 + k * 0.25).toFixed(2)})` : '';
+    }
     if (lowHp > 0.6 && P.state === 'alive') {
       this.heartT = (this.heartT || 0) - dt;
       if (this.heartT <= 0) { this.heartT = 1.1; g.audio.heartbeat(); }
