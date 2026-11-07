@@ -161,7 +161,10 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   conditioners, water tanks and aerials on the roofs (all of it goes with the wall it is on); explosions with a
   billowing fireball, a ring of dust blown out along the ground, sparks and embers, a column of smoke that hangs
   for a while and a scorch mark left behind, and broken lumps of masonry or earth flying out trailing dust.
-  Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on phones and High on desktop).
+  Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on phones and High on desktop). Kept light: soldiers
+  more than 60 m away (further through a scope) are drawn as one merged figure each, all of them in a handful of
+  draws, not six jointed parts apiece, and the sun's shadows are redrawn every second frame (every frame when you're
+  moving fast).
 - **Cockpits, tank and ship's bridge you can work** (Vehicle Interiors): the switches, buttons and levers are where
   they are in the real thing and do their real job. A modern fighter has well over a hundred: three screens, each
   ringed by twenty option buttons, with five pages to pick from (RDR radar with range and RWS/TWS mode, SMS stores
@@ -496,9 +499,10 @@ picking a card installs and switches it on for you and restarts on its map. Avia
     the coast.
 
   Each side has an **airbase** at its end of the map: a **runway** (jets and bombers line up at its end, roll down
-  it with their wheels down, lift off and climb away), an apron with hangars, fuel tanks and a control tower, six
-  **helipads** where the helicopters stand (they come back **20 seconds** after one is lost; two transports and two
-  of each attack helicopter a side), and a **harbour** with a pier where your ships put to sea (a destroyer, a
+  it with their wheels down, lift off and climb away; you can **land back on it**, see Jets), an apron with hangars,
+  fuel tanks and a control tower, eight **helipads** right beside the HQ you spawn at, 50 to 170 m away (the
+  helicopters stand on them and come back **20 seconds** after one is lost; two transports and two of each attack
+  helicopter a side), and a **harbour** with a pier where your ships put to sea (a destroyer, a
   frigate, a corvette and two patrol boats a side, crewed by bots now and then). Your own jets and bombers, the ones
   you've bought, stand **parked on the apron**: walk up and press **E** (GET IN) and the view moves into the cockpit
   as it lines up on the runway. Or pick your jet, bomber, helicopter or ship on the deploy screen. In deep water
@@ -538,6 +542,11 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
 - **Flying.** The mouse (or a drag) aims the gun and turns the nose; W/S (the stick) fly forward and back, A/D
   sideways; Shift/Z, the mouse wheel or the UP/DOWN buttons on a phone climb and descend. Let go and it hovers. It
   keeps a few metres off the ground and lifts over the hills ahead by itself.
+- **What they look like.** Every rotor has real blades, wide at the root and narrowing to a swept tip with a white
+  tip stripe, drooping under their own weight at rest, on a rotor head with its blade grips, pitch links and
+  swashplate; spinning, the blades turn into a faint motion blur (a smear behind each blade over a clear disc), not a
+  grey shadow. Military helicopters wear flat, matte paint. The Black Hawk and the Mi-8 have their windscreens and
+  side windows, and the Little Bird's whole front is the glass bubble with the pilots in it.
 - **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
   ENEMY INFANTRY at a flag (or, in an Aviation battle, knock out an installation). The mission, its progress and a
   countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area
@@ -551,7 +560,7 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   steers clear of the others, friend or foe (sideways apart, one climbing and one dropping). Nothing at the enemy's own HQ (its air defence covers it, and no shooting soldiers as they spawn).
 - **Transport helicopters** (NORMAL and TANK battles): a **UH-60M Black Hawk** for Vanguard (an M134 minigun in one
   gunner's window, an M240H with its ammo can and belt in the other) and a **Mi-8AMTSh** for Onyx (two PKTs), flown
-  by bots. Each lands on its pad a little way out from its HQ and waits **20 seconds** with its doors open (longer
+  by bots. Each lands on its **helipad** (a painted H in a circle, 40 to 70 m out from its HQ) and waits **20 seconds** with its doors open (longer
   while you're running over to it): walk up and press **E** (BOARD on a phone). Or pick it on the deploy screen
   (**HELI · UH-60M · DOOR GUN**) to start aboard, on a door gun if one is free, wherever it is. You take a **door gun** if one is free, seen from behind it: the mouse (a drag)
   aims it, FIRE shoots. Otherwise you sit in the open door with your own weapon (a sniper rifle works well). Bots
@@ -563,7 +572,8 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   door guns: four soldiers ride **outside on the benches over the skids**, two a side, and shoot with their own
   weapons (BOARD at its pad, or **MH-6M · SKID BENCH** on the deploy screen). Each transport crew picks its own
   route out (often round a flank), how wide and low it circles and how long it waits, so the two sides never fly
-  the same pattern. If it's shot down, everyone aboard
+  the same pattern. The transports, the Little Birds included, always have a crew: when one is waiting, the bot
+  nearest its HQ takes it, so they're always flying their rounds. If it's shot down, everyone aboard
   goes down with it. Seen from outside, the camera stays out of walls and hills (it comes in closer instead).
 
 ### Gear: heat vision and camouflage
@@ -762,6 +772,13 @@ R laser rangefinder, X fire suppression, C the commander's seat.
 In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke screen, R damage control, G HE/AP shells, C
 the bridge. In a submarine: Z dive, SHIFT surface, right mouse the periscope, 1 torpedoes (aimed with the bow), 2
 missiles, C the control room.
+**Landing** a jet, bomber or propeller aircraft: lower the **landing gear (G)** and the **flaps (N)**, slow down,
+and fly it gently onto the runway (or any flat, level ground: a road, a field), wings level and not nose first.
+The flaps run down on the wings, give more lift and more drag (you can fly slower); the HUD shows GEAR DOWN and FLAPS
+in green, and warns GEAR UP low and slow. On the wheels it rolls instead of crashing: throttle right back (or the air
+brake) brakes, the rudder steers the nose wheel, J (EJECT) gets you out once it stops, and full throttle takes off
+again. Coming down too hard, too fast, a wing low, on a slope or in the water, or with the gear up, it crashes.
+On a phone: the **GEAR** and **FLAPS** buttons beside the throttle slider (lit green while they're down).
 In an aircraft's cockpit: G landing gear, N flaps, B air brake, L lights, H master arm, I magnetos (propeller
 aircraft); hold ALT to free the mouse and click the cockpit's switches, buttons and levers (on a phone, tap them).
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and

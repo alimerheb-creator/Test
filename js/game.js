@@ -13,7 +13,7 @@ import { Effects } from './effects.js';
 import { GameAudio } from './audio.js';
 import { Input } from './input.js';
 import { Combat } from './weapons.js';
-import { Soldier, clearSoldierModelCache, setSoldierRim } from './soldier.js';
+import { Soldier, clearSoldierModelCache, setSoldierRim, soldierLod } from './soldier.js';
 import { BotBrain } from './ai.js';
 import { Tank } from './vehicles.js';
 import { PlayerController } from './player.js';
@@ -71,6 +71,8 @@ export class Game extends Emitter {
     renderer.autoClear = false;
     this.renderer = renderer;
     this.scene = new THREE.Scene();
+    soldierLod.scene = this.scene;
+    this.soldierLod = soldierLod;
     this.camera = new THREE.PerspectiveCamera(this.settings.fov, 1, 0.1, 1500);
     this.camera.rotation.order = 'YXZ';
     this.scene.add(this.camera);
@@ -222,6 +224,7 @@ export class Game extends Emitter {
   // Refresh everything that caches config values after mods were (re)applied
   onModsApplied() {
     clearSoldierModelCache();
+    soldierLod.clear();
     this.playerCtl.clearViewmodels();
     for (const v of this.vehicles) v.rebuildModel();
     const atm = this.world.applyAtmosphere(ATMOSPHERE);
@@ -472,7 +475,11 @@ export class Game extends Emitter {
       this.time += dt;
       if (this.state === 'playing') this.playerCtl.update(dt);
       for (const s of this.soldiers) if (s.brain) s.brain.update(dt);
+      // (far-off soldiers are gathered into one draw per uniform while they update, see soldierLod)
+      soldierLod.on = !this.dedicated;
+      soldierLod.begin(this.camera);
       for (const s of this.soldiers) s.update(dt);
+      soldierLod.end();
       for (const v of this.vehicles) v.update(dt);
       this.combat.update(dt);
       this.mode.update(dt);
@@ -507,7 +514,14 @@ export class Game extends Emitter {
     if (this.tutorial) this.tutorial.update(dt);
     _f.set(0, 0, -1).applyQuaternion(cam.quaternion);
     _v.copy(cam.position).addScaledVector(_f, 40);
-    this.world.updateShadow(_v);
+    // the sun's shadow map is drawn every second frame: it follows the view, and a frame's lag in the shadows doesn't
+    // show (moving fast, a jet, every frame). That halves what the shadow pass costs.
+    const sm = this.renderer.shadowMap;
+    if (sm.enabled) {
+      sm.autoUpdate = false;
+      const sp = this._shPos || (this._shPos = _v.clone().addScalar(1e6));
+      if (!render || this.shadowEveryFrame || this.frames % 2 === 0 || sp.distanceToSquared(_v) > 9) { sm.needsUpdate = true; sp.copy(_v); this.world.updateShadow(_v); }
+    } else this.world.updateShadow(_v);
     this.audio.setListener(cam.position.x, cam.position.y, cam.position.z, cam.rotation.y);
 
     if (this.state === 'playing' || this.state === 'paused') this.hud.update(dt);

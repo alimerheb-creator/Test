@@ -137,49 +137,57 @@
         "x": -250,
         "z": 1330,
         "length": 1160,
-        "width": 80
+        "width": 80,
+        "h": 13.3
       },
       {
         "x": -250,
         "z": 1262,
         "length": 660,
-        "width": 96
+        "width": 96,
+        "h": 13.3
       },
       {
-        "x": 300,
-        "z": 1250,
-        "length": 270,
-        "width": 160
+        "x": 110,
+        "z": 1180,
+        "length": 190,
+        "width": 100,
+        "h": 13.3
       },
       {
         "x": -740.0,
         "z": 1296.0,
         "length": 30,
-        "width": 88
+        "width": 88,
+        "h": 13.3
       },
       {
         "x": -250,
         "z": -1330,
         "length": 1160,
-        "width": 80
+        "width": 80,
+        "h": 10.3
       },
       {
         "x": -250,
         "z": -1262,
         "length": 660,
-        "width": 96
+        "width": 96,
+        "h": 10.3
       },
       {
-        "x": 300,
-        "z": -1250,
-        "length": 270,
-        "width": 160
+        "x": 110,
+        "z": -1180,
+        "length": 190,
+        "width": 100,
+        "h": 10.3
       },
       {
         "x": -740.0,
         "z": -1296.0,
         "length": 30,
-        "width": 88
+        "width": 88,
+        "h": 10.3
       }
     ],
     "vegetation": {
@@ -454,49 +462,57 @@
           "x": -480,
           "z": 1330,
           "length": 1120,
-          "width": 80
+          "width": 80,
+          "h": 13.0
         },
         {
           "x": -480,
           "z": 1262,
           "length": 640,
-          "width": 96
+          "width": 96,
+          "h": 13.0
         },
         {
-          "x": 80,
-          "z": 1250,
-          "length": 270,
-          "width": 160
+          "x": -190,
+          "z": 1180,
+          "length": 190,
+          "width": 100,
+          "h": 13.0
         },
         {
           "x": -950.0,
           "z": 1296.0,
           "length": 30,
-          "width": 88
+          "width": 88,
+          "h": 13.0
         },
         {
           "x": -480,
           "z": -1330,
           "length": 1120,
-          "width": 80
+          "width": 80,
+          "h": 12.6
         },
         {
           "x": -480,
           "z": -1262,
           "length": 640,
-          "width": 96
+          "width": 96,
+          "h": 12.6
         },
         {
-          "x": 80,
-          "z": -1250,
-          "length": 270,
-          "width": 160
+          "x": -190,
+          "z": -1180,
+          "length": 190,
+          "width": 100,
+          "h": 12.6
         },
         {
           "x": -950.0,
           "z": -1296.0,
           "length": 30,
-          "width": 88
+          "width": 88,
+          "h": 12.6
         }
       ],
       "vegetation": {
@@ -673,8 +689,8 @@
     "// ================================================================ ALL-OUT",
     "// Infantry, tanks, helicopters, jets, bombers and ships in one battle, on two maps about 3 km across with rivers,",
     "// a lake or the sea, a downtown of skyscrapers and an airbase at each end: a runway (jets and bombers line up at",
-    "// its end and roll down it to take off), an apron with hangars and a control tower, a row of helipads (helicopters",
-    "// stand on them and come back 20 seconds after they're lost) and a harbour on the water. Up to 100 soldiers a side:",
+    "// its end and roll down it to take off), an apron with hangars and a control tower, eight helipads right beside the",
+    "// HQ you spawn at (helicopters stand on them and come back 20 seconds after they're lost) and a harbour on the water. Up to 100 soldiers a side:",
     "// the bots fill whatever the players don't.",
     "const g = api.game, world = g.world, scene = g.scene;",
     "const { HQS } = api.config;",
@@ -696,8 +712,8 @@
     "// ---------------------------------------------------------------- the bases (one per side, mirrored)",
     "// runway / apron / pads: [x, z, length, width] along x; hangars [x, z]; tower [x, z]; harbour [x, z, yaw]",
     "const LAYOUT = {",
-    "  'twin-rivers': { runway: [-250, 1330, 1100, 50], apron: [-250, 1262, 640, 66], pads: [300, 1250], hangars: [[-480, 1212], [-360, 1212], [-240, 1212]], tower: [40, 1290], harbour: [930, 1210, 0], fuel: [[-650, 1205], [-620, 1205]] },",
-    "  'harbour-city': { runway: [-480, 1330, 1060, 50], apron: [-480, 1262, 620, 66], pads: [80, 1250], hangars: [[-700, 1212], [-580, 1212], [-460, 1212]], tower: [-160, 1290], harbour: [960, 1150, 0], fuel: [[-880, 1205], [-850, 1205]] },",
+    "  'twin-rivers': { runway: [-250, 1330, 1100, 50], apron: [-250, 1262, 640, 66], pads: [110, 1180], hangars: [[-480, 1212], [-360, 1212], [-240, 1212]], tower: [40, 1290], harbour: [930, 1210, 0], fuel: [[-650, 1205], [-620, 1205]] },",
+    "  'harbour-city': { runway: [-480, 1330, 1060, 50], apron: [-480, 1262, 620, 66], pads: [-190, 1180], hangars: [[-700, 1212], [-580, 1212], [-460, 1212]], tower: [-160, 1290], harbour: [960, 1150, 0], fuel: [[-880, 1205], [-850, 1205]] },",
     "}[MAPID] || null;",
     "const mirror = (p, team) => (team === 0 ? p : [p[0], -p[1], ...p.slice(2)]);",
     "const BASES = [0, 1].map((team) => {",
@@ -705,7 +721,8 @@
     "  const L = LAYOUT;",
     "  const rw = mirror(L.runway, team), ap = mirror(L.apron, team), pc = mirror(L.pads, team);",
     "  const pads = [];",
-    "  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) pads.push([pc[0] - 80 + i * 80, pc[1] + (team === 0 ? 1 : -1) * (j * 56 - 28)]);",
+    "  // (two rows of four, 40 m apart, starting 50 m from the HQ: a short walk from where you spawn)",
+    "  for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) pads.push([pc[0] - 60 + i * 40, pc[1] + (team === 0 ? 1 : -1) * (j * 40 - 20)]);",
     "  const hb = mirror(L.harbour, team);",
     "  return {",
     "    team, runway: { x: rw[0], z: rw[1], len: rw[2], wid: rw[3] }, apron: { x: ap[0], z: ap[1], len: ap[2], wid: ap[3] },",
@@ -751,7 +768,7 @@
     "  x.strokeStyle = '#e6e2d6'; x.lineWidth = 9; x.beginPath(); x.arc(w / 2, h / 2, w * 0.42, 0, Math.PI * 2); x.stroke();",
     "  x.fillStyle = '#e6e2d6'; x.fillRect(w * 0.33, h * 0.27, 20, h * 0.46); x.fillRect(w * 0.67 - 20, h * 0.27, 20, h * 0.46); x.fillRect(w * 0.33, h / 2 - 10, w * 0.34, 20);",
     "});",
-    "const flatMat = (map, color = 0xffffff) => keep(new THREE.MeshStandardMaterial({ map, color, roughness: 0.92, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));",
+    "const flatMat = (map, color = 0xffffff) => keep(new THREE.MeshStandardMaterial({ map, color, roughness: 0.92, metalness: 0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -12 }));",
     "const lay = (w, len, x, z, mat, y = 0.07) => {",
     "  const geo = keep(new THREE.PlaneGeometry(w, len));",
     "  geo.rotateX(-Math.PI / 2);",
@@ -776,15 +793,15 @@
     "  const rw = B.runway, ap = B.apron;",
     "  const num = B.team === 0 ? [27, 9] : [9, 27];",
     "  const rt = runwayTex(rw.len, num);",
-    "  lay(rw.wid, rw.len, rw.x, rw.z, flatMat(rt));",
+    "  lay(rw.wid, rw.len, rw.x, rw.z, flatMat(rt), 0.13);",
     "  const ct = concreteTex.clone(); ct.needsUpdate = true; ct.repeat.set(ap.len / 40, ap.wid / 40); keep(ct);",
     "  lay(ap.wid, ap.len, ap.x, ap.z, flatMat(ct), 0.05);",
     "  // the taxiway from the apron to the runway's end",
     "  lay(18, Math.abs(rw.z - ap.z), rw.x - rw.len / 2 + 60, (rw.z + ap.z) / 2, flatMat(concreteTex, 0x777570), 0.06).rotation.y = Math.PI / 2;",
     "  // helipads",
     "  const pf = B.padField;",
-    "  const pct = concreteTex.clone(); pct.needsUpdate = true; pct.repeat.set(6, 3); keep(pct);",
-    "  lay(150, 260, pf.x, pf.z, flatMat(pct, 0xa09d96), 0.05);",
+    "  const pct = concreteTex.clone(); pct.needsUpdate = true; pct.repeat.set(4, 2.2); keep(pct);",
+    "  lay(92, 176, pf.x, pf.z, flatMat(pct, 0xa09d96), 0.05);",
     "  const padMat = flatMat(padTex);",
     "  for (const [x, z] of B.pads) {",
     "    const m = add(new THREE.Mesh(keep(new THREE.CircleGeometry(10, 32)), padMat));",
@@ -1014,7 +1031,6 @@
     "    if (g.playerCtl) { g.playerCtl.camYaw = best.yaw; g.playerCtl.camPitch = 0; }",
     "  }",
     "});",
-    "onOff(() => { for (const a of parked) if (!a.exists) a.hull.visible = false; parked.clear(); });",
-    ""
+    "onOff(() => { for (const a of parked) if (!a.exists) a.hull.visible = false; parked.clear(); });"
   ]
 }

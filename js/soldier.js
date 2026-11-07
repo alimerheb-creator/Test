@@ -499,6 +499,76 @@ export function clearSoldierModelCache() {
   GEO.clear();
 }
 
+// ---------------------------------------------------------------- far-off soldiers
+// A soldier far from the camera is a few pixels tall. Instead of its six jointed parts (six draws each, and the
+// posing) it is drawn as one instance of the same body merged into a single standing figure (crouched: squatter;
+// prone: lying down), and all the far soldiers in the same uniform go in one draw. The distance grows with the zoom
+// of a scope, so what you look at through one keeps its moving legs.
+const LOD_FAR = 60;
+function lodGeo(g) {
+  if (g.lod) return g.lod;
+  const parts = [[g.pelvis, 0, 0.95], [g.thighL, -0.1, 0.92], [g.thighR, 0.1, 0.92], [g.shin, -0.1, 0.48], [g.shin, 0.1, 0.48], [g.aim, 0, 1.03]];
+  const names = Object.keys(g.pelvis.attributes), out = {}, idx = [];
+  for (const n of names) out[n] = [];
+  let off = 0;
+  for (const [geo, x, y] of parts) {
+    const P = geo.attributes.position;
+    for (const n of names) {
+      const A = geo.attributes[n], o = out[n];
+      for (let i = 0; i < A.count; i++) for (let j = 0; j < A.itemSize; j++) o.push(A.array[i * A.itemSize + j] + (n === 'position' ? (j === 0 ? x : j === 1 ? y : 0) : 0));
+    }
+    for (let i = 0; i < geo.index.count; i++) idx.push(geo.index.getX(i) + off);
+    off += P.count;
+  }
+  const lod = new THREE.BufferGeometry();
+  for (const n of names) lod.setAttribute(n, new THREE.Float32BufferAttribute(out[n], g.pelvis.attributes[n].itemSize));
+  lod.setIndex(idx);
+  lod.computeBoundingSphere();
+  g.lod = lod;
+  return lod;
+}
+const _lm = new THREE.Matrix4(), _lr = new THREE.Matrix4(), _lp = new THREE.Vector3();
+export const soldierLod = {
+  on: true, scene: null, sets: new Map(),
+  // (each frame: count the far ones again, then hand the counts to the meshes)
+  begin(camera) {
+    this.cam = camera;
+    this.far2 = (LOD_FAR * Math.max(1, 70 / (camera.fov || 70))) ** 2;
+    for (const L of this.sets.values()) L.n = 0;
+  },
+  far(s) {
+    const c = this.cam;
+    if (!this.on || !c || s.ride || s.isPlayer) return false;
+    const dx = s.pos.x - c.position.x, dy = s.pos.y - c.position.y, dz = s.pos.z - c.position.z;
+    return dx * dx + dy * dy + dz * dz > this.far2;
+  },
+  add(s, mat) {
+    const g = s._geos;
+    let L = this.sets.get(g);
+    if (!L || L.n >= L.cap) {
+      const cap = L ? L.cap * 2 : 48, mesh = new THREE.InstancedMesh(lodGeo(g), mat, cap);
+      mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = false; mesh.count = 0;
+      if (L) { mesh.instanceMatrix.array.set(L.mesh.instanceMatrix.array); this.scene.remove(L.mesh); L.mesh.dispose(); }
+      L = { mesh, cap, n: L ? L.n : 0 };
+      this.sets.set(g, L);
+      this.scene.add(mesh);
+    }
+    _lm.makeRotationY(s.yaw).setPosition(s.pos.x, s.pos.y, s.pos.z);
+    if (s.stance === 2) _lm.multiply(_lr.makeTranslation(0, 0.22, 0.85)).multiply(_lr.makeRotationX(-Math.PI / 2));
+    else if (s.stance === 1) _lm.multiply(_lr.makeScale(1, 0.74, 1));
+    _lm.toArray(L.mesh.instanceMatrix.array, L.n * 16);
+    L.n++;
+  },
+  end() {
+    for (const L of this.sets.values()) {
+      if (L.mesh.count !== L.n) L.mesh.count = L.n;
+      L.mesh.visible = L.n > 0;
+      if (L.n) L.mesh.instanceMatrix.needsUpdate = true;
+    }
+  },
+  clear() { for (const L of this.sets.values()) { if (this.scene) this.scene.remove(L.mesh); L.mesh.dispose(); } this.sets.clear(); },
+};
+
 const smooth = (t) => { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t); };
 const lerp = (a, b, t) => a + (b - a) * t;
 // Shin angle (relative to the thigh) that keeps the foot on the ground for a hip joint height and thigh angle.
@@ -917,6 +987,8 @@ export class Soldier {
     const visible = !this.isPlayer && !this.vehicle && this.state !== 'inactive' && !(this.state === 'dead' && this.bodyT > 10);
     m.root.visible = visible;
     if (!visible) return;
+    // (far off: one instance of the merged figure, see soldierLod)
+    if (this.state === 'alive' && soldierLod.far(this)) { m.root.visible = false; soldierLod.add(this, MATS[this.team]); return; }
     m.root.position.copy(this.pos);
     if (this.state !== 'alive') { this._ragdoll(); return; }
     this._rag = null;
