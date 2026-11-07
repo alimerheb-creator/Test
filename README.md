@@ -545,8 +545,11 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
 - **What they look like.** Every rotor has real blades, wide at the root and narrowing to a swept tip with a white
   tip stripe, drooping under their own weight at rest, on a rotor head with its blade grips, pitch links and
   swashplate; spinning, the blades turn into a faint motion blur (a smear behind each blade over a clear disc), not a
-  grey shadow. Military helicopters wear flat, matte paint. The Black Hawk and the Mi-8 have their windscreens and
-  side windows, and the Little Bird's whole front is the glass bubble with the pilots in it.
+  grey shadow. Military helicopters wear flat, matte paint. The attack helicopters' cockpits are glazed into the
+  fuselage itself (the metal stops at the sills and the glass swells up from there over the crew, framed, with the
+  instrument panels inside), not a glass bubble set on top of it; their engines sit in one housing on the shoulders
+  (the Apache's in its nacelles on pylons, with the avionics bays down its sides). The Black Hawk and the Mi-8 have
+  their windscreens and side windows, and the Little Bird's whole front is the glass bubble with the pilots in it.
 - **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
   ENEMY INFANTRY at a flag (or, in an Aviation battle, knock out an installation). The mission, its progress and a
   countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area
@@ -784,7 +787,8 @@ aircraft); hold ALT to free the mouse and click the cockpit's switches, buttons 
 In a helicopter: the mouse aims the gun and turns, W/S forward and back, A/D sideways, Shift/Z or the wheel up and
 down, 1/2/3 weapons, Space flares, E ejects.
 In a jet or bomber (Jets and Bombers mods): the mouse steers, W/S throttle, A/D roll, Q/E rudder (yaw the nose left
-and right for fine aiming), 1/2/3 weapons, Space flares, F spots, J ejects. Every aircraft's ailerons, elevators and
+and right for fine aiming), 1/2/3 weapons, Space flares, F spots, J ejects. A jet's spine swells out of its fuselage
+and the airframe's skin wraps the front of each engine nozzle, so only the metal nozzle shows behind it. Every aircraft's ailerons, elevators and
 rudder move with the controls (cut from the wing, the tailplane and the fin, and shot off with them). The Cobra is a sharp, hard pull: flick the mouse far up (or snap the stick back) from level flight
 in a Su-27, Su-35S, Su-57, MiG-29 or F-22A. On a phone: drag anywhere to steer (a quick, long swipe up throws a
 Cobra), the slider on the left is the throttle, the big round button fires, and the buttons are named for flying
