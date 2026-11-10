@@ -550,6 +550,11 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   instrument panels inside), not a glass bubble set on top of it; their engines sit in one housing on the shoulders
   (the Apache's in its nacelles on pylons, with the avionics bays down its sides). The Black Hawk and the Mi-8 have
   their windscreens and side windows, and the Little Bird's whole front is the glass bubble with the pilots in it.
+- **The Black Hawk is a real 3D model** ("UH-60 Blackhawk" from done3d.com): the cockpit with its glazing, seats and
+  controls, both cabin doors slid open on the fourteen troop seats inside, the gunners' windows, the engines,
+  wheels, tail and "UNITED STATES ARMY" lettering. Its main and tail rotors spin (blurring when fast), its pilots
+  sit in its seats, and the game's own door guns (with their gunners) sit in its gunners' windows; on a door gun
+  you look out from close behind it.
 - **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
   ENEMY INFANTRY at a flag (or, in an Aviation battle, knock out an installation). The mission, its progress and a
   countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area
