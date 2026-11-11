@@ -550,6 +550,11 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   instrument panels inside), not a glass bubble set on top of it; their engines sit in one housing on the shoulders
   (the Apache's in its nacelles on pylons, with the avionics bays down its sides). The Black Hawk and the Mi-8 have
   their windscreens and side windows, and the Little Bird's whole front is the glass bubble with the pilots in it.
+- **The F/A-18E Super Hornet is a real 3D model** too (Jets): the two-seat Hornet, smooth-shaded in the Navy's
+  greys with the game's panel lines and roundels, its canopy glass over the pilot and the weapons systems officer
+  and their instrument panels, the leading- and trailing-edge flaps, ailerons, all-moving tailplanes and rudders
+  each turning on its own hinge line, the nozzles' petals, and its own landing gear (struts, wheels and open
+  doors) that comes down with G (GEAR on a phone).
 - **The Black Hawk is a real 3D model** ("UH-60 Blackhawk" from done3d.com): the cockpit with its glazing, seats and
   controls, both cabin doors slid open on the fourteen troop seats inside, the gunners' windows, the engines,
   wheels, tail and "UNITED STATES ARMY" lettering. Its main and tail rotors spin (blurring when fast), its pilots
