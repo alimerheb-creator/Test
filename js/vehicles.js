@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { TEAMS, HQS, WEAPONS, PLAY_HALF, VEHICLES } from './config.js';
 import { mergeParts, clamp, wrapAngle, rayAABB, rand, dirFromAngles, randomInCone } from './util.js';
 import { Gun } from './weapons.js';
+import { ABRAMS } from './abrams.js';
 
 const HW = 1.95, HL = 3.55;
 let MAT = null, WRECK = null;
@@ -24,8 +25,7 @@ function weather(geo, y0) {
   }
   return geo;
 }
-function tankGeos(team) {
-  if (GEOS[team]) return GEOS[team];
+function proceduralGeos(team) {
   const base = TEAMS[team].tank;
   const dark = new THREE.Color(base).multiplyScalar(0.7).getHex(), light = new THREE.Color(base).multiplyScalar(1.12).getHex();
   const TRACK = 0x2a2927, RUBBER = 0x1f1f1e, STEEL = 0x3a3936;
@@ -100,9 +100,63 @@ function tankGeos(team) {
     { s: [0.8, 0.56, 0.5], p: [0, 0, -0.12], c: base }, // mantlet
     { s: [0.07, 0.07, 0.3], p: [0.3, 0.06, -0.4], c: 0x1b1b1b }, // coaxial MG
   ]), 1.87);
-  GEOS[team] = { hull, turret, barrel };
+  return { hull, turret, barrel, tp: [0, 1.42, 0.3], bp: [0, 0.45, -1.8], muzzle: 5.4 };
+}
+
+// Vanguard's tank is the M1 Abrams, a real 3D model (abrams.js): unpacked once, then painted for its team (the body
+// in the team's colour, the rest in its own: tracks, guns, lamps, stowage) and weathered like the other tank. It has
+// a close-up version, a far one with about a third of the triangles, and its burnt-out wreck
+let ABR = null;
+function abramsParts() {
+  if (ABR) return ABR;
+  const D = ABRAMS, raw = atob(D.bin), buf = new ArrayBuffer(raw.length), u8 = new Uint8Array(buf);
+  for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
+  ABR = {};
+  for (const h of D.parts) {
+    const n = h.v, P = new Int16Array(buf, h.po, n * 3), N = new Int8Array(buf, h.no, n * 3);
+    const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
+    for (let i = 0; i < n * 3; i++) { const j = i % 3; pos[i] = D.lo[j] + ((P[i] + 32767) / 65534) * (D.hi[j] - D.lo[j]); nor[i] = N[i] / 127; }
+    ABR[h.n] = {
+      pos: new THREE.BufferAttribute(pos, 3), nor: new THREE.BufferAttribute(nor, 3), mats: new Uint8Array(buf, h.mo, n),
+      index: new THREE.BufferAttribute(h.i32 ? new Uint32Array(buf.slice(h.io, h.io + h.i * 4)) : new Uint16Array(buf.slice(h.io, h.io + h.i * 2)), 1),
+    };
+  }
+  return ABR;
+}
+function abramsGeos(team) {
+  const R = abramsParts(), D = ABRAMS, base = new THREE.Color(TEAMS[team].tank);
+  const PAL = { body: base, detail: base.clone().multiplyScalar(0.8), steel: 0x5c5c58, track: 0x2a2927, lamp: 0x8a1a14, gun: 0x1d1d1c,
+    brass: 0x8a6a20, olive: 0x3a3a26, green: 0x34452a, black: 0x141414, scorch: 0x121110, rust: 0x5a3a1c };
+  const cols = D.mats.map((m) => new THREE.Color(PAL[m] ?? 0x5c5c58));
+  const make = (name, y0) => {
+    const r = R[name], g = new THREE.BufferGeometry(), n = r.mats.length, col = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const c = cols[r.mats[i]]; col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+    g.setAttribute('position', r.pos); g.setAttribute('normal', r.nor); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setIndex(r.index);
+    g.computeBoundingSphere();
+    g.userData.abrams = true;
+    return weather(g, y0);
+  };
+  const ty = D.turret[1], by = ty + D.trunnion[1];
+  return {
+    hull: make('hull', 0), turret: make('turret', ty), barrel: make('barrel', by),
+    far: { hull: make('hull@1', 0), turret: make('turret@1', ty), barrel: make('barrel@1', by) },
+    wreck: make('wreck', 0), tp: D.turret, bp: D.trunnion, muzzle: D.muzzle + 0.1,
+  };
+}
+// The team's tank geometry, made again only when a mod changes the team's tank colour
+function tankGeos(team) {
+  const col = TEAMS[team].tank;
+  if (GEOS[team] && GEOS[team].color === col) return GEOS[team];
+  const old = GEOS[team];
+  GEOS[team] = team === 0 ? abramsGeos(team) : proceduralGeos(team);
+  GEOS[team].color = col;
+  if (old) for (const geo of [old.hull, old.turret, old.barrel, old.wreck, ...(old.far ? Object.values(old.far) : [])]) if (geo) geo.dispose();
   return GEOS[team];
 }
+// Close up the Abrams is the full model; beyond this many metres (seen at the normal field of view: zoomed in through
+// a sight it counts as nearer) the far one. Ultra keeps the full model furthest out, Low swaps soonest
+const LOD_DIST = { low: 60, medium: 85, high: 120, ultra: 200 };
+const TAN35 = Math.tan((35 * Math.PI) / 180);
 
 // Painted armour: the vertex colours (paint and mud) mottled by a grime texture projected from three sides in the
 // tank's own space, so it sticks to the hull as it moves
@@ -162,14 +216,17 @@ export class Tank {
       WRECK = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x2a2826, roughness: 1, metalness: 0.1 });
     }
     const g = tankGeos(this.team);
+    this._geos = g;
+    this._far = false;
+    this.muzzle = g.muzzle;
     this.hull = new THREE.Group();
     this.hull.rotation.order = 'YXZ';
     this.hullMesh = new THREE.Mesh(g.hull, MAT);
     this.turret = new THREE.Group();
-    this.turret.position.set(0, 1.42, 0.3);
+    this.turret.position.set(...g.tp);
     this.turretMesh = new THREE.Mesh(g.turret, MAT);
     this.barrelPivot = new THREE.Group();
-    this.barrelPivot.position.set(0, 0.45, -1.8);
+    this.barrelPivot.position.set(...g.bp);
     this.barrelMesh = new THREE.Mesh(g.barrel, MAT);
     this.barrelPivot.add(this.barrelMesh);
     this.turret.add(this.turretMesh, this.barrelPivot);
@@ -181,12 +238,32 @@ export class Tank {
 
   _setWreck(w) {
     for (const m of [this.hullMesh, this.turretMesh, this.barrelMesh]) m.material = w ? WRECK : MAT;
+    // the Abrams burns out into its wreck: the turret knocked askew, a track thrown, wheels off (unless a mission has
+    // dressed the tank as another one)
+    const G = this._geos;
+    if (G && G.wreck && this.hullMesh.geometry.userData.abrams) {
+      this.hullMesh.geometry = w ? G.wreck : G.hull; this.turretMesh.geometry = G.turret; this.barrelMesh.geometry = G.barrel;
+      this.turretMesh.visible = this.barrelMesh.visible = !w;
+      this._far = false;
+    }
+  }
+
+  // The Abrams's close-up or far model, by how far it is from the camera
+  _lod() {
+    const G = this._geos, cam = this.game.camera;
+    if (!G || !G.far || !cam || !this.hullMesh.geometry.userData.abrams || this.hullMesh.geometry === G.wreck) return;
+    const q = this.game.qualityName ? this.game.qualityName() : 'high', d = LOD_DIST[q] || 120;
+    const k = Math.tan((cam.fov * Math.PI) / 360) / TAN35;
+    const far = cam.position.distanceToSquared(this.pos) * k * k > d * d;
+    const S = far ? G.far : G;
+    if (this.hullMesh.geometry === S.hull && this.turretMesh.geometry === S.turret) return;
+    this._far = far;
+    this.hullMesh.geometry = S.hull; this.turretMesh.geometry = S.turret; this.barrelMesh.geometry = S.barrel;
   }
 
   // Rebuild the mesh after a mod changes the team's tank colour
   rebuildModel() {
     this.game.scene.remove(this.hull);
-    delete GEOS[this.team];
     this._build();
     this.coax = new Gun(WEAPONS.coax);
     this.maxHealth = VEHICLES.tank.health;
@@ -334,7 +411,7 @@ export class Tank {
     this.hull.updateMatrixWorld(true);
     this.barrelPivot.getWorldPosition(out);
     const d = dirFromAngles(this.turretYaw, this.gunPitch, _d);
-    return out.addScaledVector(d, 5.4);
+    return out.addScaledVector(d, this.muzzle || 5.4);
   }
 
   aimDir(out) { return dirFromAngles(this.turretYaw, this.gunPitch, out); }
@@ -440,6 +517,7 @@ export class Tank {
     this.turret.rotation.y = this.turretYaw - this.yaw;
     this.barrelPivot.rotation.x = this.gunPitch - this.pitch * Math.cos(this.turretYaw - this.yaw);
     this.barrelMesh.position.z = this.recoilT * 0.45;
+    if (this.hull.visible) this._lod();
   }
 
   update(dt) {

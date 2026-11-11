@@ -129,7 +129,12 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   - Support: KR-250 LMG, supply crates (health and ammo), revives twice as fast
   - Recon: SR-338 bolt-action with a scope that auto-spots, C-4 charges
 - **Tanks**: drivable MBT with a stabilised turret, 120mm cannon, coaxial MG, third-person and gunner
-  zoom views. Tanks crush walls, trees and soldiers. Bots drive them too.
+  zoom views. Tanks crush walls, trees and soldiers. Bots drive them too. Vanguard's tank is a **real 3D model of
+  the M1 Abrams** (slimmed for the game: each track link a plate, the hull, turret, gun and roof machine guns),
+  in Vanguard's paint with mud low down; its turret and gun turn and elevate as you aim, the shell leaves the real
+  muzzle, and a destroyed one becomes the model's burnt-out wreck (turret knocked askew, a track thrown, wheels off).
+  Far away it switches to a lighter version of itself, about a third of the triangles: past 60 m on Low, 85 m on
+  Medium, 120 m on High and 200 m on Ultra (zoomed in through a sight it counts as nearer).
 - **Soldiers**: modelled with shaped limbs and joints, a plate carrier with magazine pouches, radio and
   assault pack, a helmet with headset and NVG mount, camouflage on the uniform, and a carbine with optic, magazine
   and foregrip. They shoulder the rifle when fighting and carry it at low ready when running or with no enemy
@@ -560,6 +565,11 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   wheels, tail and "UNITED STATES ARMY" lettering. Its main and tail rotors spin (blurring when fast), its pilots
   sit in its seats, and the game's own door guns (with their gunners) sit in its gunners' windows; on a door gun
   you look out from close behind it.
+- **The AH-64E Apache is a real 3D model** too, slimmed to about a third of its triangles: the tandem cockpits with
+  the gunner and pilot under the glass, the textured airframe painted olive drab, the stub wings, the main and tail
+  rotors (spinning and blurring like the others), the M230 chain gun under the cockpits that turns and elevates to
+  follow your aim, and the model's own Hellfires (four on each outer launcher) and rocket pods, each Hellfire
+  vanishing from its rail as it's fired.
 - **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
   ENEMY INFANTRY at a flag (or, in an Aviation battle, knock out an installation). The mission, its progress and a
   countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area
