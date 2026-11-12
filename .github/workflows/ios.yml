@@ -6,7 +6,7 @@ name: iOS app
 on:
   workflow_dispatch:
   push:
-    branches: [claude/battlefield-6-game-2iu72e]
+    branches: [claude/battlefield-6-game-2iu72e, ccr-655ce3ea-vcmqac]
     paths:
       - 'js/**'
       - 'css/**'
