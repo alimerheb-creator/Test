@@ -560,6 +560,12 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   and their instrument panels, the leading- and trailing-edge flaps, ailerons, all-moving tailplanes and rudders
   each turning on its own hinge line, the nozzles' petals, and its own landing gear (struts, wheels and open
   doors) that comes down with G (GEAR on a phone).
+- **The Su-35S Flanker-E is a real 3D model** too (Jets, Onyx): "SU35S" from CGTrader, slimmed from about
+  190,000 triangles to 25,000, with its textures packed into one image so nearly all of it draws at once. Its
+  grey-blue paint with the red stars and the "07" on the nose, the canopy glass with the pilot under it, the
+  flaperons, leading-edge flaps, all-moving tailplanes and rudders each turning on its own hinge, its own landing
+  gear and doors (down with G, GEAR on a phone), the afterburners lighting in its own nozzles, and the game's
+  R-77s and R-73s hanging straight from its pylons and wingtip rails, each one gone from its rail when it's fired.
 - **The Black Hawk is a real 3D model** ("UH-60 Blackhawk" from done3d.com): the cockpit with its glazing, seats and
   controls, both cabin doors slid open on the fourteen troop seats inside, the gunners' windows, the engines,
   wheels, tail and "UNITED STATES ARMY" lettering. Its main and tail rotors spin (blurring when fast), its pilots
@@ -869,3 +875,14 @@ the same files and prints the address to open in a browser.
 
 Fonts (Big Shoulders Stencil, Saira Semi Condensed, IBM Plex Mono) are under the SIL Open Font License;
 the license texts are in `android/fonts/`.
+
+## Credits
+
+The real 3D models, converted and slimmed for the game:
+
+- **Su-35S Flanker-E**: "SU35S", a free model on CGTrader
+  (https://www.cgtrader.com/free-3d-models/aircraft/military-aircraft/su35s), under CGTrader's Royalty Free License.
+- **UH-60M Black Hawk**: "UH-60 Blackhawk" from done3d.com.
+- **AH-64E Apache, M1 Abrams and F/A-18E Super Hornet**: free models from their makers; their names will be added
+  here.
+
