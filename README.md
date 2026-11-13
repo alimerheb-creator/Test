@@ -129,12 +129,16 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   - Support: KR-250 LMG, supply crates (health and ammo), revives twice as fast
   - Recon: SR-338 bolt-action with a scope that auto-spots, C-4 charges
 - **Tanks**: drivable MBT with a stabilised turret, 120mm cannon, coaxial MG, third-person and gunner
-  zoom views. Tanks crush walls, trees and soldiers. Bots drive them too. Vanguard's tank is a **real 3D model of
-  the M1 Abrams** (slimmed for the game: each track link a plate, the hull, turret, gun and roof machine guns),
-  in Vanguard's paint with mud low down; its turret and gun turn and elevate as you aim, the shell leaves the real
-  muzzle, and a destroyed one becomes the model's burnt-out wreck (turret knocked askew, a track thrown, wheels off).
-  Far away it switches to a lighter version of itself, about a third of the triangles: past 60 m on Low, 85 m on
-  Medium, 120 m on High and 200 m on Ultra (zoomed in through a sight it counts as nearer).
+  zoom views. Tanks crush walls, trees and soldiers. Bots drive them too. Both sides' tanks are **real 3D models**:
+  Vanguard's the **M1 Abrams** (each track link a plate, the hull, turret, gun and roof machine guns) and Onyx's the
+  **T-90** (a 3D-printing kit put back together: the turret with its reactive armour blocks, the commander's cupola
+  and its machine gun, the side skirts, the road wheels and tracks), each in its side's paint with mud low down.
+  The turret and gun turn and elevate as you aim and the shell leaves the real muzzle. A destroyed Abrams becomes the
+  model's burnt-out wreck (turret knocked askew, a track thrown, wheels off); a destroyed T-90 burns black. Each
+  comes in three versions: the full model close up on Ultra (about 14,700 triangles for the Abrams, 21,800 for the
+  T-90), a lighter one close up on Low, Medium and High (about 7,200 and 9,700) and a simple one far away (about
+  2,300 and 3,300): past 60 m on Low, 85 m on Medium, 120 m on High and 200 m on Ultra (zoomed in through a sight it
+  counts as nearer).
 - **Soldiers**: modelled with shaped limbs and joints, a plate carrier with magazine pouches, radio and
   assault pack, a helmet with headset and NVG mount, camouflage on the uniform, and a carbine with optic, magazine
   and foregrip. They shoulder the rifle when fighting and carry it at low ready when running or with no enemy
@@ -396,9 +400,10 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   to every bomber. Twenty aircraft: for Vanguard the F-16C, F/A-18E, F-35A and F-22A fighters, the A-10C and
   F-15E for ground attack, and the B-17G, B-52H, B-1B and B-2A bombers; for Onyx the MiG-29, Su-27, Su-35S and
   Su-57, the Su-25 and Su-34, and the Lancaster, Tu-95MS, Tu-22M3 and Tu-160. Onyx aircraft carry the red star and
-  Russian side numbers on the nose, in their real schemes: the Su-27's blue-grey three-tone, the MiG-29's grey with
-  grey-green blotches, the Su-35S's dark two-tone grey, the Su-57's digital blue-grey (camouflage is drawn crisp on
-  every aircraft); the Flankers have their engines wide apart under a broad flat body, the long spine behind the
+  Russian side numbers on the nose, in their real schemes: the MiG-29's grey with grey-green blotches, the Su-35S's
+  grey-blue, the Su-57's digital blue-grey (camouflage is drawn crisp on every aircraft); the Su-27 wears the
+  Ukrainian Air Force's digital camouflage instead, squares of three blue-greys over a pale belly, with a blue "24"
+  on the nose and no stars; the Flankers have their engines wide apart under a broad flat body, the long spine behind the
   cockpit and the fins on booms outboard of the engines, the MiG-29 its fins canted out. The **F-35A, F-22A, Su-57 and B-2A
   are stealthy**: enemy missiles lock on to them slower and only from closer. **Radar missiles** (AIM-120, R-77)
   reach about twice as far as heat seekers and fall for flares less often; **guided bombs** (JDAM, KAB) glide
@@ -559,23 +564,45 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   greys with the game's panel lines and roundels, its canopy glass over the pilot and the weapons systems officer
   and their instrument panels, the leading- and trailing-edge flaps, ailerons, all-moving tailplanes and rudders
   each turning on its own hinge line, the nozzles' petals, and its own landing gear (struts, wheels and open
-  doors) that comes down with G (GEAR on a phone).
+  doors) that comes down with G (GEAR on a phone). On Ultra it shows all of its file, about 47,000 triangles.
 - **The Su-35S Flanker-E is a real 3D model** too (Jets, Onyx): "SU35S" from CGTrader, slimmed from about
-  190,000 triangles to 25,000, with its textures packed into one image so nearly all of it draws at once. Its
-  grey-blue paint with the red stars and the "07" on the nose, the canopy glass with the pilot under it, the
-  flaperons, leading-edge flaps, all-moving tailplanes and rudders each turning on its own hinge, its own landing
-  gear and doors (down with G, GEAR on a phone), the afterburners lighting in its own nozzles, and the game's
-  R-77s and R-73s hanging straight from its pylons and wingtip rails, each one gone from its rail when it's fired.
+  190,000 triangles to about 49,000 on Ultra, with its textures packed into one image so nearly all of it draws at
+  once. Its grey-blue paint with the red stars and the "07" on the nose, the canopy glass with the pilot under it,
+  the flaperons, leading-edge flaps, all-moving tailplanes and rudders each turning on its own hinge, its own
+  landing gear and doors (down with G, GEAR on a phone), the afterburners lighting in its own nozzles, and the
+  game's R-77s and R-73s hanging straight from its pylons and wingtip rails, each one gone from its rail when it's
+  fired.
+- **The Su-27 Flanker is the Su-35S model with the Su-27's own touches** (Jets, Onyx): the big air brake on its
+  back behind the cockpit, which swings up with AIR BRAKE (B); R-27ER radar missiles and R-73s on its pylons and
+  wingtip rails; and the Ukrainian digital camouflage with a blue "24" on the nose and no national markings. About
+  50,000 triangles on Ultra.
+- **The F-16C Fighting Falcon is a real 3D model** too (Jets, Vanguard): "F16" from CGTrader, a SolidWorks part read
+  straight from the shapes the file keeps for showing itself, about 68,000 triangles on Ultra. It wears the F-16's
+  greys with the game's panel lines and roundels; its gold-tinted bubble canopy covers the pilot; the flaperons,
+  leading-edge flaps, all-moving tailplanes and rudder each turn on their own hinge; the afterburner lights in its
+  own nozzle; its landing gear comes down with G (GEAR on a phone); and its own AMRAAMs on the wingtips, Sidewinders
+  and two pairs of Mavericks are each gone from the rail when fired.
 - **The Black Hawk is a real 3D model** ("UH-60 Blackhawk" from done3d.com): the cockpit with its glazing, seats and
   controls, both cabin doors slid open on the fourteen troop seats inside, the gunners' windows, the engines,
   wheels, tail and "UNITED STATES ARMY" lettering. Its main and tail rotors spin (blurring when fast), its pilots
   sit in its seats, and the game's own door guns (with their gunners) sit in its gunners' windows; on a door gun
   you look out from close behind it.
-- **The AH-64E Apache is a real 3D model** too, slimmed to about a third of its triangles: the tandem cockpits with
+- **The AH-64E Apache is a real 3D model** too, about 17,000 triangles on Ultra plus its rotors: the tandem cockpits with
   the gunner and pilot under the glass, the textured airframe painted olive drab, the stub wings, the main and tail
   rotors (spinning and blurring like the others), the M230 chain gun under the cockpits that turns and elevates to
   follow your aim, and the model's own Hellfires (four on each outer launcher) and rocket pods, each Hellfire
   vanishing from its rail as it's fired.
+- **The Mi-24V Hind is a real 3D model** too (Onyx): "Mi-24 Gunship (Rigged)" by Chris Kuhn, about 34,000 triangles on
+  Ultra plus its rotors: the stepped tandem canopies with the gunner and pilot under them, the five-blade main rotor
+  and the tail rotor (spinning and blurring like the others), the nose gun turret that turns and elevates to follow
+  your aim, and the stub wings with the Shturm missile tubes at their tips and the S-8 rocket pods, the missiles and
+  rockets leaving the model's own launchers.
+- **Detail settings.** Every real model comes in three versions: the full one close up on Ultra, a lighter one close
+  up on Low, Medium and High, and a simple one for far away (aircraft past 140 m on Low, 190 m on Medium, 260 m on
+  High and 380 m on Ultra; a zoomed-in view counts as nearer). In triangles (full / lighter / far): F-16C 68,500 /
+  25,200 / 5,800; F/A-18E 47,400 / 23,100 / 3,300; Su-35S 49,000 / 26,800 / 8,400; Su-27 49,900 / 27,600 / 8,300;
+  Mi-24V 33,600 / 20,100 / 2,900 and AH-64E 17,200 / 9,700 / 1,300 (their rotors on top); M1 Abrams 14,700 / 7,200 /
+  2,300; T-90 21,800 / 9,700 / 3,300.
 - **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
   ENEMY INFANTRY at a flag (or, in an Aviation battle, knock out an installation). The mission, its progress and a
   countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area
@@ -880,8 +907,17 @@ the license texts are in `android/fonts/`.
 
 The real 3D models, converted and slimmed for the game:
 
-- **Su-35S Flanker-E**: "SU35S", a free model on CGTrader
+- **F-16C Fighting Falcon**: "F16", a SolidWorks model on CGTrader uploaded by taylor-eudora (the file itself last
+  saved by "Greg" in 2012).
+- **Su-35S Flanker-E** (and the Su-27, made from it): "SU35S" by SA 893 537, a free model on CGTrader
   (https://www.cgtrader.com/free-3d-models/aircraft/military-aircraft/su35s), under CGTrader's Royalty Free License.
+- **Mi-24V Hind**: "Mi-24 Gunship (Rigged)" by Chris Kuhn, blend #83502 on Blend Swap
+  (https://www.blendswap.com/blends/view/83502), under the Creative Commons Attribution 3.0 licence
+  (https://creativecommons.org/licenses/by/3.0/). Changed for the game: converted, slimmed into three versions,
+  repainted and split into its moving parts (rotors, gun turret).
+- **T-90**: "T-90 with moving turret and barrel" by kuyongcreates on Printables
+  (https://www.printables.com/model/1042956-t-90-with-moving-turret-and-barrel), a 3D-printing kit put back
+  together and slimmed for the game.
 - **UH-60M Black Hawk**: "UH-60 Blackhawk" from done3d.com.
 - **AH-64E Apache, M1 Abrams and F/A-18E Super Hornet**: free models from their makers; their names will be added
   here.

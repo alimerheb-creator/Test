@@ -1,9 +1,10 @@
 // Main battle tank: drivable by the player or a bot, crushes walls and trees, stabilised turret.
 import * as THREE from 'three';
 import { TEAMS, HQS, WEAPONS, PLAY_HALF, VEHICLES } from './config.js';
-import { mergeParts, clamp, wrapAngle, rayAABB, rand, dirFromAngles, randomInCone } from './util.js';
+import { clamp, wrapAngle, rayAABB, rand, dirFromAngles, randomInCone } from './util.js';
 import { Gun } from './weapons.js';
 import { ABRAMS } from './abrams.js';
+import { T90 } from './t90.js';
 
 const HW = 1.95, HL = 3.55;
 let MAT = null, WRECK = null;
@@ -25,93 +26,17 @@ function weather(geo, y0) {
   }
   return geo;
 }
-function proceduralGeos(team) {
-  const base = TEAMS[team].tank;
-  const dark = new THREE.Color(base).multiplyScalar(0.7).getHex(), light = new THREE.Color(base).multiplyScalar(1.12).getHex();
-  const TRACK = 0x2a2927, RUBBER = 0x1f1f1e, STEEL = 0x3a3936;
-  const cyl = (r0, r1, h, seg = 14) => new THREE.CylinderGeometry(r0, r1, h, seg);
-  const side = [];
-  for (const sx of [-1, 1]) {
-    const x = sx * 1.55;
-    for (let i = 0; i < 7; i++) {
-      const z = -2.55 + i * 0.85;
-      side.push({ geo: cyl(0.34, 0.34, 0.52), r: [0, 0, Math.PI / 2], p: [x, 0.4, z], c: RUBBER });
-      side.push({ geo: cyl(0.2, 0.2, 0.56, 10), r: [0, 0, Math.PI / 2], p: [x, 0.4, z], c: STEEL });
-    }
-    side.push({ geo: cyl(0.36, 0.36, 0.56), r: [0, 0, Math.PI / 2], p: [x, 0.58, -3.2], c: STEEL }); // idler
-    side.push({ geo: cyl(0.38, 0.38, 0.56, 12), r: [0, 0, Math.PI / 2], p: [x, 0.6, 3.2], c: STEEL }); // sprocket
-    side.push({ s: [0.64, 0.07, 5.6], p: [x, 0.035, 0], c: TRACK }); // ground run
-    side.push({ s: [0.64, 0.07, 6.4], p: [x, 1.0, 0], c: TRACK }); // top run
-    side.push({ s: [0.64, 0.07, 0.72], p: [x, 0.42, -3.1], c: TRACK, r: [1.05, 0, 0] }); // round the idler
-    side.push({ s: [0.64, 0.07, 0.72], p: [x, 0.42, 3.1], c: TRACK, r: [-1.05, 0, 0] }); // round the sprocket
-    side.push({ s: [0.07, 0.07, 0.86], p: [x, 0.82, -3.38], c: TRACK, r: [-0.55, 0, 0] });
-    side.push({ s: [0.07, 0.07, 0.86], p: [x, 0.82, 3.38], c: TRACK, r: [0.55, 0, 0] });
-    side.push({ s: [0.07, 0.58, 6.3], p: [sx * 1.9, 0.83, -0.05], c: base }); // side skirt
-    for (let i = 0; i < 6; i++) side.push({ s: [0.02, 0.56, 0.02], p: [sx * 1.94, 0.83, -2.9 + i * 1.12], c: dark }); // skirt panel joints
-    side.push({ s: [0.4, 0.06, 0.5], p: [sx * 1.7, 1.15, -3.45], c: base }); // front fender
-    side.push({ s: [0.32, 0.5, 0.05], p: [sx * 1.6, 0.85, 3.55], c: RUBBER }); // mudflap
-  }
-  const hull = weather(mergeParts([
-    { s: [2.5, 0.72, 6.6], p: [0, 0.78, 0], c: base }, // lower hull between the tracks
-    { s: [3.75, 0.2, 5.5], p: [0, 1.22, 0.45], c: base }, // deck over the tracks
-    { s: [3.6, 0.14, 1.85], p: [0, 1.14, -2.95], c: light, r: [-0.24, 0, 0] }, // upper glacis
-    { s: [2.5, 0.62, 0.14], p: [0, 0.68, -3.37], c: base, r: [0.62, 0, 0] }, // lower glacis
-    { s: [0.55, 0.1, 0.38], p: [0, 1.3, -2.25], c: dark }, // driver's hatch
-    { s: [0.36, 0.08, 0.12], p: [0, 1.32, -2.47], c: 0x6f8a9a }, // driver's periscope
-    { s: [2.4, 0.05, 1.7], p: [0, 1.335, 2.45], c: dark }, // engine deck
-    ...[0, 1, 2, 3, 4, 5, 6].map((i) => ({ s: [2.3, 0.05, 0.07], p: [0, 1.37, 1.75 + i * 0.23], c: 0x1f201e })), // grille slats
-    { s: [3.3, 0.6, 0.12], p: [0, 0.98, 3.32], c: base }, // rear plate
-    { s: [0.42, 0.24, 0.1], p: [-1.25, 1.12, 3.4], c: 0x1b1b1b }, // exhausts
-    { s: [0.42, 0.24, 0.1], p: [1.25, 1.12, 3.4], c: 0x1b1b1b },
-    { s: [0.28, 0.2, 0.1], p: [-1.35, 1.22, -3.46], c: 0xe8dcae }, // headlights
-    { s: [0.28, 0.2, 0.1], p: [1.35, 1.22, -3.46], c: 0xe8dcae },
-    { s: [0.2, 0.16, 0.2], p: [-0.8, 0.5, -3.55], c: STEEL }, // tow hooks
-    { s: [0.2, 0.16, 0.2], p: [0.8, 0.5, -3.55], c: STEEL },
-    { s: [0.6, 0.4, 0.55], p: [-1.35, 1.52, 2.95], c: dark }, // stowage
-    { s: [0.6, 0.4, 0.55], p: [1.35, 1.52, 2.95], c: dark },
-    { geo: cyl(0.16, 0.16, 1.1, 10), r: [0, 0, Math.PI / 2], p: [0, 1.48, 3.05], c: 0x6b5f45 }, // rolled tarpaulin
-    ...side,
-  ]), 0);
-  const turret = weather(mergeParts([
-    { s: [2.7, 0.72, 2.6], p: [0, 0.38, 0.55], c: base }, // turret body
-    { s: [1.5, 0.66, 1.25], p: [-0.6, 0.36, -1.15], c: base, r: [0, -0.32, 0] }, // wedge cheeks
-    { s: [1.5, 0.66, 1.25], p: [0.6, 0.36, -1.15], c: base, r: [0, 0.32, 0] },
-    { s: [2.4, 0.08, 2.4], p: [0, 0.77, 0.25], c: light }, // roof
-    { s: [2.45, 0.6, 1.05], p: [0, 0.42, 2.3], c: base }, // bustle
-    ...[0, 1, 2].map((i) => ({ s: [2.5, 0.04, 0.04], p: [0, 0.58 + i * 0.12, 2.86], c: 0x1f201e })), // bustle rack
-    { geo: cyl(0.38, 0.4, 0.28, 16), p: [0.62, 0.92, 0.6], c: base }, // commander's cupola
-    { geo: cyl(0.33, 0.33, 0.06, 16), p: [0.62, 1.08, 0.6], c: dark },
-    ...[0, 1, 2, 3, 4, 5].map((i) => { const a = (i / 6) * Math.PI * 2; return { s: [0.1, 0.07, 0.04], p: [0.62 + Math.sin(a) * 0.36, 0.98, 0.6 + Math.cos(a) * 0.36], c: 0x6f8a9a, r: [0, a, 0] }; }), // vision blocks
-    { geo: cyl(0.025, 0.025, 1.0, 6), r: [Math.PI / 2, 0, 0], p: [0.62, 1.22, 0.05], c: 0x1b1b1b }, // machine gun
-    { s: [0.12, 0.14, 0.42], p: [0.62, 1.2, 0.5], c: 0x1b1b1b },
-    { geo: cyl(0.3, 0.3, 0.07, 14), p: [-0.62, 0.81, 0.75], c: dark }, // loader's hatch
-    { s: [0.36, 0.32, 0.55], p: [0.78, 0.9, -0.75], c: dark }, // gunner's sight
-    { s: [0.28, 0.2, 0.04], p: [0.78, 0.92, -1.04], c: 0x203040 },
-    ...[-1, 1].flatMap((sx) => [0, 1, 2, 3].map((i) => ({ geo: cyl(0.06, 0.06, 0.3, 8), r: [Math.PI / 2 - 0.35, 0, 0], p: [sx * (1.3 + i * 0.0), 0.5 + (i % 2) * 0.14, -0.6 - Math.floor(i / 2) * 0.16], c: dark }))), // smoke dischargers
-    { s: [0.04, 1.9, 0.04], p: [-0.95, 1.6, 1.9], c: 0x1f1f1f }, // aerials
-    { s: [0.03, 1.4, 0.03], p: [0.95, 1.35, 2.1], c: 0x1f1f1f },
-  ]), 1.42);
-  const barrel = weather(mergeParts([
-    { geo: cyl(0.095, 0.11, 5.3, 14), r: [Math.PI / 2, 0, 0], p: [0, 0, -2.75], c: base },
-    { geo: cyl(0.13, 0.13, 1.2, 14), r: [Math.PI / 2, 0, 0], p: [0, 0, -1.2], c: dark }, // thermal sleeve
-    { geo: cyl(0.17, 0.17, 0.62, 16), r: [Math.PI / 2, 0, 0], p: [0, 0, -2.6], c: dark }, // fume extractor
-    { geo: cyl(0.12, 0.12, 0.9, 14), r: [Math.PI / 2, 0, 0], p: [0, 0, -3.6], c: dark },
-    { geo: cyl(0.12, 0.11, 0.25, 14), r: [Math.PI / 2, 0, 0], p: [0, 0, -5.3], c: dark }, // muzzle
-    { s: [0.8, 0.56, 0.5], p: [0, 0, -0.12], c: base }, // mantlet
-    { s: [0.07, 0.07, 0.3], p: [0.3, 0.06, -0.4], c: 0x1b1b1b }, // coaxial MG
-  ]), 1.87);
-  return { hull, turret, barrel, tp: [0, 1.42, 0.3], bp: [0, 0.45, -1.8], muzzle: 5.4 };
-}
-
-// Vanguard's tank is the M1 Abrams, a real 3D model (abrams.js): unpacked once, then painted for its team (the body
-// in the team's colour, the rest in its own: tracks, guns, lamps, stowage) and weathered like the other tank. It has
-// a close-up version, a far one with about a third of the triangles, and its burnt-out wreck
-let ABR = null;
-function abramsParts() {
-  if (ABR) return ABR;
-  const D = ABRAMS, raw = atob(D.bin), buf = new ArrayBuffer(raw.length), u8 = new Uint8Array(buf);
+// Vanguard's tank is the M1 Abrams (abrams.js), Onyx's the T-90 (t90.js): real 3D models, each unpacked once, then
+// painted for its team (the body in the team's colour, the rest in its own: tracks, guns, lamps, stowage) and
+// weathered (mud low down). Each has a full close-up version (Ultra), a lighter one and a far one; the Abrams also its
+// burnt-out wreck (the T-90 just goes black)
+const PACKED = new Map();
+function packedParts(D) {
+  if (PACKED.has(D)) return PACKED.get(D);
+  const raw = atob(D.bin), buf = new ArrayBuffer(raw.length), u8 = new Uint8Array(buf);
   for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
-  ABR = {};
+  const ABR = {};
+  PACKED.set(D, ABR);
   for (const h of D.parts) {
     const n = h.v, P = new Int16Array(buf, h.po, n * 3), N = new Int8Array(buf, h.no, n * 3);
     const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
@@ -123,8 +48,9 @@ function abramsParts() {
   }
   return ABR;
 }
-function abramsGeos(team) {
-  const R = abramsParts(), D = ABRAMS, base = new THREE.Color(TEAMS[team].tank);
+// (ultra: the full close-up model, else the lighter one; far off and the wreck the same for every quality)
+function realGeos(D, team, ultra) {
+  const R = packedParts(D), base = new THREE.Color(TEAMS[team].tank);
   const PAL = { body: base, detail: base.clone().multiplyScalar(0.8), steel: 0x5c5c58, track: 0x2a2927, lamp: 0x8a1a14, gun: 0x1d1d1c,
     brass: 0x8a6a20, olive: 0x3a3a26, green: 0x34452a, black: 0x141414, scorch: 0x121110, rust: 0x5a3a1c };
   const cols = D.mats.map((m) => new THREE.Color(PAL[m] ?? 0x5c5c58));
@@ -133,23 +59,23 @@ function abramsGeos(team) {
     for (let i = 0; i < n; i++) { const c = cols[r.mats[i]]; col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
     g.setAttribute('position', r.pos); g.setAttribute('normal', r.nor); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setIndex(r.index);
     g.computeBoundingSphere();
-    g.userData.abrams = true;
+    g.userData.real = true;
     return weather(g, y0);
   };
-  const ty = D.turret[1], by = ty + D.trunnion[1];
+  const ty = D.turret[1], by = ty + D.trunnion[1], s = ultra ? '' : '@1';
   return {
-    hull: make('hull', 0), turret: make('turret', ty), barrel: make('barrel', by),
-    far: { hull: make('hull@1', 0), turret: make('turret@1', ty), barrel: make('barrel@1', by) },
-    wreck: make('wreck', 0), tp: D.turret, bp: D.trunnion, muzzle: D.muzzle + 0.1,
+    hull: make('hull' + s, 0), turret: make('turret' + s, ty), barrel: make('barrel' + s, by),
+    far: { hull: make('hull@2', 0), turret: make('turret@2', ty), barrel: make('barrel@2', by) },
+    wreck: R['wreck@1'] ? make('wreck@1', 0) : null, tp: D.turret, bp: D.trunnion, muzzle: D.muzzle + 0.1,
   };
 }
-// The team's tank geometry, made again only when a mod changes the team's tank colour
-function tankGeos(team) {
+// The team's tank geometry, made again only when a mod changes the team's tank colour (or Ultra is switched on or off)
+function tankGeos(team, ultra = false) {
   const col = TEAMS[team].tank;
-  if (GEOS[team] && GEOS[team].color === col) return GEOS[team];
+  if (GEOS[team] && GEOS[team].color === col && GEOS[team].ultra === ultra) return GEOS[team];
   const old = GEOS[team];
-  GEOS[team] = team === 0 ? abramsGeos(team) : proceduralGeos(team);
-  GEOS[team].color = col;
+  GEOS[team] = realGeos(team === 0 ? ABRAMS : T90, team, ultra);
+  GEOS[team].color = col; GEOS[team].ultra = ultra;
   if (old) for (const geo of [old.hull, old.turret, old.barrel, old.wreck, ...(old.far ? Object.values(old.far) : [])]) if (geo) geo.dispose();
   return GEOS[team];
 }
@@ -215,7 +141,7 @@ export class Tank {
       MAT = tankMaterial(this.game.world && this.game.world.tex && this.game.world.tex.grime);
       WRECK = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x2a2826, roughness: 1, metalness: 0.1 });
     }
-    const g = tankGeos(this.team);
+    const g = tankGeos(this.team, (this.game.qualityName ? this.game.qualityName() : 'high') === 'ultra');
     this._geos = g;
     this._far = false;
     this.muzzle = g.muzzle;
@@ -239,19 +165,19 @@ export class Tank {
   _setWreck(w) {
     for (const m of [this.hullMesh, this.turretMesh, this.barrelMesh]) m.material = w ? WRECK : MAT;
     // the Abrams burns out into its wreck: the turret knocked askew, a track thrown, wheels off (unless a mission has
-    // dressed the tank as another one)
+    // dressed the tank as another one; the T-90 has no wreck model and just goes black)
     const G = this._geos;
-    if (G && G.wreck && this.hullMesh.geometry.userData.abrams) {
+    if (G && G.wreck && this.hullMesh.geometry.userData.real) {
       this.hullMesh.geometry = w ? G.wreck : G.hull; this.turretMesh.geometry = G.turret; this.barrelMesh.geometry = G.barrel;
       this.turretMesh.visible = this.barrelMesh.visible = !w;
       this._far = false;
     }
   }
 
-  // The Abrams's close-up or far model, by how far it is from the camera
+  // The tank's close-up or far model, by how far it is from the camera (not when a mission has dressed it as another)
   _lod() {
     const G = this._geos, cam = this.game.camera;
-    if (!G || !G.far || !cam || !this.hullMesh.geometry.userData.abrams || this.hullMesh.geometry === G.wreck) return;
+    if (!G || !G.far || !cam || !this.hullMesh.geometry.userData.real || this.hullMesh.geometry === G.wreck) return;
     const q = this.game.qualityName ? this.game.qualityName() : 'high', d = LOD_DIST[q] || 120;
     const k = Math.tan((cam.fov * Math.PI) / 360) / TAN35;
     const far = cam.position.distanceToSquared(this.pos) * k * k > d * d;

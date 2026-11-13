@@ -24,6 +24,9 @@ const INDEX_KEY = 'sixthfront.modlist';     // which mods are installed, on or o
 const TEXT_PREFIX = 'sixthfront.modtext.';  // one entry per mod file, written only when the file changes
 const STORE_PREFIX = 'sixthfront.moddata.';
 const MAX_MOD_BYTES = 4 * 1024 * 1024;
+// the game's own mods may be bigger (their real 3D models): they are read from its folder at every start and never
+// kept in the little storage a phone gives a page
+const MAX_OWN_MOD_BYTES = 16 * 1024 * 1024;
 const MAX_CLASSES = 8;
 const GUN_MODELS = ['ar', 'smg', 'lmg', 'sniper', 'pistol', 'shotgun'];
 // How far from the centre map objects may go: the map's size can change, so these are read when used
@@ -272,7 +275,7 @@ export function slugify(s) {
 // Parse and sanity-check a mod file's text. Throws with a readable message.
 export function parseMod(text) {
   if (typeof text !== 'string') throw new Error('Mod file is empty.');
-  if (text.length > MAX_MOD_BYTES) throw new Error('Mod file is too large (max 4 MB).');
+  if (text.length > MAX_OWN_MOD_BYTES) throw new Error('Mod file is too large (max 4 MB).');
   let mod;
   try {
     mod = JSON.parse(text.replace(/^﻿/, ''));
@@ -282,6 +285,7 @@ export function parseMod(text) {
   if (!isObj(mod)) throw new Error('A mod must be a JSON object.');
   if (mod.format && mod.format !== MOD_FORMAT) throw new Error(`Unknown format "${mod.format}" (expected "${MOD_FORMAT}").`);
   if (typeof mod.name !== 'string' || !mod.name.trim()) throw new Error('The mod needs a "name".');
+  if (text.length > MAX_MOD_BYTES && !HIDDEN_MODS.includes(slugify(mod.id || mod.name))) throw new Error('Mod file is too large (max 4 MB).');
   return mod;
 }
 
