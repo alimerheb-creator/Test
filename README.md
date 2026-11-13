@@ -916,8 +916,13 @@ The real 3D models, converted and slimmed for the game:
   (https://creativecommons.org/licenses/by/3.0/). Changed for the game: converted, slimmed into three versions,
   repainted and split into its moving parts (rotors, gun turret).
 - **T-90**: "T-90 with moving turret and barrel" by kuyongcreates on Printables
-  (https://www.printables.com/model/1042956-t-90-with-moving-turret-and-barrel), a 3D-printing kit put back
-  together and slimmed for the game.
+  (https://www.printables.com/model/1042956-t-90-with-moving-turret-and-barrel), itself a remix of "3D design t-90
+  sliced" on Tinkercad, under the Creative Commons Attribution-NonCommercial 4.0 licence
+  (https://creativecommons.org/licenses/by-nc/4.0/). Changed for the game: the 3D-printing kit's pieces put back
+  together, slimmed into three versions and painted.
+
+The T-90's licence allows no commercial use, so while it is in the game the game stays free: nothing sold, no ads,
+no paid items.
 - **UH-60M Black Hawk**: "UH-60 Blackhawk" from done3d.com.
 - **AH-64E Apache, M1 Abrams and F/A-18E Super Hornet**: free models from their makers; their names will be added
   here.

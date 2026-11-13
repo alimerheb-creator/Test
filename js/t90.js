@@ -1,5 +1,7 @@
 // The T-90, Onyx's tank: a real 3D model (a 1:90 print kit, "T-90 with moving turret and barrel" by kuyongcreates
-// on Printables, put back together from its pieces), slimmed for the game (vehicles.js builds it like the Abrams).
+// on Printables, put back together from its pieces; Creative Commons Attribution-NonCommercial 4.0: credited in the
+// README and on the controls screen, and the game may not be sold), slimmed for the game (vehicles.js builds it
+// like the Abrams).
 // Packed meshes in the tank's own frames: hull (from the ground up, the front toward -z, the running gear with it),
 // turret (about its ring), barrel (about its trunnion), each in three versions: the full one close up on Ultra, a
 // lighter one close up on the other qualities (@1) and one for far away (@2). Int16 positions over the box lo..hi,
