@@ -909,7 +909,7 @@ The real 3D models, converted and slimmed for the game:
 
 - **F-16C Fighting Falcon**: "F16", a SolidWorks model on CGTrader uploaded by taylor-eudora (the file itself last
   saved by "Greg" in 2012), under CGTrader's Royalty Free License.
-- **Su-35S Flanker-E** (and the Su-27, made from it): "SU35S" by SA 893 537, a free model on CGTrader
+- **Su-35S Flanker-E** (and the Su-27, made from it): "SU35S" by sa893537, a free model on CGTrader
   (https://www.cgtrader.com/free-3d-models/aircraft/military-aircraft/su35s), under CGTrader's Royalty Free License.
 - **Mi-24V Hind**: "Mi-24 Gunship (Rigged)" by Chris Kuhn, blend #83502 on Blend Swap
   (https://www.blendswap.com/blends/view/83502), under the Creative Commons Attribution 3.0 licence
