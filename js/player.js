@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { MOVE, PLAY_HALF, SCORE, RULES } from './config.js';
 import { clamp, lerp, rand, wrapAngle, yawTo, dirFromAngles } from './util.js';
 import { gunTextures, camoTextures } from './textures.js';
+import { gunModel } from './guns.js';
 
 const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _e = new THREE.Vector3(), _m = new THREE.Vector3(), _bs = new THREE.Vector3();
 const _pa = new THREE.Vector3(), _pb = new THREE.Vector3(), _pc = new THREE.Vector3();
@@ -26,7 +27,8 @@ function gunMaterial(color, metalness, roughness, emissive) {
   const T = gunTextures(), steel = metalness >= 0.3;
   const m = new THREE.MeshStandardMaterial({ color, metalness: steel ? Math.max(metalness, 0.6) : metalness, roughness: Math.min(1, roughness * 1.25), emissive: emissive ?? 0x000000, emissiveIntensity: emissive != null ? 1.5 : 0 });
   m.normalMap = steel ? T.metalN : T.polyN;
-  m.normalScale.set(0.45, 0.45);
+  // (a light grain: a strong one turns smooth polymer and anodised steel into stone)
+  m.normalScale.set(0.22, 0.22);
   m.roughnessMap = steel ? T.metalR : T.polyR;
   return m;
 }
@@ -49,6 +51,12 @@ function vmMats() {
   VM_MATS.dark = new THREE.MeshStandardMaterial({ color: 0x0e0f10, roughness: 0.6, metalness: 0.2 });
   VM_MATS.rubber = new THREE.MeshStandardMaterial({ color: 0x1b1b1c, roughness: 0.95 });
   VM_MATS.optic = new THREE.MeshStandardMaterial({ color: 0x14202c, roughness: 0.04, metalness: 0.9, envMapIntensity: 2 });
+  // a cartridge's brass case and copper bullet (polished: the armory's finishes leave them alone)
+  VM_MATS.brass = new THREE.MeshStandardMaterial({ color: 0xc9a14a, roughness: 0.11, metalness: 0.85 });
+  VM_MATS.copper = new THREE.MeshStandardMaterial({ color: 0xb8734a, roughness: 0.11, metalness: 0.85 });
+  // the RPG's varnished wooden heat guards and grip; the white dots of a pistol's sights
+  VM_MATS.wood = new THREE.MeshStandardMaterial({ color: 0x6b4426, roughness: 0.5, metalness: 0 });
+  VM_MATS.white = new THREE.MeshStandardMaterial({ color: 0xe8e6dc, roughness: 0.5 });
   return VM_MATS;
 }
 
@@ -88,110 +96,6 @@ function box(g, mat, sx, sy, sz, x, y, z, rx = 0, ry = 0, rz = 0) {
   g.add(m);
   return m;
 }
-function cyl(g, mat, r0, r1, len, x, y, z) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(r0, r1, len, 18), mat);
-  m.rotation.x = Math.PI / 2;
-  m.position.set(x, y, z);
-  g.add(m);
-  return m;
-}
-function cylY(g, mat, r, len, x, y, z, seg = 16) {
-  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg), mat);
-  m.position.set(x, y, z);
-  g.add(m);
-  return m;
-}
-function cylX(g, mat, r, len, x, y, z, seg = 16) {
-  const m = cylY(g, mat, r, len, x, y, z, seg);
-  m.rotation.z = Math.PI / 2;
-  return m;
-}
-// Rail teeth along a length of Picatinny rail
-function rail(g, M, w, y, z0, n, mat = M.metal) { for (let i = 0; i < n * 2.6; i++) box(g, mat, w, 0.005, 0.0052, 0, y, z0 - i * 0.01); }
-// A trigger guard and trigger under the grip
-function guard(g, M, z, y = -0.06) {
-  box(g, M.metal, 0.011, 0.006, 0.075, 0, y - 0.018, z - 0.05);
-  box(g, M.metal, 0.011, 0.034, 0.006, 0, y, z - 0.088);
-  box(g, M.dark, 0.006, 0.024, 0.007, 0, y + 0.008, z - 0.06, 0.25);
-}
-
-// The small parts that make each gun read as the real thing: rails, ports, sights, muzzle devices, guards, pads
-function detailGun(kind, g, parts, M) {
-  switch (kind) {
-    case 'ar': {
-      rail(g, M, 0.047, 0.06, 0.09, 12);
-      box(g, M.dark, 0.003, 0.02, 0.055, 0.029, 0.008, -0.02); // ejection port
-      box(g, M.metal, 0.012, 0.014, 0.03, 0.031, 0.024, 0.055); // forward assist
-      box(g, M.metal, 0.05, 0.012, 0.02, 0, 0.044, 0.118); // charging handle
-      box(g, M.metal, 0.05, 0.03, 0.09, 0, -0.046, -0.1); // magwell
-      guard(g, M, 0.07);
-      for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) box(g, M.dark, 0.003, 0.013, 0.032, sx * 0.0315, -0.002, -0.24 - i * 0.052); // handguard slots
-      rail(g, M, 0.045, 0.032, -0.212, 9, M.poly);
-      rail(g, M, 0.04, -0.036, -0.25, 7, M.poly);
-      box(g, M.metal, 0.028, 0.03, 0.035, 0, 0.012, -0.478); // gas block
-      box(g, M.metal, 0.01, 0.032, 0.012, 0, 0.043, -0.478); // front sight post
-      for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 2 + 0.4; box(g, M.dark, 0.004, 0.004, 0.045, Math.cos(a) * 0.0168, 0.005 + Math.sin(a) * 0.0168, -0.672); }
-      box(g, M.fde, 0.04, 0.018, 0.13, 0, 0.031, 0.22); // cheek riser
-      box(g, M.rubber, 0.05, 0.088, 0.018, 0, -0.016, 0.306); // butt pad
-      for (let i = 0; i < 4; i++) box(parts.mag, M.fde, 0.037, 0.007, 0.058, 0, 0.045 - i * 0.03, 0.002); // magazine ribs
-      break;
-    }
-    case 'smg': {
-      rail(g, M, 0.04, 0.041, 0.08, 7);
-      cylY(g, M.metal, 0.009, 0.2, -0.016, 0.04, -0.17).rotation.x = Math.PI / 2; // cocking tube
-      cylY(g, M.metal, 0.017, 0.022, 0, 0.012, -0.325).rotation.x = Math.PI / 2; // front sight hood
-      box(g, M.metal, 0.006, 0.03, 0.008, 0, 0.034, -0.325);
-      guard(g, M, 0.07);
-      for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) box(g, M.dark, 0.003, 0.012, 0.03, sx * 0.0285, -0.004, -0.18 - i * 0.045);
-      box(g, M.rubber, 0.03, 0.06, 0.016, 0, -0.012, 0.255); // butt pad
-      for (let i = 0; i < 5; i++) box(parts.mag, M.poly, 0.033, 0.006, 0.04, 0, 0.07 - i * 0.032, 0);
-      break;
-    }
-    case 'lmg': {
-      box(g, M.metal, 0.022, 0.012, 0.13, 0, 0.068, -0.45); // carry handle
-      for (const z of [-0.39, -0.51]) box(g, M.metal, 0.014, 0.025, 0.012, 0, 0.052, z);
-      for (let i = 0; i < 6; i++) cylY(g, M.dark, 0.0162, 0.006, 0, 0.008, -0.5 - i * 0.045).rotation.x = Math.PI / 2; // cooling rings
-      box(g, M.metal, 0.03, 0.006, 0.22, 0, 0.03, -0.62); // heat shield
-      for (let i = 0; i < 5; i++) box(g, M.dark, 0.022, 0.007, 0.018, 0, 0.031, -0.53 - i * 0.042);
-      guard(g, M, 0.1, -0.07);
-      box(g, M.rubber, 0.054, 0.09, 0.02, 0, -0.015, 0.365);
-      for (let i = 0; i < 3; i++) box(parts.mag, M.dark, 0.102, 0.004, 0.122, 0, 0.035 - i * 0.035, 0); // belt box ribs
-      break;
-    }
-    case 'sniper': {
-      cylY(g, M.metal, 0.013, 0.024, 0, 0.12, -0.07); // elevation turret
-      cylX(g, M.metal, 0.013, 0.024, 0.033, 0.088, -0.07); // windage turret
-      for (const z of [-0.16, 0.03]) { cylY(g, M.metal, 0.026, 0.014, 0, 0.088, z).rotation.x = Math.PI / 2; box(g, M.metal, 0.02, 0.03, 0.014, 0, 0.06, z); } // rings and bases
-      cylY(g, M.optic, 0.027, 0.002, 0, 0.088, -0.271).rotation.x = Math.PI / 2; // objective lens
-      cylY(g, M.optic, 0.023, 0.002, 0, 0.088, 0.126).rotation.x = Math.PI / 2; // eyepiece lens
-      for (const sx of [-1, 1]) box(g, M.dark, 0.004, 0.012, 0.03, sx * 0.02, 0.012, -0.82); // muzzle brake ports
-      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.013, 12, 8), M.metal);
-      knob.position.set(0.075, 0, 0);
-      parts.bolt.add(knob);
-      box(g, M.tan, 0.046, 0.025, 0.16, 0, 0.026, 0.27); // cheek piece
-      box(g, M.rubber, 0.054, 0.095, 0.02, 0, -0.03, 0.448);
-      guard(g, M, 0.08);
-      break;
-    }
-    case 'pistol': {
-      for (let i = 0; i < 6; i++) box(parts.slide, M.dark, 0.0315, 0.026, 0.003, 0, -0.002, 0.058 + i * 0.006); // slide serrations
-      box(parts.slide, M.dark, 0.004, 0.013, 0.032, 0.0153, 0.006, -0.012); // ejection port
-      box(g, M.poly, 0.012, 0.005, 0.05, 0, -0.04, -0.035);
-      box(g, M.poly, 0.012, 0.03, 0.006, 0, -0.027, -0.06);
-      box(g, M.dark, 0.006, 0.02, 0.006, 0, -0.028, -0.034, 0.2);
-      break;
-    }
-    case 'shotgun': {
-      box(g, M.metal, 0.008, 0.005, 0.46, 0, 0.037, -0.42); // vent rib
-      for (let i = 0; i < 6; i++) box(parts.pump, M.dark, 0.0605, 0.052, 0.005, 0, 0, -0.06 + i * 0.024); // pump grooves
-      guard(g, M, 0.07);
-      box(g, M.rubber, 0.052, 0.09, 0.02, 0, -0.02, 0.348);
-      box(g, M.dark, 0.003, 0.022, 0.06, 0.028, 0.006, -0.02); // ejection port
-      break;
-    }
-  }
-}
-
 // a sleeve along +z from the wrist (z = -0.5, narrow) to the elbow (z = 0.5), scaled to its length
 let _sleeveGeo = null;
 const SLEEVE_GEO = () => _sleeveGeo || (_sleeveGeo = new THREE.CylinderGeometry(0.031, 0.04, 1, 22, 1).rotateX(-Math.PI / 2));
@@ -254,141 +158,18 @@ function buildViewmodel(kind) {
   const offset = new THREE.Vector3();
   // Where the left hand grabs the charging handle / loads shells, and how far the bolt travels back
   let charge = null, port = null, boltTravel = 0.07;
+  // the guns modelled in detail (guns.js)
+  const a = gunModel(kind, { g, parts, M, part });
+  if (a) {
+    const vm = finishViewmodel(g, parts, { kind, sightY: a.sightY, muzzleY: a.muzzleY, muzzleZ: a.muzzleZ, gripZ: a.gripZ, foreZ: a.foreZ, foreY: a.foreY,
+      offset: a.offset || offset, charge: a.charge || null, port: a.port || null, boltTravel: a.boltTravel ?? boltTravel });
+    vm.eject = a.eject || null;
+    // (how far in front of the eye the gun sits when aiming: a stock long enough to reach the cheek sits closer)
+    if (a.adsZ) vm.adsZ = a.adsZ;
+    if (parts.cover && a.coverOpen) parts.cover.userData.open = a.coverOpen;
+    return vm;
+  }
   switch (kind) {
-    case 'ar': {
-      box(g, M.metal, 0.055, 0.075, 0.34, 0, 0, -0.05);
-      box(g, M.metal, 0.045, 0.02, 0.32, 0, 0.047, -0.06);
-      box(g, M.fde, 0.062, 0.062, 0.26, 0, -0.002, -0.33);
-      cyl(g, M.metal, 0.011, 0.011, 0.2, 0, 0.005, -0.55);
-      cyl(g, M.poly, 0.017, 0.017, 0.06, 0, 0.005, -0.66);
-      box(g, M.fde, 0.032, 0.09, 0.042, 0, -0.07, 0.07, -0.3);
-      box(g, M.fde, 0.046, 0.07, 0.2, 0, -0.012, 0.2);
-      box(g, M.metal, 0.012, 0.018, 0.03, 0.03, 0.0, -0.08); // mag release / ejection port
-      reflex(g, M, 0.085, -0.07);
-      const mag = part(g, parts, 'mag', 0, -0.105, -0.1, 0.22);
-      box(mag, M.fde, 0.034, 0.15, 0.07, 0, 0, 0);
-      box(mag, M.metal, 0.038, 0.012, 0.074, 0, -0.078, 0);
-      const bolt = part(g, parts, 'bolt', 0, 0.06, 0.1);
-      box(bolt, M.metal, 0.05, 0.01, 0.018, 0, 0, 0);
-      charge = new THREE.Vector3(-0.02, 0.06, 0.1);
-      sightY = 0.085; muzzleZ = -0.7; offset.set(0, 0, -0.04);
-      break;
-    }
-    case 'smg': {
-      box(g, M.metal, 0.05, 0.07, 0.26, 0, 0, -0.03);
-      box(g, M.poly, 0.056, 0.055, 0.16, 0, -0.004, -0.23);
-      cyl(g, M.metal, 0.012, 0.012, 0.12, 0, 0.004, -0.36);
-      box(g, M.poly, 0.03, 0.085, 0.04, 0, -0.07, 0.07, -0.3);
-      box(g, M.metal, 0.02, 0.05, 0.16, 0, -0.01, 0.17);
-      reflex(g, M, 0.075, -0.05, 0.038, 0.032);
-      const mag = part(g, parts, 'mag', 0, -0.13, -0.06, 0.12);
-      box(mag, M.poly, 0.03, 0.2, 0.05, 0, 0, 0);
-      const bolt = part(g, parts, 'bolt', -0.032, 0.02, -0.14);
-      box(bolt, M.metal, 0.02, 0.012, 0.03, 0, 0, 0);
-      charge = new THREE.Vector3(-0.05, 0.02, -0.14);
-      sightY = 0.075; muzzleZ = -0.43; foreZ = -0.22;
-      break;
-    }
-    case 'lmg': {
-      box(g, M.metal, 0.07, 0.09, 0.42, 0, 0, -0.04);
-      box(g, M.poly, 0.07, 0.07, 0.24, 0, -0.005, -0.36);
-      cyl(g, M.metal, 0.015, 0.015, 0.36, 0, 0.008, -0.64);
-      cyl(g, M.poly, 0.022, 0.018, 0.07, 0, 0.008, -0.84);
-      box(g, M.poly, 0.032, 0.09, 0.042, 0, -0.08, 0.1, -0.3);
-      box(g, M.poly, 0.05, 0.08, 0.22, 0, -0.015, 0.25);
-      box(g, M.metal, 0.012, 0.012, 0.2, 0.02, -0.04, -0.52, 0.1);
-      box(g, M.metal, 0.012, 0.012, 0.2, -0.02, -0.04, -0.52, 0.1);
-      const cover = part(g, parts, 'cover', 0, 0.06, 0.04);
-      box(cover, M.metal, 0.05, 0.03, 0.2, 0, 0, -0.1);
-      reflex(cover, M, 0.043, -0.13, 0.046, 0.04);
-      const mag = part(g, parts, 'mag', -0.01, -0.1, -0.05);
-      box(mag, M.olive, 0.1, 0.11, 0.12, 0, 0, 0);
-      box(mag, M.metal, 0.02, 0.05, 0.02, 0.03, 0.07, 0); // belt feeding up into the gun
-      const bolt = part(g, parts, 'bolt', 0.042, -0.005, -0.1);
-      box(bolt, M.metal, 0.018, 0.018, 0.035, 0, 0, 0);
-      charge = new THREE.Vector3(0.05, -0.02, -0.1);
-      boltTravel = 0.1;
-      sightY = 0.103; muzzleZ = -0.88; foreZ = -0.34; offset.set(0.01, 0, -0.1);
-      break;
-    }
-    case 'sniper': {
-      box(g, M.metal, 0.05, 0.07, 0.4, 0, 0, -0.06);
-      cyl(g, M.metal, 0.012, 0.014, 0.55, 0, 0.012, -0.52);
-      cyl(g, M.poly, 0.02, 0.02, 0.08, 0, 0.012, -0.82);
-      cyl(g, M.poly, 0.022, 0.022, 0.3, 0, 0.088, -0.07);
-      cyl(g, M.poly, 0.03, 0.026, 0.06, 0, 0.088, -0.24);
-      cyl(g, M.poly, 0.027, 0.024, 0.05, 0, 0.088, 0.1);
-      box(g, M.metal, 0.02, 0.03, 0.03, 0, 0.055, -0.07);
-      box(g, M.tan, 0.052, 0.09, 0.32, 0, -0.03, 0.28);
-      box(g, M.tan, 0.055, 0.05, 0.3, 0, -0.03, -0.22);
-      box(g, M.poly, 0.03, 0.085, 0.04, 0, -0.07, 0.08, -0.3);
-      const mag = part(g, parts, 'mag', 0, -0.07, -0.04);
-      box(mag, M.poly, 0.034, 0.07, 0.07, 0, 0, 0);
-      // bolt handle sticks out to the right; it lifts, pulls back, pushes forward and locks down
-      const bolt = part(g, parts, 'bolt', 0.0, 0.015, 0.06);
-      box(bolt, M.metal, 0.05, 0.012, 0.012, 0.035, 0, 0);
-      box(bolt, M.metal, 0.02, 0.02, 0.02, 0.064, 0, 0);
-      box(bolt, M.metal, 0.026, 0.026, 0.1, 0, 0, -0.04);
-      parts.bolt.userData.rotary = true;
-      charge = new THREE.Vector3(0.07, 0.015, 0.06);
-      boltTravel = 0.085;
-      sightY = 0.088; muzzleZ = -0.86; foreZ = -0.26; offset.set(0.02, -0.01, -0.18);
-      break;
-    }
-    case 'pistol': {
-      box(g, M.poly, 0.028, 0.028, 0.14, 0, -0.008, -0.04);
-      box(g, M.poly, 0.028, 0.095, 0.045, 0, -0.062, 0.02, -0.25);
-      const slide = part(g, parts, 'slide', 0, 0.022, -0.05);
-      box(slide, M.metal, 0.03, 0.035, 0.18, 0, 0, 0);
-      box(slide, M.metal, 0.006, 0.01, 0.006, 0, 0.022, -0.08);
-      box(slide, M.metal, 0.012, 0.008, 0.006, 0, 0.021, 0.08);
-      const mag = part(g, parts, 'mag', 0, -0.062, 0.02, -0.25);
-      box(mag, M.metal, 0.022, 0.1, 0.036, 0, -0.004, 0);
-      box(mag, M.poly, 0.031, 0.012, 0.05, 0, -0.053, 0);
-      charge = new THREE.Vector3(-0.005, 0.03, 0.02);
-      boltTravel = 0.035;
-      sightY = 0.046; muzzleZ = -0.16; gripZ = 0.02; foreZ = 0.0; foreY = -0.06; offset.set(-0.03, 0.02, 0.02);
-      break;
-    }
-    case 'shotgun': {
-      box(g, M.metal, 0.055, 0.07, 0.3, 0, 0, -0.03);
-      cyl(g, M.metal, 0.016, 0.016, 0.5, 0, 0.018, -0.42);
-      cyl(g, M.poly, 0.019, 0.019, 0.36, 0, -0.022, -0.36);
-      box(g, M.poly, 0.032, 0.085, 0.042, 0, -0.07, 0.07, -0.3);
-      box(g, M.tan, 0.05, 0.085, 0.24, 0, -0.02, 0.22);
-      box(g, M.metal, 0.012, 0.012, 0.012, 0, 0.042, -0.65);
-      box(g, M.metal, 0.02, 0.014, 0.02, 0, 0.042, -0.06);
-      box(g, M.poly, 0.03, 0.006, 0.07, 0, -0.037, -0.04); // loading port
-      const pump = part(g, parts, 'pump', 0, -0.024, -0.34);
-      box(pump, M.tan, 0.058, 0.05, 0.16, 0, 0, 0);
-      port = new THREE.Vector3(0, -0.05, -0.04);
-      boltTravel = 0.09;
-      sightY = 0.045; muzzleZ = -0.68; foreZ = -0.34; offset.set(0, 0, -0.06);
-      break;
-    }
-    case 'rpg': {
-      cyl(g, M.olive, 0.042, 0.042, 1.0, 0.0, 0.0, -0.1);
-      cyl(g, M.olive, 0.05, 0.05, 0.12, 0, 0, 0.38);
-      const warhead = new THREE.Mesh(new THREE.ConeGeometry(0.075, 0.26, 10), M.olive);
-      warhead.rotation.x = -Math.PI / 2;
-      warhead.position.set(0, 0, -0.78);
-      g.add(warhead);
-      cyl(g, M.olive, 0.045, 0.06, 0.14, 0, 0, -0.6);
-      box(g, M.poly, 0.03, 0.09, 0.04, 0, -0.08, 0.06, -0.3);
-      box(g, M.poly, 0.03, 0.08, 0.04, 0, -0.07, -0.22, -0.2);
-      box(g, M.metal, 0.018, 0.05, 0.04, -0.055, 0.05, -0.16);
-      sightY = 0.07; muzzleZ = -0.9; foreZ = -0.22; offset.set(0.1, -0.03, -0.3);
-      break;
-    }
-    case 'ugl':
-      box(g, M.metal, 0.06, 0.08, 0.22, 0, 0, -0.02);
-      cyl(g, M.metal, 0.03, 0.03, 0.3, 0, 0.0, -0.25);
-      box(g, M.poly, 0.032, 0.09, 0.042, 0, -0.07, 0.07, -0.3);
-      box(g, M.poly, 0.046, 0.07, 0.2, 0, -0.01, 0.2);
-      box(g, M.metal, 0.012, 0.05, 0.012, 0, 0.06, -0.28);
-      box(g, M.metal, 0.02, 0.03, 0.02, 0, 0.055, 0.04);
-      sightY = 0.07; muzzleZ = -0.42; foreZ = -0.25;
-      break;
     case 'crate':
       box(g, M.olive, 0.42, 0.26, 0.3, -0.12, -0.08, -0.12);
       box(g, M.tan, 0.43, 0.05, 0.31, -0.12, -0.05, -0.12);
@@ -401,9 +182,10 @@ function buildViewmodel(kind) {
       sightY = 0.12; muzzleZ = -0.12; gripZ = 0.0; foreZ = -0.2; foreY = -0.1;
       break;
   }
-  detailGun(kind, g, parts, M);
   return finishViewmodel(g, parts, { kind, sightY, muzzleY, muzzleZ, gripZ, foreZ, foreY, offset, charge, port, boltTravel });
 }
+
+export { buildViewmodel };
 
 // The fixed parts of a viewmodel (everything but the moving parts, the left hand and the forearm) merged into one
 // mesh per material: dozens of little rail teeth and screws cost one draw call instead of one each
@@ -1102,7 +884,7 @@ export class PlayerController {
     const vm = this.vm;
     if (!vm || !this.cases || vm.kind === 'rpg' || vm.kind === 'ugl' || vm.kind === 'sniper' || vm.kind === 'crate' || vm.kind === 'c4') return;
     const PORT = { ar: [0.03, 0.008, -0.02], smg: [0.028, 0.01, -0.07], lmg: [0.04, 0.0, -0.06], pistol: [0.016, 0.03, -0.06], shotgun: [0.03, 0.006, -0.02] };
-    const p = PORT[vm.kind] || (vm.parts.bolt ? [vm.parts.bolt.position.x + 0.03, vm.parts.bolt.position.y, vm.parts.bolt.position.z] : [0.03, 0.01, -0.03]);
+    const p = vm.eject || PORT[vm.kind] || (vm.parts.bolt ? [vm.parts.bolt.position.x + 0.03, vm.parts.bolt.position.y, vm.parts.bolt.position.z] : [0.03, 0.01, -0.03]);
     const c = this.cases[this.caseN++ % this.cases.length], u = c.userData;
     const shell = vm.kind === 'shotgun';
     c.geometry = shell ? u.big : u.small;
@@ -1239,7 +1021,7 @@ export class PlayerController {
       roll = 1;
       const len = mag.userData.len;
       if (st === 'out') {
-        if (cover) cover.rotation.x = 1.1 * seg(p, 0.3, 0.45);
+        if (cover) cover.rotation.x = (cover.userData.open ?? 1.1) * seg(p, 0.3, 0.45);
         const grab = magAt(0, _pb).add(GRAB);
         const t0 = cover ? 0.45 : 0.4;
         hand.lerpVectors(vm.lhBase, grab, seg(p, cover ? 0.1 : 0, t0));
@@ -1258,7 +1040,7 @@ export class PlayerController {
           }
         }
       } else {
-        if (cover) cover.rotation.x = 1.1 * (1 - seg(p, 0.82, 1));
+        if (cover) cover.rotation.x = (cover.userData.open ?? 1.1) * (1 - seg(p, 0.82, 1));
         magAt(len * 0.7, _pb);
         if (p < 0.55) mag.position.lerpVectors(POUCH, _pb, seg(p, 0, 0.55));
         else mag.position.lerpVectors(_pb, mag.userData.base, seg(p, 0.55, 0.76));
@@ -1335,7 +1117,7 @@ export class PlayerController {
 
     const a = s.adsT;
     const hip = _v.set(0.2, -0.2, -0.47);
-    const ads = _e.set(0, -vm.sightY, -0.37);
+    const ads = _e.set(0, -vm.sightY, vm.adsZ ?? -0.37);
     const p = this.vmRoot.position;
     p.lerpVectors(hip, ads, a * a * (3 - 2 * a));
     p.x += vm.offset.x * (1 - a); p.y += vm.offset.y * (1 - a); p.z += vm.offset.z;

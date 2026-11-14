@@ -128,6 +128,14 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   - Engineer: VX-9 PDW, RPG-7V (wrecks tanks and walls)
   - Support: KR-250 LMG, supply crates (health and ammo), revives twice as fast
   - Recon: SR-338 bolt-action with a scope that auto-spots, C-4 charges
+- **The guns in your hands** are modelled in detail from the real guns' measurements: the carbine is an M4A1 with
+  flat dark earth furniture, a front sight base, an A2 flash hider and a holographic sight; the PDW an MP7 with its
+  magazine in the grip, the foregrip let down and a red dot; the LMG an M249 with its belt rising from the pouch
+  into the feed cover, the carry handle, heat shield and folded bipod; the sniper rifle an AWM in its green
+  thumbhole stock with a big scope; the sidearm a Glock 19; the shotgun a pump gun with a ghost-ring sight; the
+  RPG-7V with its wooden heat guards, optical sight and a PG-7V rocket; the 40mm launcher an M203 under the
+  carbine. Their magazines, bolts, slides, pumps and the M249's feed cover (hinged at the front, like the real one)
+  move as you reload, and the armory's attachments fit them.
 - **Tanks**: drivable MBT with a stabilised turret, 120mm cannon, coaxial MG, third-person and gunner
   zoom views. Tanks crush walls, trees and soldiers. Bots drive them too. Both sides' tanks are **real 3D models**:
   Vanguard's the **M1 Abrams** (each track link a plate, the hull, turret, gun and roof machine guns) and Onyx's the
@@ -795,7 +803,7 @@ Bundled examples: the three battle types (Tank Warfare, Aviation, Naval), Multip
 the B-2A and Tu-160) for Aviation battles, Career
 (research and buy ships, aircraft and guns), Armory (earn credits from kills and upgrade your guns with
 suppressors and more), Vehicle Interiors (sit inside tanks and the
-cockpits of jets, bombers and helicopters), Random Wheel (a random map and game mode before every match), HD Weapons (detailed gun models),
+cockpits of jets, bombers and helicopters), Random Wheel (a random map and game mode before every match), HD Weapons (reflections, flying brass and barrel smoke),
 HD Knife (a real hand holding a detailed knife), Aggressive Reloads, five game modes (Capture the Flag, King of the
 Hill, Gun Game, Hardpoint, Last Stand) plus Team Deathmatch, four extra maps (Dust Ridge, Iron Forest, Old Town,
 Karsa Outskirts), Heavy Arsenal, Commander Call-ins (airstrikes and reinforcements), Jetpack, Explosive Rounds,
@@ -880,6 +888,7 @@ The game is split into small ES modules under `js/`:
 | `vehicles.js` | Tank driving, turret, cannon, roadkill and wall crushing |
 | `ai.js` | Bot brains for infantry and tank crews |
 | `player.js` | First-person controller, viewmodels, tank camera, death camera |
+| `guns.js` | The first-person guns, modelled in detail (side profiles, turned parts, rails, sights) |
 | `conquest.js` | Flags, capture, tickets, scoring, spawns, revives |
 | `hud.js` | HUD, minimap, markers, crosshair, scoreboard, full map |
 | `ui.js` | Main menu, deploy screen, pause and after-action report |
