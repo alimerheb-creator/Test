@@ -941,9 +941,11 @@ The real 3D models, converted and slimmed for the game:
 The T-90's licence allows no commercial use, so while it is in the game the game stays free: nothing sold, no ads,
 no paid items.
 - **UH-60M Black Hawk**: "UH-60 Blackhawk" from done3d.com.
-- **The modern soldier**: a model by ShaderMussolini, under the Creative Commons Attribution 4.0 licence
-  (https://creativecommons.org/licenses/by/4.0/). Changed for the game: given a skeleton and skin weights, slimmed
-  into three versions (one already posed for far away), its texture made smaller, and recoloured black for Onyx.
+- **The modern soldier**: "A soldier mercenary with helmet and yellow visor" by ShaderMussolini on Sloyd
+  (https://www.sloyd.ai/free-3d-models/model/a-soldier-mercenary-with-helmet-and-yellow-visor-bdzudph4),
+  under the Creative Commons Attribution 4.0 licence (https://creativecommons.org/licenses/by/4.0/). Changed for
+  the game: given a skeleton and skin weights, slimmed into three versions (one already posed for far away), its
+  texture made smaller, and recoloured black for Onyx.
 - **AH-64E Apache, M1 Abrams and F/A-18E Super Hornet**: free models from their makers; their names will be added
   here.
 

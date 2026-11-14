@@ -1,5 +1,5 @@
-// The modern soldier: a 3D model by ShaderMussolini (Creative Commons Attribution 4.0: credited in the README and on
-// the controls screen, with what was changed), given a skeleton
+// The modern soldier: "A soldier mercenary with helmet and yellow visor" by ShaderMussolini on Sloyd (Creative Commons
+// Attribution 4.0: credited in the README and on the controls screen, with what was changed), given a skeleton
 // and skin weights for the game (17 bones: hips, spine, chest, neck, head, the arms and the legs; weights measured
 // through the body from each bone) and slimmed: soldier.js builds it and poses it. Period armies keep their own
 // soldiers. Three versions: the full one close up (hi), a lighter one (mid) and one already posed aiming for far
