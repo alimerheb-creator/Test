@@ -123,6 +123,13 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   rockets, a bomb) and it shudders, leans and sinks slowly into a rolling cloud of its own dust, sparks spraying out of
   the crush, glass glittering down the face, slabs tumbling off it, the ground shaking under you, and leaves a smoking
   heap of rubble. Anyone under it is crushed. The map shows them; Career Mode's historical missions don't have them.
+- **Soldiers**: a real 3D model of a modern soldier (rail helmet with an amber visor and a mask, plate carrier and
+  pouches, radio, knee pads), given a skeleton for the game. They walk, run, crouch, kneel, go prone propped on
+  their elbows with the rifle along the ground, bring the rifle up to the shoulder to fight and carry it at the low
+  ready when they run, and fall when they're shot (on their back, front or side, the rifle dropping beside them).
+  Vanguard wear olive and tan, Onyx black. The full model close up, a lighter one further off and a simple one far
+  away (all the far ones in one go), so a battle full of them draws faster than the old blocky soldiers did. Career
+  Mode's historical missions keep their period soldiers.
 - **Four classes**
   - Assault: M4K carbine, underbarrel 40mm launcher, 2 frags
   - Engineer: VX-9 PDW, RPG-7V (wrecks tanks and walls)
@@ -883,7 +890,8 @@ The game is split into small ES modules under `js/`:
 | `buildings.js` | Destructible buildings, collapse logic, rubble |
 | `weather.js` | Rain and storms: the falling drops, splashes, wet ground, lightning and thunder |
 | `towers.js` | Skyscrapers: placing them, their facades, fires, the collapse (dust, sparks, falling slabs) and rubble |
-| `soldier.js` | Soldier movement physics, health/downed state, animated model |
+| `soldier.js` | Soldier movement physics, health/downed state; the modern soldier's skeleton and poses, the period soldiers' models |
+| `trooper.js` | The modern soldier: the 3D model with its skin weights in three versions, and its texture |
 | `weapons.js` | Guns, hitscan bullets, projectiles, explosions, crates, melee, spotting |
 | `vehicles.js` | Tank driving, turret, cannon, roadkill and wall crushing |
 | `ai.js` | Bot brains for infantry and tank crews |
@@ -933,6 +941,8 @@ The real 3D models, converted and slimmed for the game:
 The T-90's licence allows no commercial use, so while it is in the game the game stays free: nothing sold, no ads,
 no paid items.
 - **UH-60M Black Hawk**: "UH-60 Blackhawk" from done3d.com.
+- **The modern soldier**: a free model from its maker, given a skeleton and three versions for the game; the
+  maker's name will be added here.
 - **AH-64E Apache, M1 Abrams and F/A-18E Super Hornet**: free models from their makers; their names will be added
   here.
 

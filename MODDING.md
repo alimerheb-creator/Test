@@ -270,6 +270,10 @@ The first team's tank is the M1 Abrams model (`js/abrams.js`), the second's the 
 body (the tracks, guns, lamps and stowage keep their own colours), and changing it rebuilds the model once for every
 tank of that team.
 
+A modern team's soldiers are the real soldier model (`js/trooper.js`). Its uniform shows as it is for Vanguard's own
+`top` colour (olive and tan); any other `top` greys the whole uniform and tints it that colour (the amber visor keeps
+its own), which is how Onyx is in black. `helmet`, `pants` and `vest` dress the period soldiers only.
+
 For an army of the world wars, `gear` dresses the team in period kit instead of plate carriers and rail helmets:
 `brodie` (British), `stahlhelm16` (German, 1916, with the side lugs), `stahlhelm` (German, later), `m1`
 (American), `ssh40` (Soviet) or `adrian` (French), with webbing in the `vest` colour, leggings in `puttees` and

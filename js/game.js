@@ -477,7 +477,7 @@ export class Game extends Emitter {
       for (const s of this.soldiers) if (s.brain) s.brain.update(dt);
       // (far-off soldiers are gathered into one draw per uniform while they update, see soldierLod)
       soldierLod.on = !this.dedicated;
-      soldierLod.begin(this.camera);
+      soldierLod.begin(this.camera, this.qualityName());
       for (const s of this.soldiers) s.update(dt);
       soldierLod.end();
       for (const v of this.vehicles) v.update(dt);

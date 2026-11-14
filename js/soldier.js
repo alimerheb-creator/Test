@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { TEAMS, MOVE, RULES, CLASSES, WEAPONS, GADGETS, PLAY_HALF } from './config.js';
 import { raySphere, rayAABB, dirFromAngles, pick, clamp } from './util.js';
 import { Gun } from './weapons.js';
+import { TROOPER } from './trooper.js';
 
 export const RADIUS = 0.34;
 const STEP = 0.55;
@@ -14,8 +15,8 @@ const _tmp = [];
 const _v = new THREE.Vector3(), _d = new THREE.Vector3();
 
 // ---------------------------------------------------------------- shared model geometry
-// Soldiers are built from smooth lathed limbs, rounded boxes and spheres, merged per body part with vertex
-// colours. A 'camo' vertex attribute marks fabric: the material paints a two-tone camouflage and cloth grain
+// Modern soldiers are a real 3D model with bones (see trooper() further down). The period armies' soldiers are built
+// from smooth lathed limbs, rounded boxes and spheres, merged per body part with vertex colours. A 'camo' vertex attribute marks fabric: the material paints a two-tone camouflage and cloth grain
 // on it in object space, so the pattern sticks to the uniform as the limbs move.
 // one material per team: they differ only in the rim of light round the outline (see setSoldierRim)
 const MATS = [null, null];
@@ -440,9 +441,12 @@ function modelGeos(team, skin) {
 function soldierMaterial() {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.86, metalness: 0.03, envMapIntensity: 0.55 });
   const rim = (m.userData.rim = { value: new THREE.Color(0, 0, 0) }), heat = (m.userData.heat = { value: 0 });
+  // (how much of the rim up close: the modern soldier's rifle has less, like him)
+  const rimNear = (m.userData.rimNear = { value: 0.2 });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uRim = rim;
     sh.uniforms.uHeat = heat;
+    sh.uniforms.uRimNear = rimNear;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float camo;\nvarying float vCamo;\nvarying vec3 vObjP;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCamo = camo;\nvObjP = position;');
@@ -453,13 +457,14 @@ function soldierMaterial() {
   float rimF = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 1.7);
   float far = smoothstep(10.0, 120.0, length(vViewPosition));
   // the outline, and further off a glow over the whole figure (a far soldier is only a few pixels: no edge to light)
-  totalEmissiveRadiance += uRim * (rimF * (0.2 + 0.8 * far) + 0.42 * far * far);
+  totalEmissiveRadiance += uRim * (rimF * (uRimNear + (1.0 - uRimNear) * far) + 0.42 * far * far);
   // heat vision: bodies glow white-hot, brightest face-on (the warm skin and breath), a little less at the edges
   totalEmissiveRadiance += vec3(1.25, 1.18, 1.1) * uHeat * (1.0 - 0.45 * rimF);
 }`)
       .replace('#include <common>', `#include <common>
 uniform vec3 uRim;
 uniform float uHeat;
+uniform float uRimNear;
 varying float vCamo;
 varying vec3 vObjP;
 float sfH(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -486,8 +491,7 @@ if (vCamo > 0.01) {
 // (brighter at a distance, where they'd otherwise melt into the ground). strength 0 turns it off.
 const RIM_ENEMY = new THREE.Color(1.0, 0.36, 0.16), RIM_FRIEND = new THREE.Color(0.3, 0.55, 1.0);
 export function setSoldierRim(playerTeam, strength = 1, heat = 0) {
-  for (let t = 0; t < 2; t++) {
-    const m = MATS[t];
+  for (let t = 0; t < 2; t++) for (const m of [MATS[t], TMATS[t], RMATS[t]]) {
     if (!m) continue;
     m.userData.rim.value.copy(t === playerTeam ? RIM_FRIEND : RIM_ENEMY).multiplyScalar((t === playerTeam ? 0.32 : 0.7) * strength * (1 - heat));
     m.userData.heat.value = heat;
@@ -497,6 +501,7 @@ export function setSoldierRim(playerTeam, strength = 1, heat = 0) {
 // Mods can recolour uniforms; drop cached geometry so the next soldiers pick it up
 export function clearSoldierModelCache() {
   GEO.clear();
+  RIFLES.clear();
 }
 
 // ---------------------------------------------------------------- far-off soldiers
@@ -531,9 +536,11 @@ const _lm = new THREE.Matrix4(), _lr = new THREE.Matrix4(), _lp = new THREE.Vect
 export const soldierLod = {
   on: true, scene: null, sets: new Map(),
   // (each frame: count the far ones again, then hand the counts to the meshes)
-  begin(camera) {
+  begin(camera, quality = 'high') {
     this.cam = camera;
-    this.far2 = (LOD_FAR * Math.max(1, 70 / (camera.fov || 70))) ** 2;
+    const zoom = Math.max(1, 70 / (camera.fov || 70));
+    this.far2 = (LOD_FAR * zoom) ** 2;
+    this.near2 = ((TR_NEAR[quality] || 22) * zoom) ** 2;
     for (const L of this.sets.values()) L.n = 0;
   },
   far(s) {
@@ -541,6 +548,13 @@ export const soldierLod = {
     if (!this.on || !c || s.ride || s.isPlayer) return false;
     const dx = s.pos.x - c.position.x, dy = s.pos.y - c.position.y, dz = s.pos.z - c.position.z;
     return dx * dx + dy * dy + dz * dz > this.far2;
+  },
+  // (the modern soldier: his full model this close, the lighter one further off)
+  near(s) {
+    const c = this.cam;
+    if (!c) return true;
+    const dx = s.pos.x - c.position.x, dy = s.pos.y - c.position.y, dz = s.pos.z - c.position.z;
+    return dx * dx + dy * dy + dz * dz < this.near2;
   },
   add(s, mat) {
     const g = s._geos;
@@ -573,6 +587,184 @@ const smooth = (t) => { t = t < 0 ? 0 : t > 1 ? 1 : t; return t * t * (3 - 2 * t
 const lerp = (a, b, t) => a + (b - a) * t;
 // Shin angle (relative to the thigh) that keeps the foot on the ground for a hip joint height and thigh angle.
 const kneeFor = (hj, a) => -Math.acos(clamp((hj - 0.44 * Math.cos(a)) / 0.48, -1, 1)) - a;
+
+// ---------------------------------------------------------------- the modern soldier: a real model with bones
+// (trooper.js: the model and its skin weights in three versions.) Each soldier has his own 17 bones, which his close
+// and lighter versions share; far off he's one instance of the far version (already posed aiming) like the blocky
+// soldiers. His legs move as theirs do. His arms reach for the rifle, which his chest carries: how they hold it
+// aiming and at the low ready is worked out once (a two-bone reach for each hand), and he blends between the two.
+// The period armies (a team with gear) keep the blocky soldiers.
+const TR_NEAR = { low: 12, medium: 16, high: 22, ultra: 34 };
+const TR_THIGH = 0.423, TR_SHIN = 0.5;
+const trKnee = (hj, a) => -Math.acos(clamp((hj - TR_THIGH * Math.cos(a)) / TR_SHIN, -1, 1)) - a;
+const TMATS = [null, null], RMATS = [null, null];
+const RIFLES = new Map();
+let TRP = null;
+const V3 = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+const QE = (x, y, z, o = 'XYZ') => new THREE.Quaternion().setFromEuler(new THREE.Euler(x, y, z, o));
+
+function trooperBones() {
+  const B = TROOPER.bones;
+  const bones = B.map((b) => { const o = new THREE.Bone(); o.name = b.n; return o; });
+  B.forEach((b, i) => {
+    if (b.p >= 0) { bones[b.p].add(bones[i]); const p = B[b.p].at; bones[i].position.set(b.at[0] - p[0], b.at[1] - p[1], b.at[2] - p[2]); }
+    else bones[i].position.set(b.at[0], b.at[1], b.at[2]);
+  });
+  const by = {};
+  for (const o of bones) by[o.name] = o;
+  return { bones, by };
+}
+
+// Two-bone reach: the arm's three local turns that put the wrist at W with the elbow toward pole and the hand turned
+// to H (all in the arm's parent's frame).
+function reach(up, fore, hand, W, pole, H) {
+  const S = up.position, L1 = fore.position.length(), L2 = hand.position.length();
+  const d = W.clone().sub(S), len = Math.min(d.length(), L1 + L2 - 1e-4);
+  d.normalize();
+  const a = (L1 * L1 - L2 * L2 + len * len) / (2 * len), h = Math.sqrt(Math.max(0, L1 * L1 - a * a));
+  const p = pole.clone().addScaledVector(d, -pole.dot(d)).normalize();
+  const E = S.clone().addScaledVector(d, a).addScaledVector(p, h), Wc = S.clone().addScaledVector(d, len);
+  const q1 = new THREE.Quaternion().setFromUnitVectors(fore.position.clone().normalize(), E.clone().sub(S).normalize());
+  const q2 = new THREE.Quaternion().setFromUnitVectors(hand.position.clone().normalize(), Wc.sub(E).normalize().applyQuaternion(q1.clone().invert()));
+  return [q1, q2, q1.clone().multiply(q2).invert().multiply(H)];
+}
+
+// The two carries: the rifle's place standing straight (body frame: feet at 0, facing -z) and turn, how far the
+// shoulders turn (the left one forward), where the hands hold it (rifle frame), which way the elbows point and how
+// the hands turn on it.
+const CARRY = {
+  aim: { twist: -0.55, at: [0.1, 1.5, -0.28], rot: [0, 0, 0], lh: [0, -0.005, -0.2], poleR: [1, -1.2, 0.3], poleL: [-0.3, -1, 0], hR: [0.75, 0, 0], hL: [1.4, 0, -0.5], head: [-0.1, 0.44, -0.12] },
+  low: { twist: -0.3, at: [0.13, 1.22, -0.3], rot: [-0.5, 0.85, 0.35], lh: [0, -0.005, -0.2], poleR: [1, -1, 0.4], poleL: [-0.6, -1, -0.1], hR: [0.4, 0.5, 0], hL: [1.2, 0.6, -0.4], head: [0, 0.24, 0] },
+  // prone (lying face down, so the body's up is forward and its front the ground): the chest propped on the elbows,
+  // the head raised to look ahead, the rifle along the ground in front of the face
+  prone: { twist: -0.2, spine: 0.22, chest: 0.2, neck: 0.45, at: [0.1, 1.74, -0.06], rot: [Math.PI / 2 - 0.08, 0, 0], lh: [0, -0.005, -0.2], poleR: [0.7, 0, -1], poleL: [-0.7, 0, -1], hR: [0.75, 0, 0], hL: [1.4, 0, -0.5], head: [0.55, 0.15, 0] },
+};
+const ARMS = ['upperArmR', 'foreArmR', 'handR', 'upperArmL', 'foreArmL', 'handL'];
+function carryPose(c) {
+  const { by } = trooperBones();
+  by.spine.rotation.set(c.spine || 0, c.twist * 0.4, 0);
+  by.chest.rotation.set(c.chest || 0, c.twist * 0.6, 0);
+  by.neck.rotation.set(c.neck || 0, 0, 0);
+  by.hips.updateMatrixWorld(true);
+  const want = new THREE.Matrix4().compose(V3(c.at), QE(c.rot[0], c.rot[1], c.rot[2], 'YXZ'), new THREE.Vector3(1, 1, 1));
+  const gun = new THREE.Matrix4().copy(by.chest.matrixWorld).invert().multiply(want);
+  const gunPos = new THREE.Vector3(), gunQuat = new THREE.Quaternion();
+  gun.decompose(gunPos, gunQuat, new THREE.Vector3());
+  const arms = [];
+  for (const s of ['R', 'L']) {
+    const grip = V3(s === 'R' ? [0, 0, 0] : c.lh).applyMatrix4(gun);
+    const hr = s === 'R' ? c.hR : c.hL, H = gunQuat.clone().multiply(QE(hr[0], hr[1], hr[2], 'YXZ'));
+    // (the palm's middle, from the wrist, in the hand's own frame)
+    const W = grip.sub(new THREE.Vector3(s === 'R' ? 0.016 : -0.016, -0.09, -0.03).applyQuaternion(H));
+    arms.push(...reach(by['upperArm' + s], by['foreArm' + s], by['hand' + s], W, V3(s === 'R' ? c.poleR : c.poleL), H));
+  }
+  return { twist: c.twist, spine: c.spine || 0, chest: c.chest || 0, neck: QE(c.neck || 0, 0, 0), gunPos, gunQuat, arms, head: QE(c.head[0], c.head[1], c.head[2], 'YXZ') };
+}
+
+function trooper() {
+  if (TRP) return TRP;
+  const D = TROOPER;
+  const raw = atob(D.bin), buf = new ArrayBuffer(raw.length), u8 = new Uint8Array(buf);
+  for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
+  const geo = {};
+  for (const t of D.tiers) {
+    const n = t.v, P = new Int16Array(buf, t.po, n * 3), U = new Uint16Array(buf, t.uo, n * 2);
+    const pos = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+    for (let i = 0; i < n * 3; i++) { const j = i % 3; pos[i] = t.lo[j] + ((P[i] + 32767) / 65534) * (t.hi[j] - t.lo[j]); }
+    for (let i = 0; i < n * 2; i++) uv[i] = U[i] / 65535;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(new Int8Array(buf, t.no, n * 3), 3, true));
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    if (t.so !== undefined) {
+      g.setAttribute('skinIndex', new THREE.BufferAttribute(new Uint8Array(buf, t.so, n * 4), 4));
+      g.setAttribute('skinWeight', new THREE.BufferAttribute(new Uint8Array(buf, t.wo, n * 4), 4, true));
+    }
+    g.setIndex(new THREE.BufferAttribute(t.i32 ? new Uint32Array(buf, t.io, t.i) : new Uint16Array(buf, t.io, t.i), 1));
+    g.computeBoundingSphere();
+    geo[t.n] = g;
+  }
+  // the far figure's rifle: a few boxes where the far version holds it, painted from a dark spot of the texture
+  const F = geo.far, gm = new THREE.Matrix4().fromArray(D.tiers.find((t) => t.n === 'far').gun);
+  const boxes = [[0.042, 0.095, 0.2, 0, 0.035, 0.19], [0.04, 0.09, 0.3, 0, 0.06, -0.07], [0.03, 0.1, 0.045, 0, -0.03, 0.015], [0.03, 0.13, 0.06, 0, -0.04, -0.105], [0.05, 0.05, 0.27, 0, 0.075, -0.32], [0.02, 0.02, 0.26, 0, 0.075, -0.58]];
+  const pos = [...F.attributes.position.array], nor = [], uv = [...F.attributes.uv.array], idx = [...F.index.array];
+  const fn = F.attributes.normal;
+  for (let i = 0; i < fn.count; i++) nor.push(fn.getX(i), fn.getY(i), fn.getZ(i));
+  for (const [w, h, d, x, y, z] of boxes) {
+    const b = new THREE.BoxGeometry(w, h, d).translate(x, y, z).applyMatrix4(gm), base = pos.length / 3;
+    pos.push(...b.attributes.position.array); nor.push(...b.attributes.normal.array);
+    for (let i = 0; i < b.attributes.position.count; i++) uv.push(D.dark[0], D.dark[1]);
+    for (const k of b.index.array) idx.push(k + base);
+    b.dispose();
+  }
+  const far = new THREE.BufferGeometry();
+  far.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  far.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  far.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  far.setIndex(idx);
+  far.computeBoundingSphere();
+  F.dispose();
+  const tex = new THREE.TextureLoader().load(D.tex);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.flipY = false; tex.anisotropy = 4;
+  TRP = {
+    geo, far, tex,
+    // (each bone stands straight in the model: its rest frame is just where it is)
+    inv: D.bones.map((b) => new THREE.Matrix4().makeTranslation(-b.at[0], -b.at[1], -b.at[2])),
+    bind: new THREE.Matrix4(),
+    // (bounds for the camera: whatever the pose, the arms and the rifle stay within)
+    sphere: new THREE.Sphere(new THREE.Vector3(0, 0.95, -0.15), 1.2),
+    hip: D.bones[0].at[1], hipZ: D.bones[0].at[2],
+    aim: carryPose(CARRY.aim), low: carryPose(CARRY.low), prone: carryPose(CARRY.prone),
+    // dead: the arms flung out (on the back or front), or one forward (on the side)
+    dead: [QE(0.25, 0, 1.15), QE(0.55, 0, 0), QE(0, 0, 0), QE(0.25, 0, -1.0), QE(0.4, 0, 0), QE(0, 0, 0)],
+    deadSide: [QE(-1.1, 0, 0.25), QE(0.7, 0, 0), QE(0, 0, 0), QE(-0.5, 0, -0.45), QE(0.5, 0, 0), QE(0, 0, 0)],
+    // (one far set per team: they differ in the material)
+    lodKeys: [{ lod: far }, { lod: far }],
+  };
+  return TRP;
+}
+
+// The uniform's texture as it is for Vanguard's own colours; another army's colours grey it and tint it with their
+// top colour (the amber visor keeps its own). One material per team, which also carries the rim and heat vision.
+const V_TOP = new THREE.Color(0x6b6a4c);
+function trooperMaterial(team) {
+  let m = TMATS[team];
+  if (!m) {
+    m = TMATS[team] = new THREE.MeshStandardMaterial({ map: trooper().tex, roughness: 0.82, metalness: 0, envMapIntensity: 0.5 });
+    const rim = (m.userData.rim = { value: new THREE.Color(0, 0, 0) }), heat = (m.userData.heat = { value: 0 });
+    const recolor = (m.userData.recolor = { value: 0 }), tint = (m.userData.tint = { value: new THREE.Vector3(1, 1, 1) });
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uRim = rim; sh.uniforms.uHeat = heat; sh.uniforms.uRecolor = recolor; sh.uniforms.uTint = tint;
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nuniform vec3 uRim;\nuniform float uHeat;\nuniform float uRecolor;\nuniform vec3 uTint;')
+        .replace('#include <map_fragment>', `#include <map_fragment>
+if (uRecolor > 0.0) {
+  vec3 c = diffuseColor.rgb;
+  float l = dot(c, vec3(0.2126, 0.7152, 0.0722)), mx = max(c.r, max(c.g, c.b)), sat = (mx - min(c.r, min(c.g, c.b))) / max(mx, 1e-4);
+  float keep = smoothstep(0.45, 0.65, sat) * smoothstep(0.08, 0.2, mx);
+  diffuseColor.rgb = mix(c, mix(vec3(l), c, 0.3) * uTint, uRecolor * (1.0 - keep));
+}`)
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+{
+  // (the rim as the blocky soldiers', fainter up close: on the dark uniform it would paint him over)
+  float rimF = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 1.7);
+  float far = smoothstep(10.0, 120.0, length(vViewPosition));
+  totalEmissiveRadiance += uRim * (rimF * (0.06 + 0.94 * far) + 0.42 * far * far);
+  totalEmissiveRadiance += vec3(1.25, 1.18, 1.1) * uHeat * (1.0 - 0.45 * rimF);
+}`);
+    };
+  }
+  const top = new THREE.Color(TEAMS[team].top), lv = 0.2126 * V_TOP.r + 0.7152 * V_TOP.g + 0.0722 * V_TOP.b;
+  m.userData.recolor.value = top.equals(V_TOP) ? 0 : 1;
+  m.userData.tint.value.set(top.r / lv, top.g / lv, top.b / lv);
+  return m;
+}
+
+function rifleGeo(team) {
+  const T = TEAMS[team], key = team + ':' + (T.rifle || '');
+  if (!RIFLES.has(key)) RIFLES.set(key, merge(rifleParts(T, team)));
+  return RIFLES.get(key);
+}
 
 export class Soldier {
   constructor(game, { team, name, isPlayer = false, squad = 0, classId = 'assault' }) {
@@ -637,6 +829,8 @@ export class Soldier {
 
   // ------------------------------------------------------------ model
   _buildModel() {
+    const T = TEAMS[this.team];
+    if (!(T.gear && T.gear !== 'modern')) { this._buildTrooper(); return; }
     const MAT = MATS[this.team] || (MATS[this.team] = soldierMaterial());
     const g = modelGeos(this.team, this.skin);
     this._geos = g;
@@ -666,6 +860,30 @@ export class Soldier {
     root.add(body, rifle);
     root.visible = false;
     this.model = { root, body, hip, legL: L.thigh, legR: R.thigh, kneeL: L.knee, kneeR: R.knee, torso, rifle, pose: 'aim', poseT: 0 };
+    this.game.scene.add(root);
+  }
+
+  // The modern soldier (see trooper()): his own bones, his close and lighter versions on them, the rifle in his hands
+  // (carried by his chest) and another for when he falls
+  _buildTrooper() {
+    const D = trooper(), MAT = trooperMaterial(this.team);
+    let RM = RMATS[this.team];
+    if (!RM) { RM = RMATS[this.team] = soldierMaterial(); RM.userData.rimNear.value = 0.06; }
+    const root = new THREE.Group(), body = new THREE.Group();
+    const { bones, by } = trooperBones();
+    const skel = new THREE.Skeleton(bones, D.inv);
+    const hi = new THREE.SkinnedMesh(D.geo.hi, MAT), mid = new THREE.SkinnedMesh(D.geo.mid, MAT);
+    for (const m of [hi, mid]) { m.bind(skel, D.bind); m.boundingSphere = D.sphere; m.castShadow = true; m.receiveShadow = false; }
+    mid.visible = false;
+    const rg = rifleGeo(this.team), gun = new THREE.Mesh(rg, RM), rifle = new THREE.Mesh(rg, RM);
+    gun.castShadow = rifle.castShadow = true;
+    rifle.visible = false;
+    by.chest.add(gun);
+    body.add(bones[0], hi, mid);
+    root.add(body, rifle);
+    root.visible = false;
+    this._geos = D.lodKeys[this.team];
+    this.model = { real: true, root, body, b: by, arms: ARMS.map((n) => by[n]), hi, mid, gun, rifle, mat: MAT, carry: 0, pose: 'aim' };
     this.game.scene.add(root);
   }
 
@@ -988,8 +1206,14 @@ export class Soldier {
     m.root.visible = visible;
     if (!visible) return;
     // (far off: one instance of the merged figure, see soldierLod)
-    if (this.state === 'alive' && soldierLod.far(this)) { m.root.visible = false; soldierLod.add(this, MATS[this.team]); return; }
+    if (this.state === 'alive' && soldierLod.far(this)) { m.root.visible = false; soldierLod.add(this, m.real ? m.mat : MATS[this.team]); return; }
     m.root.position.copy(this.pos);
+    if (m.real) {
+      const near = soldierLod.near(this);
+      if (m.hi.visible !== near) { m.hi.visible = near; m.mid.visible = !near; }
+      if (this.state !== 'alive') this._ragdollTrooper(); else this._poseTrooper(dt);
+      return;
+    }
     if (this.state !== 'alive') { this._ragdoll(); return; }
     this._rag = null;
     m.rifle.visible = false;
@@ -1052,6 +1276,132 @@ export class Soldier {
       m.hip.rotation.y = sw * 0.14;
       m.torso.rotation.set(this.pitch * 0.7 - (this.sprinting ? 0.3 : amp * 0.06) + breathe, -sw * 0.24, 0);
     }
+  }
+
+  // The modern soldier's pose: the legs as the blocky soldiers' (walking, sprinting, crouched, kneeling, prone), the
+  // aim's pitch shared by the spine and the chest, and the arms, head and rifle blended between aiming and the low
+  // ready (a quarter of a second either way)
+  _poseTrooper(dt) {
+    const m = this.model, b = m.b, D = TRP;
+    this._rag = null;
+    if (m.pose === 'dead') { m.pose = 'aim'; m.gun.visible = true; m.rifle.visible = false; }
+    m.root.rotation.y = this.yaw;
+    const now = this.game.time;
+    const sp = Math.hypot(this.vel.x, this.vel.z);
+    const fighting = now - this.lastFireT < 2.5 || this.adsT > 0 || (this.brain ? !!this.brain.target : true);
+    const low = this.stance !== 2 && (this.sprinting || !fighting) ? 1 : 0;
+    m.carry += clamp(low - m.carry, -dt * 4, dt * 4);
+    this.walkPhase += sp * dt * (this.sprinting ? 1.6 : 2.1);
+    const amp = Math.min(1, sp / 4) * (this.sprinting ? 0.85 : 0.55);
+    const ph = this.walkPhase, sw = Math.sin(ph) * amp, cw = Math.cos(ph);
+    const breathe = Math.sin(now * 1.6 + this.skin) * 0.014;
+    b.hips.rotation.set(0, 0, 0);
+    b.thighL.rotation.set(0, 0, 0); b.thighR.rotation.set(0, 0, 0);
+    b.shinL.rotation.set(0, 0, 0); b.shinR.rotation.set(0, 0, 0);
+    let pitch = this.pitch * 0.7, twist = 0, flat = true;
+    if (this.stance === 2) {
+      m.body.rotation.set(-Math.PI / 2, 0, 0);
+      m.body.position.set(0, 0.27, 0.9);
+      b.hips.position.set(0, D.hip, D.hipZ);
+      b.thighL.rotation.set(sw * 0.25, 0, -0.16); b.thighR.rotation.set(-sw * 0.25, 0, 0.16);
+      b.shinL.rotation.x = -Math.max(0, sw) * 0.9 - 0.1; b.shinR.rotation.x = -Math.max(0, -sw) * 0.9 - 0.1;
+      // (the toes pointing back, the feet turned out)
+      b.footL.rotation.set(-1.25, 0, -0.5); b.footR.rotation.set(-1.25, 0, 0.5);
+      pitch = clamp(this.pitch, -0.3, 0.6) * 0.5; twist = sw * 0.12; flat = false;
+    } else if (this.stance === 1) {
+      m.body.rotation.set(0, 0, 0); m.body.position.set(0, 0, 0);
+      if (sp > 0.4) {
+        // crouched walk: bent knees, feet kept on the ground
+        b.hips.position.set(0, 0.687 + Math.abs(cw) * amp * 0.04, D.hipZ);
+        const aL = 0.75 + sw * 0.6, aR = 0.75 - sw * 0.6;
+        b.thighL.rotation.x = aL; b.thighR.rotation.x = aR;
+        b.shinL.rotation.x = trKnee(0.65, aL) - Math.max(0, cw) * amp * 0.6;
+        b.shinR.rotation.x = trKnee(0.65, aR) - Math.max(0, -cw) * amp * 0.6;
+      } else {
+        // kneeling on the right knee, the toes of that foot on the ground
+        b.hips.position.set(0, 0.54, D.hipZ);
+        b.thighL.rotation.set(1.25, 0, -0.05); b.shinL.rotation.x = -0.75;
+        b.thighR.rotation.set(0.12, 0, 0.07); b.shinR.rotation.x = -1.62;
+        flat = false;
+        b.footL.rotation.set(-0.5, 0, 0); b.footR.rotation.set(0.55, 0, 0);
+      }
+      pitch = this.pitch * 0.7 - 0.22 + breathe;
+    } else {
+      m.body.rotation.set(0, 0, 0); m.body.position.set(0, 0, 0);
+      b.hips.position.set(0, D.hip - amp * 0.035 + Math.abs(cw) * amp * 0.05, D.hipZ);
+      b.thighL.rotation.x = sw; b.thighR.rotation.x = -sw;
+      // the knee folds while the leg swings forward and is nearly straight while it carries the weight
+      b.shinL.rotation.x = -Math.max(0, cw) * amp * 1.5 - amp * 0.12;
+      b.shinR.rotation.x = -Math.max(0, -cw) * amp * 1.5 - amp * 0.12;
+      b.hips.rotation.y = sw * 0.14;
+      pitch = this.pitch * 0.7 - (this.sprinting ? 0.3 : amp * 0.06) + breathe;
+      twist = -sw * 0.24;
+    }
+    // the feet flat on the ground
+    if (flat) for (const s of ['L', 'R']) b['foot' + s].rotation.set(-(b['thigh' + s].rotation.x + b['shin' + s].rotation.x), 0, 0);
+    // (prone: its own carry; else between aiming and the low ready)
+    const k = this.stance === 2 ? 0 : smooth(m.carry), A = this.stance === 2 ? D.prone : D.aim, L = D.low, tw = lerp(A.twist, L.twist, k);
+    b.spine.rotation.set(A.spine * (1 - k) + pitch * 0.5, tw * 0.4 + twist * 0.5, 0);
+    b.chest.rotation.set(A.chest * (1 - k) + pitch * 0.5, tw * 0.6 + twist * 0.5, 0);
+    for (let i = 0; i < 6; i++) m.arms[i].quaternion.slerpQuaternions(A.arms[i], L.arms[i], k);
+    b.head.quaternion.slerpQuaternions(A.head, L.head, k);
+    b.neck.quaternion.slerpQuaternions(A.neck, L.neck, k);
+    m.gun.position.lerpVectors(A.gunPos, L.gunPos, k);
+    m.gun.quaternion.slerpQuaternions(A.gunQuat, L.gunQuat, k);
+  }
+
+  // The modern soldier's death fall: as the blocky soldiers' (below), the arms let go of the rifle and fall loose
+  _ragdollTrooper() {
+    const m = this.model, b = m.b, D = TRP;
+    let R = this._rag;
+    if (!R) {
+      const r = Math.random(), side = Math.random() < 0.5 ? -1 : 1;
+      const kind = r < 0.55 ? 'back' : r < 0.82 ? 'front' : 'side';
+      const a = [Math.random() * 0.75, Math.random() * 0.45];
+      R = this._rag = {
+        kind, side,
+        twist: (Math.random() - 0.5) * 0.7,
+        thigh: kind === 'back' ? a : kind === 'front' ? [(Math.random() - 0.6) * 0.2, (Math.random() - 0.6) * 0.2] : [0.7 + a[0] * 0.5, 0.35 + a[1]],
+        knee: kind === 'back' ? [-a[0] * (1 + Math.random() * 0.8), -a[1] * (1 + Math.random() * 0.8)]
+          : kind === 'front' ? [-Math.random() * 1.2, -Math.random() * 0.5] : [-1.1 - Math.random() * 0.4, -0.7 - Math.random() * 0.5],
+        splay: [-(0.05 + Math.random() * 0.25), 0.05 + Math.random() * 0.25],
+        gun: [side * (0.45 + Math.random() * 0.35), 0.3 + Math.random() * 0.6, Math.random() * Math.PI * 2],
+        // (the arms from where they were, held as the rifle was carried)
+        from: m.arms.map((o) => o.quaternion.clone()), to: kind === 'side' ? D.deadSide : D.dead,
+      };
+      m.pose = 'dead';
+      m.gun.visible = false;
+      m.rifle.visible = true;
+    }
+    const t = this.fallT;
+    m.root.rotation.y = this.deathYaw ?? this.yaw;
+    const k = smooth(t / 0.4), f = smooth((t - 0.12) / 0.88);
+    let rx = 0, rz = 0, lift = 0;
+    if (R.kind === 'back') { rx = Math.PI / 2; lift = 0.27; rz = R.twist * 0.3; }
+    else if (R.kind === 'front') { rx = -Math.PI / 2; lift = 0.25; rz = R.twist * 0.3; }
+    else { rx = 0.25; rz = R.side * Math.PI / 2; lift = 0.27; }
+    const settle = Math.sin(clamp((t - 0.8) / 0.2, 0, 1) * Math.PI) * 0.035;
+    m.body.rotation.set(rx * f, R.twist * f * 0.5, rz * f);
+    m.body.position.set(0, lift * f + settle, 0);
+    b.hips.position.set(0, D.hip - 0.3 * k * (1 - f), D.hipZ);
+    b.hips.rotation.set(0, 0, 0);
+    b.thighL.rotation.set(lerp(0.6 * k, R.thigh[0], f), 0, R.splay[0] * f);
+    b.thighR.rotation.set(lerp(0.45 * k, R.thigh[1], f), 0, R.splay[1] * f);
+    b.shinL.rotation.set(lerp(-1.1 * k, R.knee[0], f), 0, 0);
+    b.shinR.rotation.set(lerp(-0.9 * k, R.knee[1], f), 0, 0);
+    b.footL.rotation.set(0.3 * f, 0, 0); b.footR.rotation.set(0.3 * f, 0, 0);
+    b.spine.rotation.set(0, R.twist * 0.2 * f, 0);
+    b.chest.rotation.set(R.kind === 'side' ? 0.35 * f : 0, R.twist * 0.2 * f, 0);
+    b.head.quaternion.identity();
+    b.neck.rotation.set(R.kind === 'front' ? -0.3 * f : R.kind === 'back' ? 0.25 * f : 0, R.twist * 0.6 * f, R.kind === 'side' ? -R.side * 0.3 * f : 0);
+    const g = smooth(t / 0.6);
+    for (let i = 0; i < 6; i++) m.arms[i].quaternion.slerpQuaternions(R.from[i], R.to[i], g);
+    // the rifle falls from the hands to the ground next to the body
+    const along = R.kind === 'back' ? 1 : R.kind === 'front' ? -1 : 0;
+    const gx = along ? R.gun[0] : R.side * 1.05, gz = along ? along * (0.55 + R.gun[1]) : -0.3 - R.gun[1] * 0.5;
+    const d = smooth(t / 0.75);
+    m.rifle.position.set(lerp(0.1, gx, d), 1.5 - 1.46 * d * d, lerp(-0.28, gz, d));
+    m.rifle.rotation.set(0, R.gun[2] * d, (Math.PI / 2) * d);
   }
 
   // Death fall: the knees give way, the body tips over (back, front or side), limbs settle loosely and the
