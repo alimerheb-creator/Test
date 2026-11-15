@@ -83,6 +83,16 @@ jobs:
               const l = await open("/v1/lobby"); await wait(800);
               if (!l.got[0] || l.got[0][0] !== "H") throw new Error("lobby: " + l.got.join(" | "));
               console.log("WebSocket games and lobby: OK");
+              // protocol 3: the host leaves and the player who has been in longest is named the new host
+              const hello = (x) => JSON.parse(x.got.find((m) => m[0] === "H").slice(1));
+              const a = await open("/v3/game/QZQY?host=1"); await wait(600);
+              const b = await open("/v3/game/QZQY"); await wait(400);
+              const d = await open("/v3/game/QZQY"); await wait(600);
+              a.ws.close(); await wait(1200);
+              const want = "N" + JSON.stringify({ hid: hello(b).id });
+              if (!b.got.includes(want) || !d.got.includes(want)) throw new Error("takeover: " + b.got.join(" | "));
+              console.log("Protocol 3 takeover: OK");
+              b.ws.close(); d.ws.close();
               process.exit(0);
             })().catch((e) => { console.error(e.message); process.exit(1); });
           '

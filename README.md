@@ -752,10 +752,11 @@ repository secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`; the next serve
 ## Multiplayer
 
 Press **MULTIPLAYER** on the main menu. One player hosts a game and
-gets a 4-letter code; anyone else joins with the code and picks a side. The host's game runs the bots, the flags,
-the tickets and the buildings, everyone plays their own soldier, and tanks, jets, bombers and ships are driven by
-whoever gets in. Up to 8 players. It works in every battle type: the host's battle decides, and if you have a
-different one picked, the game room shows a button that switches over and joins again by itself.
+gets a 4-letter code; anyone else joins with the code and picks a side. The host's game referees the flags, the
+tickets and the buildings, the bots are shared out between everyone's games (**shared hosting**, below), everyone
+plays their own soldier, and tanks, jets, bombers and ships are driven by whoever gets in. Up to 8 players. It works
+in every battle type: the host's battle decides, and if you have a different one picked, the game room shows a button
+that switches over and joins again by itself.
 
 **Servers are always open for every battle type**: **INFANTRY**, **TANKS**, **AVIATION** and **NAVAL**, as many of
 each as players fill (INFANTRY 1, INFANTRY 2, ...; up to 99 of each, 8 players in each), and **ALL-OUT 1** and
@@ -763,8 +764,9 @@ each as players fill (INFANTRY 1, INFANTRY 2, ...; up to 99 of each, 8 players i
 many of each are running and how many people are on them. Press JOIN and you go into the fullest one with room (the
 game switches to that battle type first if needed); when they are all full, a new one opens. In an empty server you
 start the battle yourself and everyone who comes after joins you; when a round ends the next one starts by itself 15
-seconds later. If the player whose game is running the server leaves (or their game stops, for example the app goes
-to the background), everyone on it comes back in a moment later and one of them takes over with a new round.
+seconds later. If the player hosting leaves (or their game stops, for example the app goes to the background), the
+player who has been in longest takes over within a few seconds and the battle goes on: the same round, clock, tickets,
+flags and score.
 **Dedicated servers:** with an always-on machine (a free Oracle Cloud VM; see `dedicated/README.md`), the game itself
 runs there without a screen and hosts INFANTRY 1, TANKS 1, AVIATION 1, NAVAL 1 and ALL-OUT 1 and 2 around the clock,
 like Roblox servers: you never host, you just join; the bots fight on when nobody is in, and the server keeps going
@@ -772,6 +774,18 @@ when you leave. If that machine is down, the servers fall back to a player hosti
 The SERVERS list is a server browser: every server with a game going on its own line (players, map, mode, in battle or
 between rounds; the fullest first), the next empty ones of each battle type, tabs for the battle types and how many
 people are playing. **QUICK MATCH** takes you to the fullest server with room for the battle type you have picked.
+
+**Shared hosting.** Every player's game runs a share of the bots, not just the host's. How many depends on the
+device: a PC 20 to 48 by its processor, a phone or tablet 12, fewer while its frames slow down, and none while the
+game is in the background. The host hands each game the bots nearest that player, so the fights around you run on
+your own device: your hits on those bots count at once, and theirs on you. It shares the bots on foot in INFANTRY and
+ALL-OUT battles. Vehicles and the bots in them (tanks, aircraft, ships, helicopter passengers) stay with the host,
+and so do bots waiting to respawn: a bot that dies goes back to the host, which brings it back. Every game keeps a
+copy of the whole battle, so when the host leaves, the next player takes over as referee and nothing restarts. On
+the servers it's the one who has been in longest; in a claude.ai room it's the first in the player list. The
+ONLINE line shows HOST on the host's game and how many bots run on yours (· 7 BOTS HERE). Games through the PeerJS
+fallback (below) still end with their host. This is online protocol 3: games from before version 1.62 play among
+themselves.
 
 **Chat**: in battle press **ENTER**, type and press ENTER again (TAB switches between everyone and your team only,
 ESC closes it); on a phone or tablet press **CHAT** at the top. Lines show above the minimap for a few seconds, your
@@ -786,8 +800,10 @@ copy of the game sees and introduce the players: each player's game then connect
 (WebRTC), and the host passes everyone's state along, so the servers carry almost nothing and Cloudflare's free plan
 goes a long way. A player whose network won't make a direct connection (some mobile and company networks) plays
 through the servers instead (the ONLINE line says VIA SERVER); with a TURN key set (below), Cloudflare's TURN relay
-carries those players instead (1,000 GB a month free). The game itself always runs in the host's game. A dropped
-connection comes back by itself.
+carries those players instead (1,000 GB a month free). The referee runs in the host's game and the bots in
+everyone's; when the host leaves, the servers name the player who has been in longest as the new host (`N`) and
+everyone connects to that game, and a host that goes quiet for 7 seconds is let go when a player asks (`k{}`). A
+dropped connection comes back by itself.
 
 The servers deploy from `.github/workflows/servers.yml` whenever `server/` changes (it needs the repository secret
 `CLOUDFLARE_API_TOKEN`, made from Cloudflare's "Edit Cloudflare Workers" token template). For the TURN relay, make a

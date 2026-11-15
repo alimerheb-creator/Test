@@ -31,6 +31,14 @@
 //                whose network won't connect directly, sent to the host)
 //   b<json>      from the host: everyone's state in one message for those players, arrives as Q<json>
 //   H{..,"hid":<host id>}, B<id>, E<code> as above. A host keeps its place by pinging at least every 7 s.
+//
+// Protocol 3 (/v3/...): as protocol 2, and the game outlives its host. Every player's game runs a share of the bots
+// and keeps a copy of the battle, so when the host leaves (or goes quiet for 7 s) the player who has been in longest
+// takes over as the referee and the battle goes on:
+//   GET /v3/game/ABCD?host=1, GET /v3/server/inf-3   as /v2/...
+//   N{"hid":<id>}  the new host, to everyone (the new host included)
+//   k{}            from a player: the host seems to have stopped. If it has been quiet for 7 s it is let go and the
+//                  next player takes over (instead of waiting for someone new to come in)
 import { DurableObject } from 'cloudflare:workers';
 export { Accounts } from './accounts.js';
 
@@ -40,7 +48,8 @@ const MAX_LOBBY = 4000;
 const MAX_MSG = 65536;
 const MAX_RATE = 90;      // messages a second from one page
 const STALE_MS = 7000;    // a host this quiet on a server has stopped (its game closed or in the background)
-const SERVER_RE = /^\/v2\/server\/((?:inf|tank|air|sea|aio)-[1-9]\d?)$/;
+const SERVER_RE = /^\/v([23])\/server\/((?:inf|tank|air|sea|aio)-[1-9]\d?)$/;
+const PROTOCOL = 3;
 const ID_CHARS = 'abcdefghijkmnpqrstuvwxyz23456789';
 
 const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => ID_CHARS[b & 31]).join('');
@@ -49,10 +58,10 @@ const CORS = { 'access-control-allow-origin': '*' };
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
-    if (url.pathname === '/' || url.pathname === '/v1' || url.pathname === '/v2') {
-      return Response.json({ game: 'Sixth Front', servers: 'online', protocol: 2, turn: !!(env.TURN_KEY_ID && env.TURN_KEY_TOKEN) }, { headers: CORS });
+    if (url.pathname === '/' || url.pathname === '/v1' || url.pathname === '/v2' || url.pathname === '/v3') {
+      return Response.json({ game: 'Sixth Front', servers: 'online', protocol: PROTOCOL, turn: !!(env.TURN_KEY_ID && env.TURN_KEY_TOKEN) }, { headers: CORS });
     }
-    if (url.pathname === '/v2/ice') return iceServers(env);
+    if (url.pathname === '/v2/ice' || url.pathname === '/v3/ice') return iceServers(env);
     // accounts (see accounts.js): one Durable Object for all of them
     if (url.pathname.startsWith('/v2/auth/')) {
       if (req.method === 'OPTIONS') {
@@ -63,10 +72,10 @@ export default {
     let room = '';
     if (url.pathname === '/v1/lobby') room = 'lobby';
     else if (/^\/v1\/server\/[1-4]$/.test(url.pathname)) room = 'server:' + url.pathname.slice(-1);
-    else if (SERVER_RE.test(url.pathname)) room = 's2:' + SERVER_RE.exec(url.pathname)[1];
+    else if (SERVER_RE.test(url.pathname)) { const m = SERVER_RE.exec(url.pathname); room = `s${m[1]}:${m[2]}`; }
     else {
-      const m = /^\/(v[12])\/game\/([A-Za-z]{4})$/.exec(url.pathname);
-      if (m) room = (m[1] === 'v2' ? 'g2:' : 'game:') + m[2].toUpperCase();
+      const m = /^\/(v[123])\/game\/([A-Za-z]{4})$/.exec(url.pathname);
+      if (m) room = ({ v1: 'game:', v2: 'g2:', v3: 'g3:' })[m[1]] + m[2].toUpperCase();
     }
     if (!room) return new Response('Not found', { status: 404, headers: CORS });
     if ((req.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') {
@@ -103,8 +112,10 @@ export class Room extends DurableObject {
     super(ctx, env);
     this.lobby = false;
     this.srv = false;
-    this.socks = new Map();  // id -> { ws, host, m, f, l, n, t, last }
+    this.socks = new Map();  // id -> { ws, host, j, m, f, l, n, t, last }  (j: the order they came in)
     this.ids = new Map();    // ws -> id
+    this.seq = 0;
+    this.kAt = 0;
     // back from hibernation: the connections are still open; their ids (and lobby adverts) were kept with them
     for (const ws of ctx.getWebSockets()) {
       const a = ws.deserializeAttachment();
@@ -112,8 +123,10 @@ export class Room extends DurableObject {
       if (a.lobby) this.lobby = true;
       if (a.srv) this.srv = true;
       if (a.v2) this.v2 = true;
-      this.socks.set(a.id, { ws, host: !!a.host, m: '', f: '', l: a.l || '', n: 0, t: 0, last: 0 });
+      if (a.v3) this.v3 = true;
+      this.socks.set(a.id, { ws, host: !!a.host, j: a.j | 0, m: '', f: '', l: a.l || '', n: 0, t: 0, last: 0 });
       this.ids.set(ws, a.id);
+      this.seq = Math.max(this.seq, a.j | 0);
     }
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
   }
@@ -122,9 +135,10 @@ export class Room extends DurableObject {
     const url = new URL(req.url);
     const room = url.searchParams.get('room') || '';
     this.lobby = room === 'lobby';
-    this.srv = room.startsWith('server:') || room.startsWith('s2:');
-    this.v2 = room.startsWith('g2:') || room.startsWith('s2:');
-    const cap = room.startsWith('s2:aio-') ? MAX_ALL_OUT : MAX_GAME;
+    this.srv = room.startsWith('server:') || room.startsWith('s2:') || room.startsWith('s3:');
+    this.v3 = room.startsWith('g3:') || room.startsWith('s3:');
+    this.v2 = this.v3 || room.startsWith('g2:') || room.startsWith('s2:');
+    const cap = room.startsWith('s2:aio-') || room.startsWith('s3:aio-') ? MAX_ALL_OUT : MAX_GAME;
     let host = !this.lobby && url.searchParams.get('host') === '1';
     const [client, server] = Object.values(new WebSocketPair());
     const refuse = (code) => {
@@ -136,15 +150,12 @@ export class Room extends DurableObject {
     if (this.lobby) {
       if (this.socks.size >= MAX_LOBBY) return refuse('busy');
     } else if (this.srv) {
-      // an always-open server: the first one in hosts; a host gone quiet gives way
+      // an always-open server: the first one in hosts; a host gone quiet gives way (protocol 3: to the player who
+      // has been in longest, who has the battle; earlier ones: to whoever comes in)
       let cur = [...this.socks].find(([, s]) => s.host);
       if (cur && Date.now() - this.lastOf(cur[1]) > STALE_MS) {
-        const [hid, hs] = cur;
-        try { hs.ws.send('Estale'); hs.ws.close(4001, 'stale'); } catch (e) { /* gone */ }
-        this.socks.delete(hid);
-        this.ids.delete(hs.ws);
-        for (const o of this.socks.values()) { try { o.ws.send('B' + hid); } catch (e) { /* closing */ } }
-        cur = null;
+        this.letGo(cur[0], cur[1]);
+        cur = [...this.socks].find(([, s]) => s.host);
       }
       host = !cur;
       if (this.socks.size >= cap) return refuse('full');
@@ -158,8 +169,9 @@ export class Room extends DurableObject {
     let id = (url.searchParams.get('id') || '').slice(0, 8);
     if (id.length !== 8 || /[^a-z0-9]/.test(id) || this.socks.has(id)) id = newId();
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ id, host: host ? 1 : 0, lobby: this.lobby ? 1 : 0, srv: this.srv ? 1 : 0, v2: this.v2 ? 1 : 0 });
-    this.socks.set(id, { ws: server, host, m: '', f: '', l: '', n: 0, t: 0, last: Date.now() });
+    const j = ++this.seq;
+    server.serializeAttachment({ id, host: host ? 1 : 0, lobby: this.lobby ? 1 : 0, srv: this.srv ? 1 : 0, v2: this.v2 ? 1 : 0, v3: this.v3 ? 1 : 0, j });
+    this.socks.set(id, { ws: server, host, j, m: '', f: '', l: '', n: 0, t: 0, last: Date.now() });
     this.ids.set(server, id);
     const hid = [...this.socks].find(([, s]) => s.host);
     server.send('H' + JSON.stringify({ id, n: this.socks.size, host: host ? 1 : 0, hid: hid ? hid[0] : '' }));
@@ -177,6 +189,28 @@ export class Room extends DurableObject {
     let ar = 0;
     try { const d = this.ctx.getWebSocketAutoResponseTimestamp(s.ws); if (d) ar = +d; } catch (e) { /* not available */ }
     return Math.max(s.last, ar);
+  }
+
+  // a host that has gone quiet: let it go (it hears "stale"), tell everyone, and (protocol 3) hand its place on
+  letGo(hid, hs) {
+    try { hs.ws.send('Estale'); hs.ws.close(4001, 'stale'); } catch (e) { /* gone */ }
+    this.socks.delete(hid);
+    this.ids.delete(hs.ws);
+    for (const o of this.socks.values()) { try { o.ws.send('B' + hid); } catch (e) { /* closing */ } }
+    if (this.v3) this.promote();
+  }
+
+  // protocol 3: the player who has been in longest hosts now, and everyone hears who
+  promote() {
+    if ([...this.socks.values()].some((s) => s.host)) return;
+    let best = null;
+    for (const [id, s] of this.socks) if (!best || s.j < best[1].j) best = [id, s];
+    if (!best) return;
+    const [id, s] = best;
+    s.host = true;
+    try { s.ws.serializeAttachment({ ...(s.ws.deserializeAttachment() || {}), id, host: 1 }); } catch (e) { /* closing */ }
+    const msg = 'N' + JSON.stringify({ hid: id });
+    for (const o of this.socks.values()) { try { o.ws.send(msg); } catch (e) { /* closing */ } }
   }
 
   webSocketMessage(ws, msg) {
@@ -197,6 +231,11 @@ export class Room extends DurableObject {
         // the host's message for the players connected through the servers
         const out = 'Q' + msg.slice(1);
         for (const [oid, o] of this.socks) if (oid !== id) { try { o.ws.send(out); } catch (e) { /* closing */ } }
+      } else if (c === 'k' && this.v3 && t - this.kAt > 3000) {
+        // (k{}) a player whose host has stopped answering: if it has been quiet that long, the next one takes over
+        this.kAt = t;
+        const cur = [...this.socks].find(([, s]) => s.host);
+        if (cur && cur[0] !== id && t - this.lastOf(cur[1]) > STALE_MS) this.letGo(cur[0], cur[1]);
       }
       return;
     }
@@ -221,5 +260,7 @@ export class Room extends DurableObject {
     // in the lobby only someone who advertised a game is news
     if (this.lobby && !me.l) return;
     for (const o of this.socks.values()) { try { o.ws.send('B' + id); } catch (e) { /* closing */ } }
+    // protocol 3: the game goes on with the next host
+    if (this.v3 && me.host) this.promote();
   }
 }
