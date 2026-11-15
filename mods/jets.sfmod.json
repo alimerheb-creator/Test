@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "jets",
   "name": "Jets",
-  "version": "1.20",
+  "version": "1.21",
   "author": "Sixth Front",
   "battles": [
     "aviation"
@@ -4948,8 +4948,9 @@
     "const agm = (name, points, o) => ({ kind: 'agm', name, ammo: points.length, store: 'agm', points, range: 1100, cone: 0.2, lock: 1.6, speed: 120, accel: 60, turn: 1.2, fuse: 3, life: 12, reload: 1.2, rearm: 26, flareResist: 1, blast: { radius: 6, dmg: 180, veh: 900, structural: 900, fxScale: 1.4 }, ...o });",
     "",
     "// ---------------------------------------------------------------- F/A-18F Super Hornet (Vanguard)",
-    "// A real 3D model of the two-seat F/A-18F (sent as OBJ with its textures), converted for the game: in metres, nose to",
-    "// -Z; its own paint (the Navy's light grey with the Jolly Rogers' black fins, its markings and panel lines, the panel",
+    "// A real 3D model of the two-seat F/A-18F (\"FA-18F Super Hornet\" by pjedvaj, a free model on CGTrader under its",
+    "// Royalty Free licence), converted for the game: in metres, nose to -Z; its own paint (the Navy's light grey with the",
+    "// Jolly Rogers' black fins, its markings and panel lines, the panel",
     "// lines sunk by its bump map, the formation lights lit by its glow map); the canopy glass over the pilot and the",
     "// weapons systems officer behind; the leading- and trailing-edge flaps, ailerons, all-moving tailplanes and rudders",
     "// each on its own hinge line; the air brake on its back and the spoilers on its wing roots (out with AIR BRAKE); its",

@@ -590,8 +590,8 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   instrument panels inside), not a glass bubble set on top of it; their engines sit in one housing on the shoulders
   (the Apache's in its nacelles on pylons, with the avionics bays down its sides). The Black Hawk and the Mi-8 have
   their windscreens and side windows, and the Little Bird's whole front is the glass bubble with the pilots in it.
-- **The F/A-18F Super Hornet is a real 3D model** too (Jets, Vanguard): the two-seat Super Hornet with its own
-  textures, the Navy's light grey with the Jolly Rogers' black fins and their markings, the panel lines sunk by its
+- **The F/A-18F Super Hornet is a real 3D model** too (Jets, Vanguard): "FA-18F Super Hornet" by pjedvaj from
+  CGTrader, the two-seat Super Hornet with its own textures, the Navy's light grey with the Jolly Rogers' black fins and their markings, the panel lines sunk by its
   bump map and the formation lights glowing from its glow map. The canopy glass covers the pilot and the weapons
   systems officer behind; the leading- and trailing-edge flaps, ailerons, all-moving tailplanes and rudders each turn
   on their own hinge line; the air brake on its back and the spoilers on its wing roots swing up with AIR BRAKE (B);
@@ -965,8 +965,13 @@ no paid items.
   under the Creative Commons Attribution 4.0 licence (https://creativecommons.org/licenses/by/4.0/). Changed for
   the game: given a skeleton and skin weights, slimmed into three versions (one already posed for far away), its
   texture made smaller, and recoloured black for Onyx.
-- **AH-64E Apache, M1 Abrams and F/A-18F Super Hornet**: free models from their makers; their names will be added
+- **F/A-18F Super Hornet**: "FA-18F Super Hornet" by pjedvaj, a free model on CGTrader (model #2216599), under
+  CGTrader's Royalty Free License. Changed for the game: converted, slimmed into three versions, split into its moving
+  parts (control surfaces, air brake, landing gear, stores) and given its cockpit inside its own canopy.
+- **AH-64E Apache and M1 Abrams**: free models from their makers; their names will be added here.
+- **The fire**: "Fire v001" by Achisan, a free model on CGTrader (model #2336673), under CGTrader's Royalty Free
+  License. Changed for the game: simplified from about 62,000 triangles to 3,200, given a flame shader and sized by
+  the damage.
+- **The explosion**: an explosion rendered in Blender (120 frames), sent by a player; its maker's name will be added
   here.
-- **The explosion and the fire**: an explosion rendered in Blender (120 frames) and a fire made in Houdini, sent by a
-  player; their makers' names will be added here.
 
