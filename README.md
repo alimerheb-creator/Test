@@ -190,7 +190,18 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   draws, not six jointed parts apiece, and the sun's shadows are redrawn every second frame (every frame when you're
   moving fast).
 - **Cockpits, tank and ship's bridge you can work** (Vehicle Interiors): the switches, buttons and levers are where
-  they are in the real thing and do their real job. A modern fighter has well over a hundred: three screens, each
+  they are in the real thing and do their real job. The jets that are real 3D models have their own cockpits, built
+  inside the model's own canopy and frame (its rough insides hidden, nothing doubled) to its measurements, and laid
+  out like the real one: the **F/A-18F** front seat with its left and right DDIs high either side of the up-front
+  keypad, the MPCD map below, the master arm panel with A/A and A/G and the emergency jettison, the gear and hook
+  handles, the engine and fuel display, the fire and LOCK/SHOOT lights on the glare shield, twin throttles, a centre
+  stick with the weapon select (AMRAAM, Sidewinder, gun) and the NACES seat, the back seat's officer behind you; the
+  **F-16C** with its bubble canopy and no bow at all, the keypad and data display under the HUD on its pedestal,
+  airspeed, altimeter, a live radar warning scope, the attitude ball over the heading between two small MFDs, the
+  side stick on the right console and the ACES II seat leaning back 30 degrees; the **Su-35S** with its two big
+  MFI-35 screens; the **Su-27** with its turquoise panel of round dials, a small radar screen and twin throttles; the
+  Flankers' K-36 seat with its two handles. The real Mi-24 and Apache keep their own canopy frames over the cockpit
+  fitted inside them. A modern fighter has well over a hundred: three screens, each
   ringed by twenty option buttons, with five pages to pick from (RDR radar with range and RWS/TWS mode, SMS stores
   with weapon select, HSD a map of the zones and aircraft, ADI attitude with speed, altitude and heading, ENG the
   engine and fuel), brightness and a swap button; the up-front keypad under the HUD with its data display (tune the
@@ -412,7 +423,7 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   crags and ledges with pines growing out of them on the cliff faces, layered rock with moss in its cracks, boulders
   at the foot of the cliffs, waterfalls with spray and mist lying in the channels. Everyone
   flies the jets and bombers (the Jets and Bombers mods only run here), up to 10 aircraft a side, about four jets
-  to every bomber. Twenty aircraft: for Vanguard the F-16C, F/A-18E, F-35A and F-22A fighters, the A-10C and
+  to every bomber. Twenty aircraft: for Vanguard the F-16C, F/A-18F, F-35A and F-22A fighters, the A-10C and
   F-15E for ground attack, and the B-17G, B-52H, B-1B and B-2A bombers; for Onyx the MiG-29, Su-27, Su-35S and
   Su-57, the Su-25 and Su-34, and the Lancaster, Tu-95MS, Tu-22M3 and Tu-160. Onyx aircraft carry the red star and
   Russian side numbers on the nose, in their real schemes: the MiG-29's grey with grey-green blotches, the Su-35S's
@@ -575,11 +586,14 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   instrument panels inside), not a glass bubble set on top of it; their engines sit in one housing on the shoulders
   (the Apache's in its nacelles on pylons, with the avionics bays down its sides). The Black Hawk and the Mi-8 have
   their windscreens and side windows, and the Little Bird's whole front is the glass bubble with the pilots in it.
-- **The F/A-18E Super Hornet is a real 3D model** too (Jets): the two-seat Hornet, smooth-shaded in the Navy's
-  greys with the game's panel lines and roundels, its canopy glass over the pilot and the weapons systems officer
-  and their instrument panels, the leading- and trailing-edge flaps, ailerons, all-moving tailplanes and rudders
-  each turning on its own hinge line, the nozzles' petals, and its own landing gear (struts, wheels and open
-  doors) that comes down with G (GEAR on a phone). On Ultra it shows all of its file, about 47,000 triangles.
+- **The F/A-18F Super Hornet is a real 3D model** too (Jets, Vanguard): the two-seat Super Hornet with its own
+  textures, the Navy's light grey with the Jolly Rogers' black fins and their markings, the panel lines sunk by its
+  bump map and the formation lights glowing from its glow map. The canopy glass covers the pilot and the weapons
+  systems officer behind; the leading- and trailing-edge flaps, ailerons, all-moving tailplanes and rudders each turn
+  on their own hinge line; the air brake on its back and the spoilers on its wing roots swing up with AIR BRAKE (B);
+  its landing gear comes down with G (GEAR on a phone); it carries its drop tanks; and its own stores hang on its
+  pylons: AIM-9X Sidewinders on the wingtips, AIM-120D AMRAAMs outboard and GBU-16 Paveway laser-guided bombs in
+  between, each gone from its pylon when fired. About 31,500 triangles on Ultra.
 - **The Su-35S Flanker-E is a real 3D model** too (Jets, Onyx): "SU35S" from CGTrader, slimmed from about
   190,000 triangles to about 49,000 on Ultra, with its textures packed into one image so nearly all of it draws at
   once. Its grey-blue paint with the red stars and the "07" on the nose, the canopy glass with the pilot under it,
@@ -615,7 +629,7 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
 - **Detail settings.** Every real model comes in three versions: the full one close up on Ultra, a lighter one close
   up on Low, Medium and High, and a simple one for far away (aircraft past 140 m on Low, 190 m on Medium, 260 m on
   High and 380 m on Ultra; a zoomed-in view counts as nearer). In triangles (full / lighter / far): F-16C 68,500 /
-  25,200 / 5,800; F/A-18E 47,400 / 23,100 / 3,300; Su-35S 49,000 / 26,800 / 8,400; Su-27 49,900 / 27,600 / 8,300;
+  25,200 / 5,800; F/A-18F 31,500 / 12,800 / 2,300; Su-35S 49,000 / 26,800 / 8,400; Su-27 49,900 / 27,600 / 8,300;
   Mi-24V 33,600 / 20,100 / 2,900 and AH-64E 17,200 / 9,700 / 1,300 (their rotors on top); M1 Abrams 14,700 / 7,200 /
   2,300; T-90 21,800 / 9,700 / 3,300.
 - **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
@@ -684,7 +698,7 @@ are red, a premium vehicle sits in the gold row at the top, and your **crew slot
   muzzle brake, barrels, grips, magazines, laser, ammunition, finishes). What you fight in researches its next one
   with its own RP (tap one to research it next, tap again to finish it with free RP), then buy it with silver and
   switch it on or equip it.
-- **Aircraft.** Fighters, then attack and strike aircraft, then two lines of bombers. VANGUARD: F-16C → F/A-18E →
+- **Aircraft.** Fighters, then attack and strike aircraft, then two lines of bombers. VANGUARD: F-16C → F/A-18F →
   F-35A → F-22A; A-10C → F-15E; B-17G → B-52H → B-2A; B-1B. ONYX: MiG-29 → Su-27 → Su-35S → Su-57; Su-25 → Su-34;
   Lancaster → Tu-95MS → Tu-160; Tu-22M3. Helicopters: AH-1Z → AH-64E and Mi-24V → Ka-52. The deploy screen lists the
   aircraft you have bought. A helicopter flown in a NORMAL or TANK battle puts half that battle's RP into the
@@ -946,6 +960,6 @@ no paid items.
   under the Creative Commons Attribution 4.0 licence (https://creativecommons.org/licenses/by/4.0/). Changed for
   the game: given a skeleton and skin weights, slimmed into three versions (one already posed for far away), its
   texture made smaller, and recoloured black for Onyx.
-- **AH-64E Apache, M1 Abrams and F/A-18E Super Hornet**: free models from their makers; their names will be added
+- **AH-64E Apache, M1 Abrams and F/A-18F Super Hornet**: free models from their makers; their names will be added
   here.
 
