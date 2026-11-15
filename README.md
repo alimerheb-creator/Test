@@ -183,8 +183,12 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   buildings with window frames and sills, glass that reflects the sky, mullions, shutters, string courses,
   cornices and coping, a darker plinth, dressed stone at the corners, iron balconies, downpipes and air
   conditioners, water tanks and aerials on the roofs (all of it goes with the wall it is on); explosions with a
-  billowing fireball, a ring of dust blown out along the ground, sparks and embers, a column of smoke that hangs
-  for a while and a scorch mark left behind, and broken lumps of masonry or earth flying out trailing dust.
+  rendered fireball (a filmed explosion: the flash, the fire rolling up and darkening into a cloud of smoke that
+  rises off it, about 10 m across for a shell and three times that for a 2,000 lb bomb), a ring of dust blown out
+  along the ground, sparks and embers, a column of smoke that hangs for a while and a scorch mark left behind, and
+  broken lumps of masonry or earth flying out trailing dust; fires: a burning flame that sways and flickers, hot
+  yellow at its root and dark red at its tips, on every destroyed tank and every aircraft wreck as long as it lies
+  there and where a bomb hit the ground, each as big as what is burning (a bomber's wreck burns biggest).
   Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on phones and High on desktop). Kept light: soldiers
   more than 60 m away (further through a scope) are drawn as one merged figure each, all of them in a handful of
   draws, not six jointed parts apiece, and the sun's shadows are redrawn every second frame (every frame when you're
@@ -916,7 +920,8 @@ The game is split into small ES modules under `js/`:
 | `ui.js` | Main menu, deploy screen, pause and after-action report |
 | `input.js` | Keyboard, mouse (pointer lock) and touch |
 | `audio.js` | Synthesised WebAudio sound effects and ambience |
-| `effects.js` | Particles, tracers, debris, flashes, camera shake |
+| `effects.js` | Particles, tracers, debris, flashes, camera shake; the rendered explosion played on a quad that faces you and the burning 3D fires |
+| `explosion.js` | The explosion's frames packed into one sheet (WebP) and the fire's flame mesh, from the player's files |
 | `textures.js` | Procedural textures and the world-space UV material |
 | `util.js` | Math, noise and geometry helpers |
 | `post.js` | HDR post-processing: bloom, lens flare, tone mapping, grading, damage effects |
@@ -962,4 +967,6 @@ no paid items.
   texture made smaller, and recoloured black for Onyx.
 - **AH-64E Apache, M1 Abrams and F/A-18F Super Hornet**: free models from their makers; their names will be added
   here.
+- **The explosion and the fire**: an explosion rendered in Blender (120 frames) and a fire made in Houdini, sent by a
+  player; their makers' names will be added here.
 

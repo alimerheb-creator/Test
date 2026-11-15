@@ -1,6 +1,7 @@
 // Particles, tracers, debris chunks, flash lights and camera shake.
 import * as THREE from 'three';
 import { rand, clamp } from './util.js';
+import { EXPLOSION, FIRE } from './explosion.js';
 
 const _c = new THREE.Color(), _up = new THREE.Vector3(0, 1, 0), _qa = new THREE.Quaternion();
 const _fwdZ = new THREE.Vector3(0, 0, 1), _hv = new THREE.Vector3(), _hc = new THREE.Color();
@@ -250,6 +251,240 @@ export class ParticleSystem {
   clear() { this.count = 0; this.points.geometry.setDrawRange(0, 0); }
 }
 
+// ---------------------------------------------------------------- explosions: the rendered fireball
+// Each explosion plays the rendered film on a quad that faces you with the world's up kept up (straight up the
+// screen when you look down on it), drawn a little toward you so the ground cuts less of it; consecutive frames are
+// blended so it runs smoothly. How big and how long follow the blast: scale 1 is about 10 m across and plays for
+// 3 seconds, a 2,000 lb bomb three times the size. All of them in one draw.
+const BOOM_VS = `attribute vec3 iPos; attribute vec2 iSize; attribute vec2 iFrame;
+  uniform vec2 uQuad; uniform vec2 uOrigin; uniform vec4 uCell; uniform vec2 uAtlas; uniform float uCols;
+  varying vec2 vUv0; varying vec2 vUv1; varying float vMix; varying float vAlpha;
+  #include <fog_pars_vertex>
+  vec2 cellUv(float f, vec2 uv) {
+    vec2 c = vec2(mod(f, uCols), floor(f / uCols));
+    vec2 px = c * uCell.xy + uCell.z + vec2(uv.x, 1.0 - uv.y) * uCell.zw;
+    return vec2(px.x / uAtlas.x, 1.0 - px.y / uAtlas.y);
+  }
+  void main() {
+    vec4 mvPosition = modelViewMatrix * vec4(iPos, 1.0);
+    vec2 up = (viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xy;
+    float l = length(up);
+    up = normalize(mix(vec2(0.0, 1.0), up / max(l, 1e-4), smoothstep(0.08, 0.35, l)));
+    vec2 right = vec2(up.y, -up.x);
+    vec2 c = (uv - uOrigin) * uQuad * iSize.x;
+    mvPosition.xy += right * c.x + up * c.y;
+    mvPosition.z += 0.3 * uQuad.x * iSize.x;
+    gl_Position = projectionMatrix * mvPosition;
+    float f0 = floor(iFrame.x);
+    vMix = iFrame.x - f0;
+    vUv0 = cellUv(f0, uv); vUv1 = cellUv(f0 + 1.0, uv);
+    vAlpha = iSize.y;
+    #include <fog_vertex>
+  }`;
+const BOOM_FS = `uniform sampler2D map; varying vec2 vUv0; varying vec2 vUv1; varying float vMix; varying float vAlpha;
+  #include <fog_pars_fragment>
+  void main() {
+    vec4 t = mix(texture2D(map, vUv0), texture2D(map, vUv1), vMix);
+    // (the hottest of the fire glows a little brighter than the picture)
+    float lum = dot(t.rgb, vec3(0.3, 0.55, 0.15));
+    gl_FragColor = vec4(t.rgb * (1.0 + 0.9 * smoothstep(0.45, 0.95, lum)), t.a * vAlpha);
+    if (gl_FragColor.a < 0.004) discard;
+    #include <fog_fragment>
+    #include <colorspace_fragment>
+  }`;
+class Booms {
+  constructor(scene) {
+    const E = EXPLOSION, max = 24;
+    this.max = max; this.list = [];
+    const geo = new THREE.InstancedBufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0], 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 1], 2));
+    geo.setIndex([0, 1, 2, 0, 2, 3]);
+    this.iPos = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3).setUsage(THREE.DynamicDrawUsage);
+    this.iSize = new THREE.InstancedBufferAttribute(new Float32Array(max * 2), 2).setUsage(THREE.DynamicDrawUsage);
+    this.iFrame = new THREE.InstancedBufferAttribute(new Float32Array(max * 2), 2).setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute('iPos', this.iPos); geo.setAttribute('iSize', this.iSize); geo.setAttribute('iFrame', this.iFrame);
+    geo.instanceCount = 0;
+    const map = new THREE.TextureLoader().load(E.tex);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.anisotropy = 2;
+    const uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+      uQuad: { value: new THREE.Vector2(...E.size) }, uOrigin: { value: new THREE.Vector2(...E.origin) },
+      uCell: { value: new THREE.Vector4(E.cell[0], E.cell[1], E.pad, 0) }, uAtlas: { value: new THREE.Vector2(...E.atlas) }, uCols: { value: E.cols },
+    }]);
+    uniforms.uCell.value.w = E.content[1];
+    uniforms.uCell.value.z = E.pad;
+    // (uCell: the cell's width and height, its margin, the frame's height; the frame's width is the cell less both margins)
+    uniforms.map = { value: map };
+    this.mat = new THREE.ShaderMaterial({ uniforms, vertexShader: BOOM_VS.replace('uCell.zw', 'vec2(uCell.x - 2.0 * uCell.z, uCell.w)'), fragmentShader: BOOM_FS,
+      transparent: true, depthWrite: false, fog: true });
+    this.mesh = new THREE.Mesh(geo, this.mat);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 2;
+    scene.add(this.mesh);
+    // the film's own time for each cell, and the frame to show at a time t (seconds into the 120-frame film)
+    this.frames = E.frames.map((f) => (f - 1) / E.fps);
+    this.end = this.frames[this.frames.length - 1];
+  }
+
+  add(x, y, z, scale) {
+    if (this.list.length >= this.max) this.list.shift();
+    const s = Math.max(0.15, scale);
+    // (bigger blasts burn a little longer; the whole film is 5 s, played faster)
+    this.list.push({ x, y, z, s, t: 0, dur: 3 * (0.85 + 0.15 * Math.min(s, 3)) });
+  }
+
+  update(dt) {
+    const L = this.list, F = this.frames;
+    for (let i = L.length - 1; i >= 0; i--) if ((L[i].t += dt) >= L[i].dur) L.splice(i, 1);
+    const P = this.iPos.array, S = this.iSize.array, R = this.iFrame.array;
+    for (let i = 0; i < L.length; i++) {
+      const b = L[i], u = b.t / b.dur, ft = u * this.end;
+      let k = 0;
+      while (k < F.length - 2 && F[k + 1] <= ft) k++;
+      const f = k + clamp((ft - F[k]) / (F[k + 1] - F[k]), 0, 1);
+      P[i * 3] = b.x; P[i * 3 + 1] = b.y; P[i * 3 + 2] = b.z;
+      S[i * 2] = b.s; S[i * 2 + 1] = Math.min(1, b.t / 0.03) * (1 - Math.max(0, (u - 0.8) / 0.2));
+      R[i * 2] = Math.min(f, F.length - 1.001);
+    }
+    const g = this.mesh.geometry;
+    if (!L.length && !g.instanceCount) return;
+    g.instanceCount = L.length;
+    this.iPos.needsUpdate = true; this.iSize.needsUpdate = true; this.iFrame.needsUpdate = true;
+  }
+
+  clear() { this.list.length = 0; this.mesh.geometry.instanceCount = 0; }
+}
+
+// ---------------------------------------------------------------- fires: the burning flame
+// A flame 6 m tall (scale 1) that sways and licks upward, hot white-yellow at its root, orange up its body and dull red
+// at the tips, flickering as the fire runs up through it; seen side-on its edges fade, so it has no hard outline. A
+// fire is three of them round each other, each turned its own way and the others smaller (one on Low). Fires burn on wrecks (as long as the wreck does) and where a big
+// blast hit the ground, smoke rising off them; their size follows what's burning or how big the blast was.
+const FIRE_VS = `uniform float uTime; attribute float aPhase; attribute float aFade;
+  varying float vH; varying vec3 vP; varying vec3 vN; varying vec3 vV; varying float vFade; varying float vPh;
+  #include <fog_pars_vertex>
+  void main() {
+    vec3 p = position;
+    float h = clamp(p.y / 6.0, 0.0, 1.0), t = uTime + aPhase, sway = h * h;
+    p.x += (sin(t * 2.9 + p.y * 1.4) * 0.22 + sin(t * 7.7 + p.y * 3.3) * 0.06) * sway;
+    p.z += (cos(t * 2.3 + p.y * 1.2) * 0.2 + cos(t * 6.4 + p.y * 2.9) * 0.06) * sway;
+    p.y *= 1.0 + (0.09 * sin(t * 3.7) + 0.05 * sin(t * 9.1)) * h;
+    vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(p, 1.0);
+    vN = normalize(normalMatrix * mat3(instanceMatrix) * normal);
+    vV = -mvPosition.xyz;
+    vH = h; vP = position; vFade = aFade; vPh = aPhase;
+    gl_Position = projectionMatrix * mvPosition;
+    #include <fog_vertex>
+  }`;
+const FIRE_FS = `uniform float uTime;
+  varying float vH; varying vec3 vP; varying vec3 vN; varying vec3 vV; varying float vFade; varying float vPh;
+  #include <fog_pars_fragment>
+  float fh(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+  float fn(vec3 x) {
+    vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(fh(i), fh(i + vec3(1, 0, 0)), f.x), mix(fh(i + vec3(0, 1, 0)), fh(i + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(fh(i + vec3(0, 0, 1)), fh(i + vec3(1, 0, 1)), f.x), mix(fh(i + vec3(0, 1, 1)), fh(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+  }
+  void main() {
+    float t = uTime + vPh;
+    vec3 q = vP * vec3(1.7, 0.9, 1.7) + vec3(0.0, -t * 2.4, 0.0);
+    float n = fn(q) * 0.65 + fn(q * 2.3 + 7.1) * 0.35;
+    float facing = abs(dot(normalize(vN), normalize(vV)));
+    float h = vH + (n - 0.5) * 0.35;
+    vec3 col = mix(vec3(1.0, 0.7, 0.34) * 1.3, vec3(1.0, 0.4, 0.07) * 1.3, smoothstep(0.0, 0.3, h));
+    col = mix(col, vec3(0.7, 0.13, 0.02) * 1.0, smoothstep(0.38, 0.85, h));
+    float a = smoothstep(0.05, 0.6, facing) * (1.0 - smoothstep(0.55, 1.0, h)) * (0.4 + 0.6 * n) * smoothstep(0.0, 0.05, vH) * 0.78;
+    gl_FragColor = vec4(col * a * vFade, 1.0);
+    #ifdef USE_FOG
+      #ifdef FOG_EXP2
+        float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+      #else
+        float fogFactor = smoothstep(fogNear, fogFar, vFogDepth);
+      #endif
+      // (it glows: the fog takes the light away rather than painting its own colour in)
+      gl_FragColor.rgb *= 1.0 - fogFactor;
+    #endif
+    #include <colorspace_fragment>
+  }`;
+class Flames {
+  constructor(scene, fx) {
+    this.fx = fx; this.list = [];
+    const D = FIRE, raw = atob(D.bin), buf = new ArrayBuffer(raw.length), u8 = new Uint8Array(buf);
+    for (let i = 0; i < raw.length; i++) u8[i] = raw.charCodeAt(i);
+    const Q = new Int16Array(buf, 0, D.v * 3), N = new Int8Array(buf, D.no, D.v * 3), pos = new Float32Array(D.v * 3), nor = new Float32Array(D.v * 3);
+    for (let i = 0; i < D.v * 3; i++) { const j = i % 3; pos[i] = D.lo[j] + ((Q[i] + 32767) / 65534) * (D.hi[j] - D.lo[j]) - (j === 1 ? D.lo[1] : 0); nor[i] = N[i] / 127; }
+    // (stood on its own base, and centred over the middle of it)
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    geo.setIndex(new THREE.BufferAttribute(new Uint16Array(buf.slice(D.io, D.io + D.i * 2)), 1));
+    let bx = 0, bz = 0, nb = 0;
+    for (let i = 0; i < D.v; i++) if (pos[i * 3 + 1] < 0.5) { bx += pos[i * 3]; bz += pos[i * 3 + 2]; nb++; }
+    geo.translate(-bx / Math.max(1, nb), 0, -bz / Math.max(1, nb));
+    this.max = 36;
+    this.aPhase = new THREE.InstancedBufferAttribute(new Float32Array(this.max), 1).setUsage(THREE.DynamicDrawUsage);
+    this.aFade = new THREE.InstancedBufferAttribute(new Float32Array(this.max), 1).setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute('aPhase', this.aPhase); geo.setAttribute('aFade', this.aFade);
+    this.uniforms = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uTime: { value: 0 } }]);
+    const mat = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: FIRE_VS, fragmentShader: FIRE_FS, transparent: true, depthWrite: false,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: true });
+    this.mesh = new THREE.InstancedMesh(geo, mat, this.max);
+    this.mesh.count = 0;
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 3;
+    scene.add(this.mesh);
+    this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._p = new THREE.Vector3(); this._s = new THREE.Vector3();
+  }
+
+  // a fire at x, y (its base), z: scale 1 is a 6 m flame; it burns for life seconds, or while its owner is a wreck
+  // (it dies down when the owner is gone or alive again); smoke: whether it puts up its own smoke
+  add(x, y, z, scale, life, owner = null, smoke = true) {
+    const low = this.fx.game.qualityName && this.fx.game.qualityName() === 'low';
+    const most = low ? 5 : 12;
+    while (this.list.length >= most) this.list.shift();
+    this.list.push({ x, y, z, s: scale, life, owner, smoke, t: 0, out: 0, yaw: rand(0, 6.283), ph: rand(0, 50), pair: !low, st: 0 });
+  }
+
+  update(dt, time) {
+    this.uniforms.uTime.value = time;
+    const L = this.list, fx = this.fx;
+    let n = 0;
+    for (let i = L.length - 1; i >= 0; i--) {
+      const f = L[i];
+      f.t += dt;
+      const o = f.owner, gone = o && (o.exists === false || o.alive === true);
+      if ((f.t > f.life || gone) && !f.out) f.out = f.t;
+      if (f.out && f.t - f.out > 1.5) { L.splice(i, 1); continue; }
+      f.fade = Math.min(1, f.t / 0.5) * (f.out ? Math.max(0, 1 - (f.t - f.out) / 1.5) : 1);
+      if (f.smoke && f.fade > 0.3 && (f.st -= dt) <= 0) {
+        f.st = 0.16 / Math.max(0.4, f.s);
+        fx.smoke.add(f.x + rand(-0.6, 0.6) * f.s, f.y + 4.8 * f.s, f.z + rand(-0.6, 0.6) * f.s, rand(-0.4, 0.4), rand(1.5, 3) * Math.sqrt(f.s), rand(-0.4, 0.4),
+          rand(3, 5), 1.6 * f.s, 7 * f.s, 0x2a2622, 0.5 * f.fade, -0.3, 0.3);
+      }
+    }
+    for (const f of L) {
+      for (let k = 0; k < (f.pair ? 3 : 1); k++) {
+        const s = f.s * (k === 0 ? 1 : k === 1 ? 0.74 : 0.6), a = f.yaw + k * 2.3, r = k ? 0.58 * f.s : 0;
+        this._p.set(f.x + Math.cos(a) * r, f.y, f.z + Math.sin(a) * r);
+        this._q.setFromAxisAngle(_up, f.yaw + k * 2.2);
+        this._s.set(s * 1.3, s * (0.95 + 0.08 * Math.sin(time * 2.1 + f.ph + k)), s * 1.3);
+        this._m.compose(this._p, this._q, this._s);
+        this.mesh.setMatrixAt(n, this._m);
+        this.aPhase.array[n] = f.ph + k * 13.7;
+        this.aFade.array[n] = f.fade;
+        n++;
+      }
+    }
+    if (!n && !this.mesh.count) return;
+    this.mesh.count = n;
+    this.mesh.instanceMatrix.needsUpdate = true;
+    this.aPhase.needsUpdate = true; this.aFade.needsUpdate = true;
+  }
+
+  clear() { this.list.length = 0; this.mesh.count = 0; }
+}
+
 export class Effects {
   constructor(game) {
     this.game = game;
@@ -259,6 +494,9 @@ export class Effects {
     this.fire = new ParticleSystem(scene, 1400, true, tex.glow);
     // billowing flame: the puff shape, glowing
     this.blaze = new ParticleSystem(scene, 900, true, tex.smoke);
+    // the rendered explosion, and the fires
+    this.booms = new Booms(scene);
+    this.flames = new Flames(scene, this);
 
     // Debris chunks
     this.debrisMax = 320;
@@ -581,8 +819,10 @@ export class Effects {
     if (sea !== null && y < sea + 1.2) { this.splash(x, sea, z, scale); this.flash(x, sea + 1, z, 30 * scale, 20 * scale, 0.12); return; }
     this.flash(x, y + 1, z, 60 * scale, 30 * scale, 0.22);
     const s = scale, k = Math.min(s, 2.5), gy = world.heightAt(x, z), ground = y - gy < 1.5 + s;
+    // (on the ground the fireball rolls up off it: its middle a little above where it hit)
+    this.booms.add(x, ground ? Math.max(y, gy + 1.8 * s) : y, z, s);
     this.fire.add(x, y + 0.5, z, 0, 0, 0, 0.1, 5 * s, 9 * s, 0xfff0c8, 1);
-    for (let i = 0, n = Math.round(10 * k + 4); i < n; i++) {
+    for (let i = 0, n = Math.round(4 * k + 2); i < n; i++) {
       const a = rand(0, 6.283), u = rand(ground ? 0.1 : -0.9, 1), h = Math.sqrt(1 - u * u), sp = rand(3, 9) * s;
       const dx = Math.cos(a) * h, dz = Math.sin(a) * h;
       this.blaze.add(x + dx * 0.5 * s, y + 0.4 + u * 0.5 * s, z + dz * 0.5 * s, dx * sp, u * sp + 1.5 * s, dz * sp,
@@ -598,7 +838,7 @@ export class Effects {
     for (let i = 0; i < 8 * k; i++) {
       this.fire.add(x, y + 0.5, z, rand(-6, 6), rand(3, 12), rand(-6, 6), rand(1.2, 2.6), 0.1, 0.06, 0xff8a3a, 1, 5, 0.8);
     }
-    for (let i = 0; i < 26 * s + 4; i++) {
+    for (let i = 0; i < 12 * s + 2; i++) {
       this.smoke.add(x + rand(-1, 1), y + rand(0, 1.5), z + rand(-1, 1), rand(-3, 3) * s, rand(1, 5) * s, rand(-3, 3) * s,
         rand(2.5, 5), rand(2, 3.5) * s, rand(6, 10) * s, i % 2 ? 0x3a3530 : 0x57504a, 0.7, -0.4, 0.9);
     }
@@ -617,7 +857,14 @@ export class Effects {
     }
     this.debris(x, y + 0.5, z, 0x4a3d2e, Math.round(5 * k), 0.3, { trail: 0x7a6a55, speed: 1.3 });
     if (this.scorchOn !== false) this.scorch(x, gy, z, 1.4 + 1.5 * s);
+    // a big blast (a bomb) leaves the ground burning for a while, the fire as big as the blast
+    if (s >= 2) this.fireAt(x + rand(-1, 1), gy, z + rand(-1, 1), Math.min(1.1, 0.24 * s), 6 + 3 * s);
   }
+
+  // A fire at x, y (its base), z: scale 1 is a 6 m flame (a burning tank about 0.4, a bomber's wreck about 1); it
+  // burns for life seconds, or while owner is a wreck (it dies down when the owner is gone or back in action); smoke:
+  // whether it puts up its own smoke (an owner that smokes already says false)
+  fireAt(x, y, z, scale = 0.5, life = 10, owner = null, smoke = true) { this.flames.add(x, y, z, scale, life, owner, smoke); }
 
   scorch(x, y, z, r) {
     const W = this.game.world, e = 0.8;
@@ -684,6 +931,8 @@ export class Effects {
     this.smoke.update(dt);
     this.fire.update(dt);
     this.blaze.update(dt);
+    this.booms.update(dt);
+    this.flames.update(dt, this.time);
     this.shake = Math.max(0, this.shake - dt * 2.2);
 
     for (const l of this.lights) {
@@ -759,6 +1008,8 @@ export class Effects {
     this.smoke.clear();
     this.fire.clear();
     this.blaze.clear();
+    this.booms.clear();
+    this.flames.clear();
     this.scorchN = 0;
     this.scorchMesh.count = 0;
     this.holeN = 0;

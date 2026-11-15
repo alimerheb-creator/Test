@@ -1341,6 +1341,7 @@ export class ModManager {
           case 'flash': fx.flash(x, y, z, 6 * s, 14 * s, clamp(+(opts.duration ?? 0.1), 0.02, 3), col ?? 0xffa850); break;
           case 'smoke': for (let i = 0; i < 12 * s; i++) fx.smoke.add(x + (Math.random() - 0.5) * s, y + Math.random() * s, z + (Math.random() - 0.5) * s, (Math.random() - 0.5), 0.5 + Math.random(), (Math.random() - 0.5), 2 + Math.random() * 2, s, 3 * s, col ?? 0xcfc8bd, 0.5, -0.2, 0.5); break;
           case 'fire': for (let i = 0; i < 10 * s; i++) fx.fire.add(x + (Math.random() - 0.5) * s, y, z + (Math.random() - 0.5) * s, 0, 1 + Math.random() * 2, 0, 0.4 + Math.random() * 0.4, 0.4 * s, 0.1, col ?? 0xffa040, 1); break;
+          case 'blaze': fx.fireAt(x, y, z, s, clamp(+(opts.duration ?? 10), 0.5, 600)); break;
           case 'dust': fx.dust(x, y, z, 2 * s, Math.round(10 * s), col ?? 0xb9ad98); break;
           case 'blood': fx.blood(x, y, z, 0, 1, 0); break;
           case 'sparks': fx.impact(x, y, z, 0, 1, 0, 'metal'); break;

@@ -295,6 +295,8 @@ export class Tank {
     g.effects.explosion(this.pos.x, this.pos.y + 2.5, this.pos.z, 1.0);
     g.audio.explosion(this.pos.x, this.pos.y, this.pos.z, 1.5);
     this._setWreck(true);
+    // the wreck burns until the tank is back (its own smoke rises off it already)
+    g.effects.fireAt(this.pos.x, this.pos.y + 1.1, this.pos.z, 0.55, this.respawnT, this, false);
     this.turret.rotation.z = rand(-0.2, 0.2);
     const d = this.driver;
     if (d) {
@@ -453,7 +455,7 @@ export class Tank {
       this.respawnT -= dt;
       if (Math.random() < dt * 14) {
         g.effects.smoke.add(this.pos.x + rand(-1, 1), this.pos.y + 2, this.pos.z + rand(-1, 1), rand(-0.5, 0.5), rand(2, 4), rand(-0.5, 0.5), rand(3, 5), 1.5, 6, 0x2a2622, 0.6, -0.3, 0.3);
-        if (Math.random() < 0.5) g.effects.fire.add(this.pos.x + rand(-1, 1), this.pos.y + 1.8, this.pos.z + rand(-1, 1), 0, rand(1, 3), 0, rand(0.3, 0.6), 1.2, 0.3, 0xff8a30, 0.9);
+        if (Math.random() < 0.25) g.effects.fire.add(this.pos.x + rand(-1, 1), this.pos.y + 1.8, this.pos.z + rand(-1, 1), 0, rand(1, 3), 0, rand(0.3, 0.6), 1.2, 0.3, 0xff8a30, 0.9);
       }
       if (this.respawnT <= 0) this.spawn();
       return;

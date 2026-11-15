@@ -2,7 +2,7 @@
   "format": "sixthfront-mod",
   "id": "jets",
   "name": "Jets",
-  "version": "1.19",
+  "version": "1.20",
   "author": "Sixth Front",
   "battles": [
     "aviation"
@@ -763,6 +763,8 @@
     "      fx.dust(p.x, p.y, p.z, 9, 26, 0x8a7d66);",
     "      this.state = 'wreck';",
     "      this.wreckT = 14;",
+    "      // the wreck burns as long as it lies there (it smokes already)",
+    "      if (fx.fireAt) fx.fireAt(p.x, gy + 0.3, p.z, this.kind === 'bomber' ? 1.1 : this.kind === 'heli' ? 0.6 : 0.8, 13.5, this, false);",
     "      this.vel.set(0, 0, 0);",
     "      // settle level-ish on the ground",
     "      const yaw = this.yaw;",
