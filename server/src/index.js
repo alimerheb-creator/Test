@@ -39,6 +39,8 @@
 //   N{"hid":<id>}  the new host, to everyone (the new host included)
 //   k{}            from a player: the host seems to have stopped. If it has been quiet for 7 s it is let go and the
 //                  next player takes over (instead of waiting for someone new to come in)
+// In protocol 3 every player's game also connects straight to every other player's (introduced with d<id> as above),
+// and the host passes a state on only to the players who aren't connected to its sender.
 import { DurableObject } from 'cloudflare:workers';
 export { Accounts } from './accounts.js';
 
@@ -47,6 +49,7 @@ const MAX_ALL_OUT = 18;   // an ALL-OUT server: 16 players (and two coming back)
 const MAX_LOBBY = 4000;
 const MAX_MSG = 65536;
 const MAX_RATE = 90;      // messages a second from one page
+const MAX_RATE_V3 = 160;  // (protocol 3: every player connects to every other, so more introductions go through)
 const STALE_MS = 7000;    // a host this quiet on a server has stopped (its game closed or in the background)
 const SERVER_RE = /^\/v([23])\/server\/((?:inf|tank|air|sea|aio)-[1-9]\d?)$/;
 const PROTOCOL = 3;
@@ -220,7 +223,7 @@ export class Room extends DurableObject {
     const t = Date.now();
     me.last = t;
     if (t - me.t > 1000) { me.t = t; me.n = 0; }
-    if (++me.n > MAX_RATE) return;
+    if (++me.n > (this.v3 ? MAX_RATE_V3 : MAX_RATE)) return;
     const c = msg[0];
     if (this.v2) {
       // to one player

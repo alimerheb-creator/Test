@@ -782,10 +782,21 @@ your own device: your hits on those bots count at once, and theirs on you. It sh
 ALL-OUT battles. Vehicles and the bots in them (tanks, aircraft, ships, helicopter passengers) stay with the host,
 and so do bots waiting to respawn: a bot that dies goes back to the host, which brings it back. Every game keeps a
 copy of the whole battle, so when the host leaves, the next player takes over as referee and nothing restarts. On
-the servers it's the one who has been in longest; in a claude.ai room it's the first in the player list. The
-ONLINE line shows HOST on the host's game and how many bots run on yours (· 7 BOTS HERE). Games through the PeerJS
-fallback (below) still end with their host. This is online protocol 3: games from before version 1.62 play among
+the servers it's the one who has been in longest; in a claude.ai room it's the first in the player list. Every
+player's game also connects straight to every other player's, not only to the host's, so if the host's game stalls,
+everyone else still sees each other while a new host takes over. A game on a weak connection (playing through the
+servers, or with its connection backed up) runs no bots and sends only its own soldier. The ONLINE line shows HOST
+on the host's game and how many bots run on yours (· 7 BOTS HERE). Games through the PeerJS fallback (below) still
+go through the host and end with it. This is online protocol 3: games from before version 1.62 play among
 themselves.
+
+**Fair play.** Each game decides the hits on its own soldiers, and no game can speak for a soldier or vehicle it
+doesn't run: a death, a hit, a blast or a launch only counts from the game that runs the soldier (or vehicle) behind
+it. Every game also turns away what no fair game would send: a hit or a blast far bigger than any weapon's, more
+damage a second than a gun can do, too many blasts or launches, a soldier outside a vehicle moving faster than
+120 m/s. The host keeps count, and a player whose game keeps doing it is removed from the game and kept out of it.
+It is still a game run by its players' devices: it can't tell a player who aims very well from one who cheats at
+aiming.
 
 **Chat**: in battle press **ENTER**, type and press ENTER again (TAB switches between everyone and your team only,
 ESC closes it); on a phone or tablet press **CHAT** at the top. Lines show above the minimap for a few seconds, your
@@ -796,9 +807,9 @@ Anyone can also host their own game with a 4-letter code: it shows in the OPEN G
 code, from the Android, Windows or iPhone and iPad app, a browser copy of the game or the game's claude.ai page.
 
 **Public servers.** Sixth Front's own servers (`server/`, on Cloudflare Workers) keep the list of open games every
-copy of the game sees and introduce the players: each player's game then connects **straight to the host's game**
-(WebRTC), and the host passes everyone's state along, so the servers carry almost nothing and Cloudflare's free plan
-goes a long way. A player whose network won't make a direct connection (some mobile and company networks) plays
+copy of the game sees and introduce the players: each player's game then connects **straight to every other
+player's game** (WebRTC), and the host passes a player's state on only to those who can't connect to them directly,
+so the servers carry almost nothing and Cloudflare's free plan goes a long way. A player whose network won't make a direct connection (some mobile and company networks) plays
 through the servers instead (the ONLINE line says VIA SERVER); with a TURN key set (below), Cloudflare's TURN relay
 carries those players instead (1,000 GB a month free). The referee runs in the host's game and the bots in
 everyone's; when the host leaves, the servers name the player who has been in longest as the new host (`N`) and
