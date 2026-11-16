@@ -1,4 +1,5 @@
-// The explosion and the fire. EXPLOSION: an explosion rendered in 120 frames and sent by a player (the flash, the
+// The explosion and the fire. EXPLOSION: "Real-time Explosion" by HuyKhoi2407 (Huy Khoi), free on CGTrader and
+// Superhive: an explosion rendered in 120 frames (the flash, the
 // fireball rolling up and darkening, the smoke rising off it), cropped to where it happens and packed as 43 of its
 // frames (every frame at the start, where it changes fastest, fewer later) into one sheet of 8 x 6 cells; each cell is
 // 192 x 260 pixels with a 2 pixel clear margin round the frame. frames: which of the 120 each cell holds (at 24 a

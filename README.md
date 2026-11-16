@@ -1003,10 +1003,16 @@ no paid items.
 - **F/A-18F Super Hornet**: "FA-18F Super Hornet" by pjedvaj, a free model on CGTrader (model #2216599), under
   CGTrader's Royalty Free License. Changed for the game: converted, slimmed into three versions, split into its moving
   parts (control surfaces, air brake, landing gear, stores) and given its cockpit inside its own canopy.
-- **AH-64E Apache and M1 Abrams**: free models from their makers; their names will be added here.
+- **AH-64E Apache**: "Apache AH-64D" by SalamSadeq, a free model on CGTrader (model #4268591), under CGTrader's
+  Royalty Free License. Changed for the game: converted, slimmed into three versions, painted olive drab and split
+  into its moving parts (rotors, chain gun, Hellfires).
+- **M1 Abrams** (and its burnt-out wreck): a free Blender model by Felipe, with its destroyed version. Changed for the
+  game: converted, slimmed into three versions and split into its moving parts (turret, gun, road wheels and track
+  links).
 - **The fire**: "Fire v001" by Achisan, a free model on CGTrader (model #2336673), under CGTrader's Royalty Free
   License. Changed for the game: simplified from about 62,000 triangles to 3,200, given a flame shader and sized by
   the damage.
-- **The explosion**: an explosion rendered in Blender (120 frames), sent by a player; its maker's name will be added
-  here.
+- **The explosion**: "Real-time Explosion" by HuyKhoi2407 (Huy Khoi), free on CGTrader (under its Royalty Free
+  License) and on Superhive (formerly Blender Market): an explosion rendered in Blender in 120 frames. Changed for the
+  game: cropped, and 43 of its frames packed into one sheet.
 
