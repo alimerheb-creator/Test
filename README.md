@@ -784,17 +784,19 @@ people are playing. **QUICK MATCH** takes you to the fullest server with room fo
 **Shared hosting.** Every player's game runs a share of the bots, not just the host's. How many depends on the
 device: a PC 20 to 48 by its processor, a phone or tablet 12, fewer while its frames slow down, and none while the
 game is in the background. The host hands each game the bots nearest that player, so the fights around you run on
-your own device: your hits on those bots count at once, and theirs on you. It shares the bots on foot in INFANTRY and
-ALL-OUT battles. Vehicles and the bots in them (tanks, aircraft, ships, helicopter passengers) stay with the host,
-and so do bots waiting to respawn: a bot that dies goes back to the host, which brings it back. Every game keeps a
-copy of the whole battle, so when the host leaves, the next player takes over as referee and nothing restarts. On
-the servers it's the one who has been in longest; in a claude.ai room it's the first in the player list. Every
-player's game also connects straight to every other player's, not only to the host's, so if the host's game stalls,
-everyone else still sees each other while a new host takes over. A game on a weak connection (playing through the
-servers, or with its connection backed up) runs no bots and sends only its own soldier. The ONLINE line shows HOST
-on the host's game and how many bots run on yours (· 7 BOTS HERE). Games through the PeerJS fallback (below) still
-go through the host and end with it. This is online protocol 3: games from before version 1.62 play among
-themselves.
+your own device: your hits on those bots count at once, and theirs on you. It works in every battle type, with the
+vehicles too: a tank, an aircraft in flight or a ship under way with a bot at the wheel and nobody else aboard goes
+to a player's game with its bot, and that game drives it, aims it and fires it (a tank counts as 3 bots of the share,
+an aircraft 4, a ship 6). It goes back to the host when it is wrecked, lands or sinks, or its bot dies or gets out.
+Transport helicopters, submarines, players' own vehicles and bots waiting to respawn stay with the host: a bot that
+dies goes back to the host, which brings it back. Every game keeps a copy of the whole battle, so when the host
+leaves, the next player takes over as referee and nothing restarts. On the servers it's the one who has been in
+longest; in a claude.ai room it's the first in the player list. Every player's game also connects straight to every
+other player's, not only to the host's, so if the host's game stalls, everyone else still sees each other while a new
+host takes over. A game on a weak connection (playing through the servers, or with its connection backed up) runs no
+bots and sends only its own soldier. The ONLINE line shows HOST on the host's game and how many bots run on yours
+(· 7 BOTS HERE, or · 7 BOTS (2 VEHICLES) HERE). Games through the PeerJS fallback (below) still go through the host
+and end with it. This is online protocol 3: games from before version 1.62 play among themselves.
 
 **Fair play.** Each game decides the hits on its own soldiers, and no game can speak for a soldier or vehicle it
 doesn't run: a death, a hit, a blast or a launch only counts from the game that runs the soldier (or vehicle) behind
