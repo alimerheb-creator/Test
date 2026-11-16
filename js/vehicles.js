@@ -7,7 +7,7 @@ import { ABRAMS } from './abrams.js';
 import { T90 } from './t90.js';
 
 const HW = 1.95, HL = 3.55;
-let MAT = null, WRECK = null;
+let MAT = null, WRECK = null, GRIME = null;
 const GEOS = {};
 
 // A modern main battle tank: sloped glacis, side skirts over seven road wheels a side with the track running round
@@ -63,11 +63,48 @@ function realGeos(D, team, ultra) {
     return weather(g, y0);
   };
   const ty = D.turret[1], by = ty + D.trunnion[1], s = ultra ? '' : '@1';
-  return {
+  const G = {
     hull: make('hull' + s, 0), turret: make('turret' + s, ty), barrel: make('barrel' + s, by),
     far: { hull: make('hull@2', 0), turret: make('turret@2', ty), barrel: make('barrel@2', by) },
     wreck: R['wreck@1'] ? make('wreck@1', 0) : null, tp: D.turret, bp: D.trunnion, muzzle: D.muzzle + 0.1,
   };
+  // close up the running gear moves: the wheels (each vertex knowing its wheel's axle) and one track link to run
+  // round each track (far off they're part of the hull)
+  if (D.gear && R['gear' + s] && R['link' + s]) {
+    G.gear = axles(make('gear' + s, 0), D.gear.wheels);
+    G.link = make('link' + s, 0.2);
+    G.track = trackPath(D.gear.track);
+  }
+  return G;
+}
+// Each vertex of the wheels: its wheel's axle (y, z) and one over its radius, to turn it by in the vertex shader (the
+// nearest wheel's: they don't touch)
+function axles(geo, W) {
+  const p = geo.attributes.position, n = p.count, a = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    let w = W[0], bd = Infinity;
+    for (const c of W) { const d = (x - c[0]) ** 2 + (y - c[1]) ** 2 + (z - c[2]) ** 2; if (d < bd) { bd = d; w = c; } }
+    a[i * 3] = w[1]; a[i * 3 + 1] = w[2]; a[i * 3 + 2] = 1 / w[3];
+  }
+  geo.setAttribute('axle', new THREE.BufferAttribute(a, 3));
+  return geo;
+}
+// A track's path ready for running links round it: its points (closed: the last again at the end), how far round each
+// is, and the way it runs there (the average of the segments either side, so links turn smoothly round the wheels)
+function trackPath(T) {
+  const P = T.path, m = P.length;
+  const py = new Float32Array(m + 1), pz = new Float32Array(m + 1), cum = new Float32Array(m + 1), dy = new Float32Array(m + 1), dz = new Float32Array(m + 1);
+  let L = 0;
+  for (let i = 0; i <= m; i++) {
+    const p = P[i % m], a = P[(i + m - 1) % m], b = P[(i + 1) % m], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    py[i] = p[0]; pz[i] = p[1]; cum[i] = L; dy[i] = (b[0] - a[0]) / l; dz[i] = (b[1] - a[1]) / l;
+    if (i < m) L += Math.hypot(b[0] - p[0], b[1] - p[1]);
+  }
+  const pitch = L / T.n;
+  // (hw: half the tracks' spread, for how much further the outer one runs in a turn; wrap: the rolled distance is kept
+  // under this, a whole number of links, so the wheels' angles stay precise)
+  return { m, py, pz, cum, dy, dz, L, n: T.n, pitch, s0: T.s0, x: T.x, hw: (T.x[1] - T.x[0]) / 2, wrap: pitch * 6000 };
 }
 // The team's tank geometry, made again only when a mod changes the team's tank colour (or Ultra is switched on or off)
 function tankGeos(team, ultra = false) {
@@ -76,7 +113,7 @@ function tankGeos(team, ultra = false) {
   const old = GEOS[team];
   GEOS[team] = realGeos(team === 0 ? ABRAMS : T90, team, ultra);
   GEOS[team].color = col; GEOS[team].ultra = ultra;
-  if (old) for (const geo of [old.hull, old.turret, old.barrel, old.wreck, ...(old.far ? Object.values(old.far) : [])]) if (geo) geo.dispose();
+  if (old) for (const geo of [old.hull, old.turret, old.barrel, old.wreck, old.gear, old.link, ...(old.far ? Object.values(old.far) : [])]) if (geo) geo.dispose();
   return GEOS[team];
 }
 // Close up the Abrams is the full model; beyond this many metres (seen at the normal field of view: zoomed in through
@@ -101,6 +138,31 @@ function tankMaterial(grime) {
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor * (1.15 - 0.3 * gn), 0.3, 1.0);');
   };
   m.customProgramCacheKey = () => 'tank-grime';
+  return m;
+}
+// The wheels' paint: the tank's own, each vertex turned about its wheel's axle by how far its side's track has rolled
+// (travel: left, right) over the wheel's radius. A material for each tank (they all share the one program). A vertex
+// whose axle's third number is negative slides instead: along (y, z) as given, by the rolled distance over and over
+// up to that many metres (a track plate moving along its run, its place taken by the next each time round: what a
+// mod's simpler running gear can use, e.g. the Career Mode's tanks)
+function gearMaterial(grime) {
+  const m = tankMaterial(grime), base = m.onBeforeCompile, travel = { value: new THREE.Vector2() };
+  m.userData.travel = travel;
+  m.onBeforeCompile = (sh, r) => {
+    base.call(m, sh, r);
+    sh.uniforms.travel = travel;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 axle; uniform vec2 travel;')
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+        float wT = position.x < 0.0 ? travel.x : travel.y;
+        float wA = axle.z > 0.0 ? -mod(wT, 6.2831853 / axle.z) * axle.z : 0.0, wC = cos(wA), wS = sin(wA);
+        objectNormal.yz = vec2(wC * objectNormal.y - wS * objectNormal.z, wS * objectNormal.y + wC * objectNormal.z);`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        if (axle.z > 0.0) {
+          vec2 wD = transformed.yz - axle.xy;
+          transformed.yz = axle.xy + vec2(wC * wD.x - wS * wD.y, wS * wD.x + wC * wD.y);
+        } else if (axle.z < 0.0) transformed.yz += axle.xy * mod(wT, -axle.z);`);
+  };
+  m.customProgramCacheKey = () => 'tank-gear' + (grime ? '-grime' : '');
   return m;
 }
 
@@ -138,7 +200,8 @@ export class Tank {
 
   _build() {
     if (!MAT) {
-      MAT = tankMaterial(this.game.world && this.game.world.tex && this.game.world.tex.grime);
+      GRIME = (this.game.world && this.game.world.tex && this.game.world.tex.grime) || null;
+      MAT = tankMaterial(GRIME);
       WRECK = new THREE.MeshStandardMaterial({ vertexColors: true, color: 0x2a2826, roughness: 1, metalness: 0.1 });
     }
     const g = tankGeos(this.team, (this.game.qualityName ? this.game.qualityName() : 'high') === 'ultra');
@@ -158,12 +221,26 @@ export class Tank {
     this.turret.add(this.turretMesh, this.barrelPivot);
     this.hull.add(this.hullMesh, this.turret);
     for (const m of [this.hullMesh, this.turretMesh, this.barrelMesh]) { m.castShadow = true; m.receiveShadow = true; }
+    // the running gear close up: the wheels (turned in the shader) and the track links, each side's run round its path
+    this.gearMesh = this.linkMesh = null;
+    if (g.gear) {
+      this.gearMat = gearMaterial(GRIME);
+      this.gearMesh = new THREE.Mesh(g.gear, this.gearMat);
+      this.linkMesh = new THREE.InstancedMesh(g.link, MAT, g.track.n * 2);
+      this.linkMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      this.linkMesh.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0.6, -0.2), 4.3);
+      for (const m of [this.gearMesh, this.linkMesh]) { m.castShadow = true; m.receiveShadow = true; }
+      this.hull.add(this.gearMesh, this.linkMesh);
+      this._roll = { x: 0, z: 0, yaw: 0, t: [0, 0], drawn: [NaN, NaN] };
+      this._placeLinks();
+    }
     this.hull.visible = false;
     this.game.scene.add(this.hull);
   }
 
   _setWreck(w) {
     for (const m of [this.hullMesh, this.turretMesh, this.barrelMesh]) m.material = w ? WRECK : MAT;
+    if (this.gearMesh) { this.gearMesh.material = w ? WRECK : this.gearMat; this.linkMesh.material = w ? WRECK : MAT; }
     // the Abrams burns out into its wreck: the turret knocked askew, a track thrown, wheels off (unless a mission has
     // dressed the tank as another one; the T-90 has no wreck model and just goes black)
     const G = this._geos;
@@ -172,6 +249,7 @@ export class Tank {
       this.turretMesh.visible = this.barrelMesh.visible = !w;
       this._far = false;
     }
+    if (this.gearMesh) this.gearMesh.visible = this.linkMesh.visible = this.hullMesh.geometry === G.hull;
   }
 
   // The tank's close-up or far model, by how far it is from the camera (not when a mission has dressed it as another)
@@ -190,6 +268,7 @@ export class Tank {
   // Rebuild the mesh after a mod changes the team's tank colour
   rebuildModel() {
     this.game.scene.remove(this.hull);
+    if (this.gearMat) { this.gearMat.dispose(); this.linkMesh.dispose(); }
     this._build();
     this.coax = new Gun(WEAPONS.coax);
     this.maxHealth = VEHICLES.tank.health;
@@ -446,6 +525,53 @@ export class Tank {
     this.barrelPivot.rotation.x = this.gunPitch - this.pitch * Math.cos(this.turretYaw - this.yaw);
     this.barrelMesh.position.z = this.recoilT * 0.45;
     if (this.hull.visible) this._lod();
+    if (this.gearMesh) this._runGear();
+  }
+
+  // The running gear: how far each track has rolled since last time (the hull's way along its length, the outer track
+  // further in a turn), the wheels turned and the links moved round that much. Only close up on the real model (far
+  // off, as the Abrams' wreck, or dressed by a mission as another tank, the hull has its own)
+  _runGear() {
+    const G = this._geos, T = G.track, r = this._roll;
+    const on = this.hull.visible && this.hullMesh.geometry === G.hull;
+    this.gearMesh.visible = this.linkMesh.visible = on;
+    const dx = this.pos.x - r.x, dz = this.pos.z - r.z, dyaw = wrapAngle(this.yaw - r.yaw);
+    r.x = this.pos.x; r.z = this.pos.z; r.yaw = this.yaw;
+    // (a jump, as on spawning or being put somewhere, isn't rolling)
+    if (!this.alive || dx * dx + dz * dz > 25 || Math.abs(dyaw) > 0.5) return;
+    const fwd = -dx * Math.sin(this.yaw) - dz * Math.cos(this.yaw);
+    // no more than about half a link a frame: any faster and the links would seem to stand still or run backwards
+    const cap = T.pitch * 0.45;
+    r.t[0] = (r.t[0] + clamp(fwd - dyaw * T.hw, -cap, cap)) % T.wrap;
+    r.t[1] = (r.t[1] + clamp(fwd + dyaw * T.hw, -cap, cap)) % T.wrap;
+    // (the wheels' shader: also for running gear a mod puts on the tank, which uses this material)
+    this.gearMat.userData.travel.value.set(r.t[0], r.t[1]);
+    if (on) this._placeLinks();
+  }
+
+  // each side's links evenly round its path from where the rolling has brought the first, each turned to the path
+  _placeLinks() {
+    const T = this._geos.track, r = this._roll, A = this.linkMesh.instanceMatrix.array, n = T.n;
+    if (r.t[0] === r.drawn[0] && r.t[1] === r.drawn[1]) return;
+    r.drawn[0] = r.t[0]; r.drawn[1] = r.t[1];
+    for (let k = 0; k < 2; k++) {
+      const x = T.x[k];
+      let s = (((T.s0 + r.t[k]) % T.pitch) + T.pitch) % T.pitch, j = 0;
+      for (let i = 0; i < n; i++, s += T.pitch) {
+        while (j < T.m - 1 && T.cum[j + 1] <= s) j++;
+        const u = (s - T.cum[j]) / (T.cum[j + 1] - T.cum[j]);
+        let ty = T.dy[j] + (T.dy[j + 1] - T.dy[j]) * u, tz = T.dz[j] + (T.dz[j + 1] - T.dz[j]) * u;
+        const l = Math.hypot(ty, tz) || 1;
+        ty /= l; tz /= l;
+        // (x across, y in toward the wheels, z along the path)
+        const o = (k * n + i) * 16;
+        A[o] = 1; A[o + 1] = 0; A[o + 2] = 0; A[o + 3] = 0;
+        A[o + 4] = 0; A[o + 5] = tz; A[o + 6] = -ty; A[o + 7] = 0;
+        A[o + 8] = 0; A[o + 9] = ty; A[o + 10] = tz; A[o + 11] = 0;
+        A[o + 12] = x; A[o + 13] = T.py[j] + (T.py[j + 1] - T.py[j]) * u; A[o + 14] = T.pz[j] + (T.pz[j + 1] - T.pz[j]) * u; A[o + 15] = 1;
+      }
+    }
+    this.linkMesh.instanceMatrix.needsUpdate = true;
   }
 
   update(dt) {

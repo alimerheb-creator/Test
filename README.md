@@ -145,15 +145,19 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   move as you reload, and the armory's attachments fit them.
 - **Tanks**: drivable MBT with a stabilised turret, 120mm cannon, coaxial MG, third-person and gunner
   zoom views. Tanks crush walls, trees and soldiers. Bots drive them too. Both sides' tanks are **real 3D models**:
-  Vanguard's the **M1 Abrams** (each track link a plate, the hull, turret, gun and roof machine guns) and Onyx's the
-  **T-90** (a 3D-printing kit put back together: the turret with its reactive armour blocks, the commander's cupola
-  and its machine gun, the side skirts, the road wheels and tracks), each in its side's paint with mud low down.
-  The turret and gun turn and elevate as you aim and the shell leaves the real muzzle. A destroyed Abrams becomes the
-  model's burnt-out wreck (turret knocked askew, a track thrown, wheels off); a destroyed T-90 burns black. Each
-  comes in three versions: the full model close up on Ultra (about 14,700 triangles for the Abrams, 21,800 for the
-  T-90), a lighter one close up on Low, Medium and High (about 7,200 and 9,700) and a simple one far away (about
-  2,300 and 3,300): past 60 m on Low, 85 m on Medium, 120 m on High and 200 m on Ultra (zoomed in through a sight it
-  counts as nearer).
+  Vanguard's the **M1 Abrams** (the hull, turret, gun and roof machine guns, its road wheels, idlers and sprockets,
+  and its tracks of 87 links a side) and Onyx's the **T-90** (a 3D-printing kit put back together: the turret with
+  its reactive armour blocks, the commander's cupola and its machine gun, the side skirts; the kit's running gear,
+  printed solid, rebuilt as spoked road wheels made from its own, idler, sprocket and 85 links a side), each in its
+  side's paint with mud low down. The running gear moves: the links run round the wheels as the tank drives, the
+  wheels, idlers and sprockets turn, each side by how far its track has rolled (in a turn the outer one further,
+  turning on the spot one forward and one back), for every tank you see close up, other players' too. The turret
+  and gun turn and elevate as you aim and the shell leaves the real muzzle. A destroyed Abrams becomes the model's
+  burnt-out wreck (turret knocked askew, a track thrown, wheels off); a destroyed T-90 burns black. Each comes in
+  three versions: the full model close up on Ultra (about 16,000 triangles for the Abrams, 25,100 for the T-90), a
+  lighter one close up on Low, Medium and High (about 8,600 and 13,700) and a simple one far away (about 2,300 and
+  3,300, its running gear still): past 60 m on Low, 85 m on Medium, 120 m on High and 200 m on Ultra (zoomed in
+  through a sight it counts as nearer).
 - **Soldiers**: modelled with shaped limbs and joints, a plate carrier with magazine pouches, radio and
   assault pack, a helmet with headset and NVG mount, camouflage on the uniform, and a carbine with optic, magazine
   and foregrip. They shoulder the rifle when fighting and carry it at low ready when running or with no enemy
@@ -186,9 +190,10 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
   rendered fireball (a filmed explosion: the flash, the fire rolling up and darkening into a cloud of smoke that
   rises off it, about 10 m across for a shell and three times that for a 2,000 lb bomb), a ring of dust blown out
   along the ground, sparks and embers, a column of smoke that hangs for a while and a scorch mark left behind, and
-  broken lumps of masonry or earth flying out trailing dust; fires: a burning flame that sways and flickers, hot
-  yellow at its root and dark red at its tips, on every destroyed tank and every aircraft wreck as long as it lies
-  there and where a bomb hit the ground, each as big as what is burning (a bomber's wreck burns biggest).
+  broken lumps of masonry or earth flying out trailing dust; fires: a burning flame, hot yellow at its root and dark
+  red at its tips, its tongues each leaping up and sinking back on their own and bending in the draught, the tips
+  flickering out and back, embers flying up off it, on every destroyed tank and every aircraft wreck as long as it
+  lies there and where a bomb hit the ground, each as big as what is burning (a bomber's wreck burns biggest).
   Presets: Auto, Low, Medium, High, Ultra (Auto picks Medium on phones and High on desktop). Kept light: soldiers
   more than 60 m away (further through a scope) are drawn as one merged figure each, all of them in a handful of
   draws, not six jointed parts apiece, and the sun's shadows are redrawn every second frame (every frame when you're
@@ -314,8 +319,9 @@ each time, up to four times; win it and it goes back to normal.
   Abrams with the Marines against the strongpoints; **WADI SALUKI**, Merkavas against Hezbollah's Kornet teams on
   the ridges; **MOSUL**, holding the hospital until the relief column gets through car bombs and drones; and a last
   stand in Karsk.
-  Each era's tanks have their own models, guns (fast and flat-shooting in the modern ones, slow and arching in
-  the old ones) and armour (front, side and rear), the infantry on both sides carry their own era's weapons and
+  Each era's tanks have their own models (their road wheels turning and their track plates running as they drive),
+  guns (fast and flat-shooting in the modern ones, slow and arching in the old ones) and armour (front, side and
+  rear), the infantry on both sides carry their own era's weapons and
   wear their own uniforms, machine-gun posts can be crushed under the tracks, and the earth ramps give you a
   hull-down position where only your turret shows. Winter missions cover the map in snow, desert missions turn
   it into sand and stony ridges, the town missions build a city of flat-roofed houses or bombed ruins. An enemy
@@ -634,8 +640,8 @@ and it shows up on the deploy screen as HELI. Each has a chin gun that follows y
   up on Low, Medium and High, and a simple one for far away (aircraft past 140 m on Low, 190 m on Medium, 260 m on
   High and 380 m on Ultra; a zoomed-in view counts as nearer). In triangles (full / lighter / far): F-16C 68,500 /
   25,200 / 5,800; F/A-18F 31,500 / 12,800 / 2,300; Su-35S 49,000 / 26,800 / 8,400; Su-27 49,900 / 27,600 / 8,300;
-  Mi-24V 33,600 / 20,100 / 2,900 and AH-64E 17,200 / 9,700 / 1,300 (their rotors on top); M1 Abrams 14,700 / 7,200 /
-  2,300; T-90 21,800 / 9,700 / 3,300.
+  Mi-24V 33,600 / 20,100 / 2,900 and AH-64E 17,200 / 9,700 / 1,300 (their rotors on top); M1 Abrams 16,000 / 8,600 /
+  2,300; T-90 25,100 / 13,700 / 3,300 (with their moving wheels and track links).
 - **Ground support missions.** Every so often your side's helicopters are called in: DESTROY ENEMY ARMOUR or CLEAR
   ENEMY INFANTRY at a flag (or, in an Aviation battle, knock out an installation). The mission, its progress and a
   countdown show at the top of the flight HUD with a marker over the area. Kills made from the air inside the area

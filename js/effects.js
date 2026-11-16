@@ -357,19 +357,37 @@ class Booms {
 }
 
 // ---------------------------------------------------------------- fires: the burning flame
-// A flame 6 m tall (scale 1) that sways and licks upward, hot white-yellow at its root, orange up its body and dull red
-// at the tips, flickering as the fire runs up through it; seen side-on its edges fade, so it has no hard outline. A
-// fire is three of them round each other, each turned its own way and the others smaller (one on Low). Fires burn on wrecks (as long as the wreck does) and where a big
+// A flame 6 m tall (scale 1), hot white-yellow at its root, orange up its body and dull red at the tips. The shape
+// ("Fire v001") is one still flame; here it burns: each of its tongues leaps up and sinks back on its own and bends in
+// a turbulent draught, the tips most, its skin ripples as the heat climbs, its very tips flicker out and back, the
+// light runs up through it and the whole fire flickers. Seen side-on its
+// edges fade, so it has no hard outline. A fire is three of them round each other, each turned its own way and the
+// others smaller (one on Low), embers rising off it. Fires burn on wrecks (as long as the wreck does) and where a big
 // blast hit the ground, smoke rising off them; their size follows what's burning or how big the blast was.
+const FIRE_NOISE = `
+  float fh(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+  float fn(vec3 x) {
+    vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(fh(i), fh(i + vec3(1, 0, 0)), f.x), mix(fh(i + vec3(0, 1, 0)), fh(i + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(fh(i + vec3(0, 0, 1)), fh(i + vec3(1, 0, 1)), f.x), mix(fh(i + vec3(0, 1, 1)), fh(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+  }`;
 const FIRE_VS = `uniform float uTime; attribute float aPhase; attribute float aFade;
   varying float vH; varying vec3 vP; varying vec3 vN; varying vec3 vV; varying float vFade; varying float vPh;
   #include <fog_pars_vertex>
+  ${FIRE_NOISE}
   void main() {
     vec3 p = position;
     float h = clamp(p.y / 6.0, 0.0, 1.0), t = uTime + aPhase, sway = h * h;
-    p.x += (sin(t * 2.9 + p.y * 1.4) * 0.22 + sin(t * 7.7 + p.y * 3.3) * 0.06) * sway;
-    p.z += (cos(t * 2.3 + p.y * 1.2) * 0.2 + cos(t * 6.4 + p.y * 2.9) * 0.06) * sway;
-    p.y *= 1.0 + (0.09 * sin(t * 3.7) + 0.05 * sin(t * 9.1)) * h;
+    // each tongue (where it stands across the flame) leaps up and sinks back on its own
+    float leap = fn(vec3(p.x * 1.3 + 3.1, p.z * 1.3, t * 1.9)) - 0.5;
+    p.y *= 1.0 + (0.38 * leap + 0.06 * sin(t * 3.7) + 0.03 * sin(t * 9.1)) * h;
+    // and bends in the draught, the tips most, turbulence climbing through it
+    vec3 q = vec3(p.x * 0.8, p.y * 0.6 - t * 2.4, p.z * 0.8);
+    float n1 = fn(q) - 0.5, n2 = fn(q + vec3(5.3, 1.7, 9.1)) - 0.5;
+    p.x += (sin(t * 2.9 + p.y * 1.4) * 0.22 + sin(t * 7.7 + p.y * 3.3) * 0.05 + n1 * 0.9) * sway;
+    p.z += (cos(t * 2.3 + p.y * 1.2) * 0.2 + cos(t * 6.4 + p.y * 2.9) * 0.05 + n2 * 0.9) * sway;
+    // its skin rippling a little as the heat climbs
+    p += normal * n1 * 0.12 * (0.3 + h);
     vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(p, 1.0);
     vN = normalize(normalMatrix * mat3(instanceMatrix) * normal);
     vV = -mvPosition.xyz;
@@ -380,21 +398,20 @@ const FIRE_VS = `uniform float uTime; attribute float aPhase; attribute float aF
 const FIRE_FS = `uniform float uTime;
   varying float vH; varying vec3 vP; varying vec3 vN; varying vec3 vV; varying float vFade; varying float vPh;
   #include <fog_pars_fragment>
-  float fh(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
-  float fn(vec3 x) {
-    vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
-    return mix(mix(mix(fh(i), fh(i + vec3(1, 0, 0)), f.x), mix(fh(i + vec3(0, 1, 0)), fh(i + vec3(1, 1, 0)), f.x), f.y),
-               mix(mix(fh(i + vec3(0, 0, 1)), fh(i + vec3(1, 0, 1)), f.x), mix(fh(i + vec3(0, 1, 1)), fh(i + vec3(1, 1, 1)), f.x), f.y), f.z);
-  }
+  ${FIRE_NOISE}
   void main() {
     float t = uTime + vPh;
     vec3 q = vP * vec3(1.7, 0.9, 1.7) + vec3(0.0, -t * 2.4, 0.0);
     float n = fn(q) * 0.65 + fn(q * 2.3 + 7.1) * 0.35;
     float facing = abs(dot(normalize(vN), normalize(vV)));
     float h = vH + (n - 0.5) * 0.35;
-    vec3 col = mix(vec3(1.0, 0.7, 0.34) * 1.3, vec3(1.0, 0.4, 0.07) * 1.3, smoothstep(0.0, 0.3, h));
+    // the very tips flickering out and back as the noise climbs through them
+    float keep = 1.0 - smoothstep(0.7, 1.0, vH) * smoothstep(0.45, 0.75, fn(vP * vec3(2.2, 1.0, 2.2) + vec3(0.0, -t * 3.5, 0.0)));
+    // and a quick flicker through the whole fire
+    float fl = 0.8 + 0.2 * fn(vec3(t * 9.0, vPh, 0.5));
+    vec3 col = mix(vec3(1.0, 0.72, 0.36) * 1.35, vec3(1.0, 0.4, 0.07) * 1.3, smoothstep(0.0, 0.3, h));
     col = mix(col, vec3(0.7, 0.13, 0.02) * 1.0, smoothstep(0.38, 0.85, h));
-    float a = smoothstep(0.05, 0.6, facing) * (1.0 - smoothstep(0.55, 1.0, h)) * (0.4 + 0.6 * n) * smoothstep(0.0, 0.05, vH) * 0.78;
+    float a = smoothstep(0.05, 0.6, facing) * (1.0 - smoothstep(0.6, 1.0, h)) * (0.4 + 0.6 * n) * smoothstep(0.0, 0.05, vH) * 0.8 * keep * fl;
     gl_FragColor = vec4(col * a * vFade, 1.0);
     #ifdef USE_FOG
       #ifdef FOG_EXP2
@@ -457,6 +474,12 @@ class Flames {
       if ((f.t > f.life || gone) && !f.out) f.out = f.t;
       if (f.out && f.t - f.out > 1.5) { L.splice(i, 1); continue; }
       f.fade = Math.min(1, f.t / 0.5) * (f.out ? Math.max(0, 1 - (f.t - f.out) / 1.5) : 1);
+      // embers flying up off it, swirling and burning out
+      if (f.fade > 0.3 && (f.et = (f.et || 0) - dt) <= 0) {
+        f.et = rand(0.05, 0.16) / Math.max(0.5, f.s) * (f.pair ? 1 : 2);
+        fx.fire.add(f.x + rand(-0.6, 0.6) * f.s, f.y + rand(0.4, 2.6) * f.s, f.z + rand(-0.6, 0.6) * f.s, rand(-1, 1), rand(2, 4.5) * Math.sqrt(f.s), rand(-1, 1),
+          rand(0.9, 2.2), rand(0.12, 0.22), 0.03, 0xffa040, 0.95 * f.fade, -1.2, 0.7);
+      }
       if (f.smoke && f.fade > 0.3 && (f.st -= dt) <= 0) {
         f.st = 0.16 / Math.max(0.4, f.s);
         fx.smoke.add(f.x + rand(-0.6, 0.6) * f.s, f.y + 4.8 * f.s, f.z + rand(-0.6, 0.6) * f.s, rand(-0.4, 0.4), rand(1.5, 3) * Math.sqrt(f.s), rand(-0.4, 0.4),

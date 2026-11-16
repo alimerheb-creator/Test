@@ -55,15 +55,17 @@ export class Conquest {
       f.ring = ring;
       f.clothBase = cloth.geometry.attributes.position.array.slice();
     }
-    // HQ banners
+    // HQ banners (they fly too)
+    this.banners = [];
     HQS.forEach((q, t) => {
       const g = new THREE.Group();
       g.position.set(q.x, this.game.surfaceAt(q.x, q.z), q.z);
       const pole = new THREE.Mesh(poleGeo, poleMat);
-      const cloth = new THREE.Mesh(clothGeo, new THREE.MeshStandardMaterial({ color: TEAMS[t].hex, side: THREE.DoubleSide, emissive: TEAMS[t].hex, emissiveIntensity: 0.2 }));
+      const cloth = new THREE.Mesh(clothGeo.clone(), new THREE.MeshStandardMaterial({ color: TEAMS[t].hex, side: THREE.DoubleSide, emissive: TEAMS[t].hex, emissiveIntensity: 0.2 }));
       cloth.position.set(0.08, 8, 0);
       g.add(pole, cloth);
       scene.add(g);
+      this.banners.push({ cloth, clothBase: cloth.geometry.attributes.position.array.slice(), idx: 7 + t * 3 });
     });
   }
 
@@ -177,6 +179,7 @@ export class Conquest {
       else if (f.owner === -1 && f.progress <= -1) this._capture(f, 1);
       this._visual(f, dt);
     }
+    for (const b of this.banners || []) this._flutter(b);
 
     // Ticket bleed for the side holding a minority of flags
     const own = [0, 0];
@@ -204,7 +207,11 @@ export class Conquest {
     f.cloth.material.emissive.lerp(target, k);
     f.ring.material.color.lerp(target, k);
     f.cloth.position.y = 1.6 + Math.abs(f.progress) * 6.6;
-    // flutter
+    this._flutter(f);
+  }
+
+  // a flag's cloth flapping in the wind, more toward its free end
+  _flutter(f) {
     const pos = f.cloth.geometry.attributes.position;
     const base = f.clothBase, t = this.time * 4 + f.idx;
     for (let i = 0; i < pos.count; i++) {
