@@ -802,7 +802,9 @@ and end with it. This is online protocol 3: games from before version 1.62 play 
 doesn't run: a death, a hit, a blast or a launch only counts from the game that runs the soldier (or vehicle) behind
 it. Every game also turns away what no fair game would send: a hit or a blast far bigger than any weapon's, more
 damage a second than a gun can do, too many blasts or launches, a soldier outside a vehicle moving faster than
-120 m/s. The host keeps count, and a player whose game keeps doing it is removed from the game and kept out of it.
+120 m/s, or a tank or ship faster than 60 m/s or an aircraft faster than 450 m/s (the player's own, or a bot's their
+game runs; not when it spawns, launches or is wrecked). The host keeps count, and a player whose game keeps doing it
+is removed from the game and kept out of it.
 It is still a game run by its players' devices: it can't tell a player who aims very well from one who cheats at
 aiming.
 
