@@ -549,17 +549,21 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   - **Harbour City**: the sea all along the east, a river from an inland lake out to it, and a skyscraper city on
     the coast.
 
-  Each side has an **airbase** at its end of the map: **two parallel runways** (jets and bombers line up at the end
-  of a clear one, roll down it with their wheels down, lift off and climb away; **one at a time on each**: while both
-  are in use a bot waits on foot and your plane waits on the apron, GET IN showing RUNWAY BUSY), an apron with
+  Each side has an **airbase** at its end of the map: **two parallel runways**, 9L and 9R, with a **taxiway** beside
+  them where jets and bombers **wait their turn in line**, nose to tail. Each time the line moves they taxi up one
+  place; the one at the front holds short until nobody else is out at the end and a runway is clear, then turns onto
+  it, lines up and rolls down it with its wheels down, lifts off and climbs away (the tower tells you how many are
+  ahead of you, when you're holding short, which runway you're lining up on and when you're cleared; while you wait
+  nothing can hit you). The line takes about six jets or four bombers: when it's full a bot waits on foot and your
+  plane waits on the apron, GET IN showing TAXIWAY FULL. There's an apron with
   hangars, fuel tanks and a control tower, eight **helipads** right beside the HQ you spawn at, 50 to 170 m away (the
   helicopters stand on them and come back **20 seconds** after one is lost; two transports and two of each attack
   helicopter a side), and a **harbour** with a pier where your ships put to sea (a destroyer, a frigate, a corvette
   and two patrol boats a side, crewed by bots now and then). **Land back at your own base** (on either runway or the
-  apron, wheels down and slow; a helicopter on its helipads) and nothing can hit you there (nor can you fire): after
+  taxiway or the apron, wheels down and slow; a helicopter on its helipads) and nothing can hit you there (nor can you fire): after
   a moment the aircraft is repaired, rearmed and its flares refilled, ready to take off again. Your own jets and
   bombers, the ones you've bought, stand **parked on the apron**: walk up and press **E** (GET IN) and the view moves
-  into the cockpit as it lines up on the runway. Or pick your jet, bomber, helicopter or ship on the deploy screen.
+  into the cockpit as it joins the line on the taxiway (online too: your game asks the host for it first). Or pick your jet, bomber, helicopter or ship on the deploy screen.
   In deep water soldiers swim. Online, two ALL-OUT servers take 16 players each; the bots fill each side up to 100,
   and a player joining takes a bot's place (an ALL-OUT game is a lot to send: the host needs a good connection).
 
