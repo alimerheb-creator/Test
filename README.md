@@ -551,10 +551,13 @@ picking a card installs and switches it on for you and restarts on its map. Avia
 
   Each side has an **airbase** at its end of the map: **two parallel runways**, 9L and 9R, with a **taxiway** beside
   them where jets and bombers **wait their turn in line**, nose to tail. Each time the line moves they taxi up one
-  place; the one at the front holds short until nobody else is out at the end and a runway is clear, then turns onto
-  it, lines up and rolls down it with its wheels down, lifts off and climbs away (the tower tells you how many are
-  ahead of you, when you're holding short, which runway you're lining up on and when you're cleared; while you wait
-  nothing can hit you). The line takes about six jets or four bombers: when it's full a bot waits on foot and your
+  place; the one at the front holds short until a runway is clear, then turns onto it, lines up and rolls down it
+  with its wheels down, lifts off and climbs away. **Both runways are used at once**: the first plane takes the far
+  one, the next turns onto the near one as soon as the first is across it, and the two take off side by side. Nobody
+  crosses the near runway behind a jet taking off from it (its jet blast would blow you over) or while one is coming
+  in to land on it, and a runway with anything on it or landing on it waits until it's clear. The tower tells you how
+  many are ahead of you, when you're holding short, which runway you're lining up on and when you're cleared; while
+  you wait nothing can hit you. The line takes about six jets or four bombers: when it's full a bot waits on foot and your
   plane waits on the apron, GET IN showing TAXIWAY FULL. There's an apron with
   hangars, fuel tanks and a control tower, eight **helipads** right beside the HQ you spawn at, 50 to 170 m away (the
   helicopters stand on them and come back **20 seconds** after one is lost; two transports and two of each attack
