@@ -373,6 +373,17 @@ export class HUD {
   }
 
   // ------------------------------------------------------------ per-frame
+  // the touch buttons' names for where you are (null: their own names); a name of null hides that button
+  applyTouchLabels(labels) {
+    if (!this.touchBtns) this.touchBtns = [...document.querySelectorAll('#touch .t-buttons [data-act]')];
+    for (const b of this.touchBtns) {
+      if (b.dataset.name === undefined) b.dataset.name = b.textContent;
+      const l = labels && b.dataset.act in labels ? labels[b.dataset.act] : undefined;
+      b.hidden = l === null;
+      b.textContent = l == null ? b.dataset.name : l;
+    }
+  }
+
   update(dt) {
     const g = this.game, P = g.player, mode = g.mode;
     if (!P) return;
@@ -466,6 +477,15 @@ export class HUD {
         btn.hidden = false;
         if (this.last.ctx !== ctx.label) { this.last.ctx = ctx.label; this.el.ctxLabel.textContent = ctx.label; btn.dataset.kind = ctx.kind; }
         btn.style.setProperty('--p', String(ctx.progress || 0));
+      }
+      // the side buttons: named for what each does in the vehicle you're in, and the ones that do nothing there hidden
+      // (a vehicle says so in touchLabels(soldier): { action: 'NAME' }, or null to hide one; the rest keep their names)
+      const veh = P.state === 'alive' ? P.vehicle || P.ride : null;
+      const labels = veh && typeof veh.touchLabels === 'function' ? veh.touchLabels(P) : null;
+      if (labels !== this.last.tlab) {
+        this.last.tlab = labels;
+        const key = labels ? JSON.stringify(labels) : '';
+        if (key !== this.last.tlabKey) { this.last.tlabKey = key; this.applyTouchLabels(labels); }
       }
     }
     const downedNow = P.state === 'downed';

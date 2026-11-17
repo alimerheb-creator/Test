@@ -168,6 +168,9 @@ function gearMaterial(grime) {
 
 const _v = new THREE.Vector3(), _d = new THREE.Vector3(), _tmp = [];
 
+// (the outside camera and the commander's seat, and the smoke dischargers, come with the built-in Vehicle Interiors mod)
+const TANK_TOUCH = { weapon1: 'CANNON', weapon2: 'MG', ads: 'ZOOM', crouch: 'CAMERA', melee: 'SMOKE', prone: null, gadget: null, reload: null, grenade: null, sprint: null, jump: null };
+
 export class Tank {
   constructor(game, team, slot) {
     this.game = game;
@@ -307,6 +310,8 @@ export class Tank {
   }
 
   get center() { return _v.set(this.pos.x, this.pos.y + 1.4, this.pos.z); }
+  // the touch buttons in a tank, named for what they do here (null: nothing here, so hidden)
+  touchLabels() { return TANK_TOUCH; }
 
   enter(s) {
     if (!this.alive || this.driver) return false;

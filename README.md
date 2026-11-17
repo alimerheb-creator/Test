@@ -454,12 +454,17 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   afterburner) can't hold a vertical climb for ever. **No buttons for manoeuvres: they come out of the physics.**
   In the **Su-27, Su-35S, Su-57, MiG-29 and F-22A** a sharp, hard pull from level flight at a moderate speed
   (flick the aim far up above the nose, or snap the stick back) overrides the limiter, and you fly **Pugachev's
-  Cobra**: the nose rears up past vertical while the jet slides on along its path and the air brakes it hard, then
-  comes back down as you let go, so a chaser overshoots and a missile closing in can lose you. Hold the pull in the
+  Cobra**: the nose rears up past vertical while the jet slides on along its path and the air brakes it hard (from
+  400 km/h to about 200 in two seconds), then comes back down as you let go, so a chaser overshoots and a missile
+  closing in can lose you. Hold the pull in the
   thrust-vectoring Su-35S, Su-57 or F-22A and the nose keeps going right over, the **Kulbit**. In any jet, climb
   straight up with the throttle back until the speed runs out: it stops, slides back on its tail, and the airflow
   swings the nose down through the vertical like a bell's clapper into a dive, the **Kvochur Bell**. The HUD names
-  the manoeuvre while you fly it. Bots throw a Cobra at whoever sits on their tail. **Damage** goes to
+  the manoeuvre while you fly it. Bots throw a Cobra at whoever sits on their tail. **You feel the g**: the jet is
+  heavy, its rolls build up rather than snap and a hard pull slides it along its old path and bleeds its speed; hold
+  a hard pull (over about 6 g) and the edges of the picture grey out, clearing as you ease off (push hard negative
+  and they go red); the picture shakes with the load, harder in a Cobra, and the airframe groans and buffets.
+  **Damage** goes to
   the part that is hit: shoot a **wing** and it breaks off (with its engines and missiles), tumbles down burning
   and the aircraft rolls toward the missing wing and spins in; a shot-off **fin** or **tailplane** leaves it flying
   but hard to control, and hits around the cockpit hurt most. Damaged aircraft trail grey, then black smoke, then
@@ -544,16 +549,19 @@ picking a card installs and switches it on for you and restarts on its map. Avia
   - **Harbour City**: the sea all along the east, a river from an inland lake out to it, and a skyscraper city on
     the coast.
 
-  Each side has an **airbase** at its end of the map: a **runway** (jets and bombers line up at its end, roll down
-  it with their wheels down, lift off and climb away; you can **land back on it**, see Jets), an apron with hangars,
-  fuel tanks and a control tower, eight **helipads** right beside the HQ you spawn at, 50 to 170 m away (the
+  Each side has an **airbase** at its end of the map: **two parallel runways** (jets and bombers line up at the end
+  of a clear one, roll down it with their wheels down, lift off and climb away; **one at a time on each**: while both
+  are in use a bot waits on foot and your plane waits on the apron, GET IN showing RUNWAY BUSY), an apron with
+  hangars, fuel tanks and a control tower, eight **helipads** right beside the HQ you spawn at, 50 to 170 m away (the
   helicopters stand on them and come back **20 seconds** after one is lost; two transports and two of each attack
-  helicopter a side), and a **harbour** with a pier where your ships put to sea (a destroyer, a
-  frigate, a corvette and two patrol boats a side, crewed by bots now and then). Your own jets and bombers, the ones
-  you've bought, stand **parked on the apron**: walk up and press **E** (GET IN) and the view moves into the cockpit
-  as it lines up on the runway. Or pick your jet, bomber, helicopter or ship on the deploy screen. In deep water
-  soldiers swim. Online, two ALL-OUT servers take 16 players each; the bots fill each side up to 100, and a player
-  joining takes a bot's place (an ALL-OUT game is a lot to send: the host needs a good connection).
+  helicopter a side), and a **harbour** with a pier where your ships put to sea (a destroyer, a frigate, a corvette
+  and two patrol boats a side, crewed by bots now and then). **Land back at your own base** (on either runway or the
+  apron, wheels down and slow; a helicopter on its helipads) and nothing can hit you there (nor can you fire): after
+  a moment the aircraft is repaired, rearmed and its flares refilled, ready to take off again. Your own jets and
+  bombers, the ones you've bought, stand **parked on the apron**: walk up and press **E** (GET IN) and the view moves
+  into the cockpit as it lines up on the runway. Or pick your jet, bomber, helicopter or ship on the deploy screen.
+  In deep water soldiers swim. Online, two ALL-OUT servers take 16 players each; the bots fill each side up to 100,
+  and a player joining takes a bot's place (an ALL-OUT game is a lot to send: the host needs a good connection).
 
 ### Matchmaking: you fight your own level
 
@@ -898,6 +906,10 @@ R laser rangefinder, X fire suppression, C the commander's seat.
 In a ship (Naval): W/S engine telegraph, A/D rudder, Space decoys, V smoke screen, R damage control, G HE/AP shells, C
 the bridge. In a submarine: Z dive, SHIFT surface, right mouse the periscope, 1 torpedoes (aimed with the bow), 2
 missiles, C the control room.
+On a phone or tablet the buttons at the side are named for what they do in whatever you're in, and the ones that do
+nothing there are hidden: in a tank CANNON, MG, SMOKE, CAMERA and ZOOM; in a ship REPAIR, DECOYS, SMOKE, AMMO (HE or
+AP shells), CAMERA and ZOOM (DIVE, SURFACE and SCOPE in a submarine); in an aircraft its weapons by name, FLARES,
+CAMERA and ZOOM; riding in the back of a helicopter only FIRE and ZOOM on a door gun.
 **Landing** a jet, bomber or propeller aircraft: lower the **landing gear (G)** and the **flaps (N)**, slow down,
 and fly it gently onto the runway (or any flat, level ground: a road, a field), wings level and not nose first.
 The flaps run down on the wings, give more lift and more drag (you can fly slower); the HUD shows GEAR DOWN and FLAPS
