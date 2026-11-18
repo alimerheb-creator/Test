@@ -250,7 +250,8 @@ branch**, pick this branch and the **/ (root)** folder, and save. The game then 
 **CAREER MODE** on the main menu is a story campaign for each kind of battle: infantry, tanks, aviation and
 naval. Each one runs from the First World War through the Second and the Cold War to the present day, in four chapters. A
 mission picks its own battle, map, armies and weather, puts you in your seat and plays out a script: radio
-calls (read aloud if you switch RADIO VOICE on), objectives, waves, and the crew or section fighting beside
+calls (read aloud if you switch RADIO VOICE on, in the device's own natural voices: never the novelty voices some
+devices carry, and a downloaded "Enhanced" or "Premium" voice first when there is one), objectives, waves, and the crew or section fighting beside
 you. Finishing a mission opens the next one and pays research points, silver and gold into the RESEARCH
 screen, with up to three stars for how well it went. Fail a mission and the next try at it goes a little easier on you,
 each time, up to four times; win it and it goes back to normal.
@@ -393,8 +394,14 @@ each time, up to four times; win it and it goes back to normal.
   all; **BLACK HAWK DOWN**, to the crash site in Mogadishu, the night round the wreck and the Mogadishu Mile;
   **TAKUR GHAR**, out of a burning Chinook onto a snowy summit; **NASIRIYAH**, the Saddam Canal bridge and the wounded;
   **DEBECKA PASS**, Javelins against T-55s; **FALLUJAH**, house by house, and the Hell House; **SANGIN**, the district
-  centre under siege; **WANAT**, ammunition up to Topside; **KAMDESH**, taking Combat Outpost Keating back; **MOSUL**,
-  drones dropping grenades, a car bomb, and the ruins of the al-Nuri mosque.
+  centre under siege; **WANAT**, ammunition up to Topside; **KAMDESH**, taking Combat Outpost Keating back;
+  **NEPTUNE SPEAR**, the raid on bin Laden's house in Abbottabad in 2011 as it happened: the night flight in by stealth
+  Black Hawk through night-vision goggles (N flips them up), the first bird coming down in the animal pen with its
+  tail on the wall, breaching charges on the locked doors and gates (E), the guest house and the courier, the
+  three-storey house cleared floor by floor up its stairs, the computers and drives bagged, the wreck blown up and out
+  to the field before the Pakistani jets, against a clock of time on target; then the President's address to the
+  nation from the East Room that night, in his own words; **MOSUL**, drones dropping grenades, a car bomb, and the
+  ruins of the al-Nuri mosque.
   The ground is made for each battle: hills, ridges and mountains raised, canals and trenches dug with water in
   them, jungle and elephant grass, a rubber plantation, Flanders mud with flooded shell holes, black volcanic ash, a
   bombed city, walled compounds; illumination flares light the night battles. Every army wears its own uniform
