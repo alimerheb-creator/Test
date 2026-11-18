@@ -401,7 +401,12 @@ each time, up to four times; win it and it goes back to normal.
   three-storey house cleared floor by floor up its stairs, the computers and drives bagged, the wreck blown up and out
   to the field before the Pakistani jets, against a clock of time on target; then the President's address to the
   nation from the East Room that night, in his own words; **MOSUL**, drones dropping grenades, a car bomb, and the
-  ruins of the al-Nuri mosque.
+  ruins of the al-Nuri mosque. And a what-if, open from the start: **BRING HIM HOME**, a night free-fall jump from a
+  transport onto the roof of a building a militia holds (you fly it yourself: WASD or the stick tracks you across the
+  sky, SPACE or JUMP pulls the ripcord below 1,500 feet, then you steer the square canopy, and pointed at the infrared
+  strobe on the roof you're held on a glide path down to it), the roof door blown, the building cleared floor by floor
+  down its stairs, a captured American soldier cut free in his cell, and the square held until a Black Hawk lands for
+  him; then his homecoming at first light.
   The ground is made for each battle: hills, ridges and mountains raised, canals and trenches dug with water in
   them, jungle and elephant grass, a rubber plantation, Flanders mud with flooded shell holes, black volcanic ash, a
   bombed city, walled compounds; illumination flares light the night battles. Every army wears its own uniform
