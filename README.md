@@ -406,7 +406,8 @@ each time, up to four times; win it and it goes back to normal.
   sky, SPACE or JUMP pulls the ripcord below 1,500 feet, then you steer the square canopy, and pointed at the infrared
   strobe on the roof you're held on a glide path down to it), the roof door blown, the building cleared floor by floor
   down its stairs, a captured American soldier cut free in his cell, and the square held until a Black Hawk lands for
-  him; then his homecoming at first light.
+  him; then his homecoming, a short 3D film: the transport landing out of the sunrise, its ramp coming down, the
+  honour guard and the families with their flags, and his little girl running to him.
   The ground is made for each battle: hills, ridges and mountains raised, canals and trenches dug with water in
   them, jungle and elephant grass, a rubber plantation, Flanders mud with flooded shell holes, black volcanic ash, a
   bombed city, walled compounds; illumination flares light the night battles. Every army wears its own uniform
