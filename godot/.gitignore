@@ -1,0 +1,5 @@
+.godot/
+builds/ios/
+*.tmp
+*.idsig
+builds/*.exe

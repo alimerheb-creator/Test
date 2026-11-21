@@ -1,0 +1,65 @@
+# Builds the Godot test version (godot/) for iPhone and iPad on a Mac and commits it to
+# godot/builds/SixthFrontGodot.ipa. Unsigned, like ipa/SixthFront.ipa: install it with Sideloadly or AltStore.
+name: Godot test iOS app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/battlefield-6-game-2iu72e]
+    paths:
+      - 'godot/**'
+      - '!godot/builds/**'
+      - '.github/workflows/godot-ios.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: godot-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    env:
+      GV: 4.7.2-stable
+    steps:
+      - uses: actions/checkout@v4
+      - name: Godot and its iOS template
+        run: |
+          curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/$GV/Godot_v${GV}_macos.universal.zip"
+          unzip -q godot.zip
+          curl -sSL -o tpl.tpz "https://github.com/godotengine/godot/releases/download/$GV/Godot_v${GV}_export_templates.tpz"
+          T="$HOME/Library/Application Support/Godot/export_templates/${GV/-/.}"
+          mkdir -p "$T"
+          unzip -q -j tpl.tpz templates/ios.zip templates/version.txt -d "$T"
+          rm tpl.tpz godot.zip
+          xcodebuild -version
+      - name: Export the Xcode project and build the app
+        run: |
+          G="$PWD/Godot.app/Contents/MacOS/Godot"
+          cd godot
+          mkdir -p builds/ios
+          "$G" --headless --import || true
+          "$G" --headless --export-release "iOS" builds/ios/SixthFrontGodot.ipa
+          cd builds/ios
+          ls
+          xcodebuild -project SixthFrontGodot.xcodeproj -scheme SixthFrontGodot -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath dd \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" -quiet build
+          mkdir -p Payload
+          cp -R dd/Build/Products/Release-iphoneos/SixthFrontGodot.app Payload/
+          zip -qry ../SixthFrontGodot.ipa Payload
+          ls -la ../SixthFrontGodot.ipa
+      - name: Commit it to godot/builds/SixthFrontGodot.ipa
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add godot/builds/SixthFrontGodot.ipa
+          git commit -m "Godot test iOS app [ios-only] [skip ci]"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
