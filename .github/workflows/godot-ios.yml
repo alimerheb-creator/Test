@@ -26,6 +26,12 @@ jobs:
       GV: 4.7.2-stable
     steps:
       - uses: actions/checkout@v4
+      - name: Newest Xcode (Godot 4.7's iOS template is built against the iOS 26 SDK)
+        run: |
+          ls -d /Applications/Xcode*.app
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          echo "using $X"
+          sudo xcode-select -s "$X"
       - name: Godot and its iOS template
         run: |
           curl -sSL -o godot.zip "https://github.com/godotengine/godot/releases/download/$GV/Godot_v${GV}_macos.universal.zip"
