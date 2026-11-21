@@ -156,7 +156,7 @@ func _draw() -> void:
 	if p.dead:
 		_text(Vector2(0, c.y - 20), "YOU WERE KILLED", 40, Color(1, 0.3, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 	if not touch_ui:
-		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
 			draw_rect(Rect2(0, c.y - 70, s.x, 120), Color(0, 0, 0, 0.5))
 			_text(Vector2(0, c.y - 15), "CLICK TO PLAY", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 			_text(Vector2(0, c.y + 25), "WASD move · Shift sprint · Space jump · C crouch · Right mouse aim · R reload · 1 2 3 / wheel guns · G graphics · Esc mouse", 16, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER, s.x)

@@ -58,14 +58,21 @@ func _ready() -> void:
 
 ## Test helper: `-- --shot=/path/prefix` saves screenshots from a few places, then quits.
 func _shots(prefix: String) -> void:
+	set_meta("shot", true)
 	for c in get_children():
 		if c is CharacterBody3D and c != player:
 			c.process_mode = Node.PROCESS_MODE_DISABLED
-	var views := [[Vector3(0, 0, 50), 0.0, -0.03], [Vector3(14, 0, 2), -0.94, 0.0], [Vector3(-33, 0, 34), -1.57, -0.05], [Vector3(2, 3.46, -12), PI, -0.05]]
+	var views := [[Vector3(0, 0, 40), 0.0, -0.03], [Vector3(14, 0, 2), -0.94, 0.0], [Vector3(-33, 0, 34), -1.57, -0.05], [Vector3(2, 3.46, -12), PI, -0.05], [Vector3(-5, 0, 22), 0.0, -0.05]]
 	for i in views.size():
 		player.global_position = views[i][0]
 		player.yaw = views[i][1]
 		player.pitch = views[i][2]
+		if i == 4:
+			for c in get_children():
+				if c is CharacterBody3D and c != player:
+					c.global_position = Vector3(-5, 0, 18)
+					c.rotation.y = PI
+					break
 		for f in 90:
 			await get_tree().process_frame
 		get_viewport().get_texture().get_image().save_png("%s-%d.png" % [prefix, i])
@@ -87,14 +94,14 @@ func _make_environment() -> void:
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-23, -38, 0)
 	sun.light_color = Color(1.0, 0.85, 0.68)
-	sun.light_energy = 2.1
+	sun.light_energy = 2.6
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 130.0
 	sun.directional_shadow_blend_splits = true
 	add_child(sun)
 	var sky_mat := PhysicalSkyMaterial.new()
-	sky_mat.turbidity = 9.0
-	sky_mat.mie_coefficient = 0.01
+	sky_mat.turbidity = 5.0
+	sky_mat.mie_coefficient = 0.005
 	sky_mat.ground_color = Color(0.32, 0.27, 0.21)
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
@@ -110,17 +117,18 @@ func _make_environment() -> void:
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.74, 0.68, 0.6)
-	env.fog_density = 0.0022
+	env.fog_density = 0.0016
 	env.fog_sun_scatter = 0.3
 	env.fog_aerial_perspective = 0.5
 	env.fog_sky_affect = 0.25
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.06
 	env.adjustment_saturation = 1.1
-	env.volumetric_fog_density = 0.008
+	env.volumetric_fog_density = 0.005
 	env.volumetric_fog_albedo = Color(0.92, 0.86, 0.78)
 	env.volumetric_fog_anisotropy = 0.55
 	env.volumetric_fog_length = 80.0
+	env.volumetric_fog_sky_affect = 0.0
 	env.ssao_radius = 1.2
 	env.ssao_intensity = 1.8
 	env.sdfgi_use_occlusion = true
@@ -260,8 +268,8 @@ func _make_materials() -> void:
 		mats["container_" + c[0]] = m
 	mats["camo"] = _noise_mat([Color(0.3, 0.31, 0.21), Color(0.5, 0.46, 0.34), Color(0.34, 0.27, 0.19), Color(0.2, 0.2, 0.15)], 0.025, 2.0, 0.95, 0.5, true, 0.0, false)
 	mats["olive"] = _noise_mat([Color(0.2, 0.22, 0.15), Color(0.27, 0.29, 0.2)], 0.1, 2.0, 0.9, 0.4, false, 0.0, false)
-	mats["gunmetal"] = _noise_mat([Color(0.05, 0.05, 0.055), Color(0.1, 0.1, 0.105)], 0.15, 1.0, 0.42, 0.25, false, 0.7, false)
-	mats["polymer"] = _noise_mat([Color(0.08, 0.075, 0.07), Color(0.13, 0.12, 0.11)], 0.2, 1.5, 0.75, 0.2, false, 0.0, false)
+	mats["gunmetal"] = _noise_mat([Color(0.14, 0.14, 0.15), Color(0.21, 0.21, 0.22)], 0.15, 1.0, 0.5, 0.25, false, 0.45, false)
+	mats["polymer"] = _noise_mat([Color(0.15, 0.14, 0.13), Color(0.22, 0.21, 0.19)], 0.2, 1.5, 0.75, 0.2, false, 0.0, false)
 	mats["tan"] = _noise_mat([Color(0.5, 0.44, 0.33), Color(0.6, 0.54, 0.41)], 0.1, 1.5, 0.8, 0.3, false, 0.0, false)
 	mats["skin"] = _plain(Color(0.62, 0.45, 0.35), 0.6)
 	mats["glove"] = _plain(Color(0.12, 0.11, 0.1), 0.8)

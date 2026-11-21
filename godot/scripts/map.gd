@@ -241,6 +241,6 @@ static func build(w: Node3D) -> void:
 	box(Vector3(-50, 4.1, 52), Vector3(3.6, 0.2, 3.6), "wood")
 	box(Vector3(-50, 6.4, 52), Vector3(4.0, 0.2, 4.0), "wood")
 	# spawns
-	w.player_spawns.assign([Vector3(0, 0.6, 50), Vector3(-20, 0.6, 52), Vector3(20, 0.6, 52)])
+	w.player_spawns.assign([Vector3(0, 0.6, 40), Vector3(-18, 0.6, 44), Vector3(18, 0.6, 44)])
 	w.enemy_spawns.assign([Vector3(-45, 0.6, -45), Vector3(0, 0.6, -52), Vector3(40, 0.6, -48), Vector3(-22, 0.6, -30),
 		Vector3(25, 0.6, -38), Vector3(-50, 0.6, -5), Vector3(52, 0.6, -40), Vector3(0, 0.6, -28)])

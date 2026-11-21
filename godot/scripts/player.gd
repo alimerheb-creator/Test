@@ -2,9 +2,9 @@ extends CharacterBody3D
 ## The first-person soldier: movement, three guns, recoil and aiming down sights. Mouse and keyboard, or touch.
 
 const GUNS := [
-	{"name": "M4A1", "auto": true, "rpm": 780.0, "dmg": 30.0, "mag": 30, "spare": 150, "spread": 1.6, "ads_spread": 0.2, "kick": 1.0, "fov": 50.0, "reload": 2.2, "snd": "rifle", "range": 350.0, "hip": Vector3(0.15, -0.16, -0.36), "ads_y": 0.075, "muzzle": Vector3(0, 0.012, -0.66)},
-	{"name": "MP7", "auto": true, "rpm": 950.0, "dmg": 22.0, "mag": 40, "spare": 200, "spread": 2.2, "ads_spread": 0.45, "kick": 0.65, "fov": 58.0, "reload": 1.9, "snd": "smg", "range": 180.0, "hip": Vector3(0.14, -0.15, -0.34), "ads_y": 0.062, "muzzle": Vector3(0, 0.01, -0.2)},
-	{"name": "M17", "auto": false, "rpm": 420.0, "dmg": 38.0, "mag": 17, "spare": 85, "spread": 1.6, "ads_spread": 0.35, "kick": 1.7, "fov": 66.0, "reload": 1.5, "snd": "pistol", "range": 140.0, "hip": Vector3(0.12, -0.13, -0.32), "ads_y": 0.045, "muzzle": Vector3(0, 0.02, -0.15)},
+	{"name": "M4A1", "auto": true, "rpm": 780.0, "dmg": 30.0, "mag": 30, "spare": 150, "spread": 1.6, "ads_spread": 0.2, "kick": 1.0, "fov": 50.0, "reload": 2.2, "snd": "rifle", "range": 350.0, "hip": Vector3(0.17, -0.19, -0.5), "ads_y": 0.075, "muzzle": Vector3(0, 0.012, -0.66)},
+	{"name": "MP7", "auto": true, "rpm": 950.0, "dmg": 22.0, "mag": 40, "spare": 200, "spread": 2.2, "ads_spread": 0.45, "kick": 0.65, "fov": 58.0, "reload": 1.9, "snd": "smg", "range": 180.0, "hip": Vector3(0.16, -0.18, -0.46), "ads_y": 0.062, "muzzle": Vector3(0, 0.01, -0.2)},
+	{"name": "M17", "auto": false, "rpm": 420.0, "dmg": 38.0, "mag": 17, "spare": 85, "spread": 1.6, "ads_spread": 0.35, "kick": 1.7, "fov": 66.0, "reload": 1.5, "snd": "pistol", "range": 140.0, "hip": Vector3(0.14, -0.15, -0.42), "ads_y": 0.045, "muzzle": Vector3(0, 0.02, -0.15)},
 ]
 
 var w: Node
@@ -72,7 +72,13 @@ func _ready() -> void:
 
 func _part(parent: Node3D, kind: String, size: Vector3, pos: Vector3, rx: float, m: Material) -> void:
 	var mi := MeshInstance3D.new()
-	if kind == "c":
+	if kind == "p":
+		var pm := CapsuleMesh.new()
+		pm.radius = size.x
+		pm.height = size.y
+		mi.mesh = pm
+		rx += PI / 2
+	elif kind == "c":
 		var cm := CylinderMesh.new()
 		cm.top_radius = size.x
 		cm.bottom_radius = size.x
@@ -118,17 +124,18 @@ func _build_gun(i: int) -> Node3D:
 	# hands and sleeves
 	var front := Vector3(-0.01, -0.05, -0.28) if i == 0 else (Vector3(0, -0.1, -0.08) if i == 1 else Vector3(-0.012, -0.075, 0.03))
 	_part(g, "b", Vector3(0.05, 0.06, 0.09), Vector3(0.005, -0.065, 0.09), -0.3, w.mat("glove"))
-	_part(g, "b", Vector3(0.08, 0.08, 0.34), Vector3(0.04, -0.13, 0.3), 0.35, w.mat("camo"))
+	_part(g, "p", Vector3(0.042, 0.38, 0), Vector3(0.04, -0.13, 0.3), 0.35, w.mat("camo"))
 	_part(g, "b", Vector3(0.05, 0.06, 0.09), front, 0.0, w.mat("glove"))
 	var fa := MeshInstance3D.new()
-	var fb := BoxMesh.new()
-	fb.size = Vector3(0.08, 0.08, 0.36)
+	var fb := CapsuleMesh.new()
+	fb.radius = 0.042
+	fb.height = 0.4
 	fa.mesh = fb
 	fa.material_override = w.mat("camo")
 	fa.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	g.add_child(fa)
 	fa.position = front + Vector3(-0.1, -0.06, 0.16)
-	fa.rotation = Vector3(0.3, -0.55, 0)
+	fa.rotation = Vector3(0.3 + PI / 2, -0.55, 0)
 	# muzzle flash
 	var f := Node3D.new()
 	g.add_child(f)
@@ -332,7 +339,7 @@ func _viewmodel(dt: float, hs: float, sprint: bool) -> void:
 	var near_wall := not get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 	_lower = move_toward(_lower, 1.0 if (near_wall or sprint) and ads < 0.5 else 0.0, dt * 5.0)
 	var hip: Vector3 = g["hip"]
-	var aim := Vector3(0, -float(g["ads_y"]), -0.24)
+	var aim := Vector3(0, -float(g["ads_y"]), -0.3)
 	var pos := hip.lerp(aim, ads)
 	var bobk := (0.25 if ads > 0.5 else 1.0) * clampf(hs / 4.5, 0.0, 1.5)
 	pos += Vector3(sin(_bob) * 0.008, -absf(cos(_bob)) * 0.01, 0) * bobk
