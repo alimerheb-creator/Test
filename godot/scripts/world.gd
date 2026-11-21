@@ -1,12 +1,17 @@
 extends Node3D
-## Sixth Front, Godot test: the world root. Lighting, quality levels, materials, effects and spawning.
+## Sixth Front (Godot edition): the battle's root. Lighting, quality levels, materials and effects, and the match:
+## the menus, deploying, both armies and the end.
 
 static var I: Node3D
 
+const D := preload("res://scripts/data.gd")
 const PlayerScript := preload("res://scripts/player.gd")
-const EnemyScript := preload("res://scripts/enemy.gd")
+const SoldierScript := preload("res://scripts/soldier.gd")
 const HudScript := preload("res://scripts/hud.gd")
+const MenuScript := preload("res://scripts/menu.gd")
 const MapScript := preload("res://scripts/map.gd")
+const TerrainScript := preload("res://scripts/terrain.gd")
+const ConquestScript := preload("res://scripts/conquest.gd")
 const QNAMES := ["LOW", "MEDIUM", "HIGH", "ULTRA"]
 
 var fplus := true
@@ -19,13 +24,21 @@ var mats := {}
 var sounds := {}
 var player: CharacterBody3D
 var hud: Control
-var player_spawns: Array[Vector3] = []
-var enemy_spawns: Array[Vector3] = []
-var kills := 0
+var menu: Control
+var conquest: Node
+var soldiers: Array = []
+var menu_open := true
+var difficulty := "normal"
+var per_team := 12
+var fov := 75.0
+var sens := 1.0
+var overview: Camera3D
 var _decals: Array[Node3D] = []
 var _hole_tex: GradientTexture2D
 var _flash_mat: StandardMaterial3D
 var _glow := {}
+var _detail: StandardMaterial3D
+var _soldier_mat: StandardMaterial3D
 
 
 func _ready() -> void:
@@ -34,53 +47,60 @@ func _ready() -> void:
 	method = RenderingServer.get_current_rendering_method()
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
-	for n in ["rifle", "smg", "pistol", "enemy", "reload", "empty", "step", "hit"]:
+	per_team = 8 if mobile else 12
+	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
 	_make_materials()
 	_make_environment()
+	TerrainScript.build(self)
 	MapScript.build(self)
+	conquest = ConquestScript.new()
+	add_child(conquest)
+	conquest.setup(self, D.RULES["tickets"])
+	overview = Camera3D.new()
+	add_child(overview)
+	overview.position = Vector3(-70, 60, 250)
+	overview.look_at(Vector3(0, 5, 0))
+	overview.current = true
 	player = PlayerScript.new()
 	add_child(player)
-	player.global_position = player_spawns[0]
+	player.global_position = Vector3(0, -50, 0)
 	var layer := CanvasLayer.new()
 	add_child(layer)
 	hud = HudScript.new()
 	layer.add_child(hud)
-	for i in 6:
-		var e: Node3D = EnemyScript.new()
-		add_child(e)
-		e.global_position = enemy_spawns[i % enemy_spawns.size()]
+	var ml := CanvasLayer.new()
+	ml.layer = 2
+	add_child(ml)
+	menu = MenuScript.new()
+	ml.add_child(menu)
 	set_quality(1 if mobile or not fplus else 2)
+	menu.show_main()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="):
 			_shots(a.substr(7))
 
 
-## Test helper: `-- --shot=/path/prefix` saves screenshots from a few places, then quits.
+## Test helper: `-- --shot=/path/prefix` starts a battle and saves screenshots from a few places, then quits.
 func _shots(prefix: String) -> void:
 	set_meta("shot", true)
-	for c in get_children():
-		if c is CharacterBody3D and c != player:
-			c.process_mode = Node.PROCESS_MODE_DISABLED
-	var views := [[Vector3(0, 0, 40), 0.0, -0.03], [Vector3(14, 0, 2), -0.94, 0.0], [Vector3(-33, 0, 34), -1.57, -0.05], [Vector3(2, 3.46, -12), PI, -0.05], [Vector3(-5, 0, 22), 0.0, -0.05]]
+	await get_tree().process_frame
+	start_match("assault")
+	var views := [[Vector3(0, 0, 200), 0.0, -0.05], [Vector3(-8, 0, 22), 0.2, -0.02], [Vector3(-118, 0, 130), -2.3, -0.05], [Vector3(30, 0, -20), PI, 0.0]]
 	for i in views.size():
-		player.global_position = views[i][0]
+		var v: Vector3 = views[i][0]
+		player.global_position = Vector3(v.x, TerrainScript.height(v.x, v.z) + 0.2, v.z)
 		player.yaw = views[i][1]
 		player.pitch = views[i][2]
-		if i == 4:
-			for c in get_children():
-				if c is CharacterBody3D and c != player:
-					c.global_position = Vector3(-5, 0, 18)
-					c.rotation.y = PI
-					break
-		for f in 90:
+		player._protect = 999.0
+		for f in 150:
 			await get_tree().process_frame
 		get_viewport().get_texture().get_image().save_png("%s-%d.png" % [prefix, i])
 	get_tree().quit()
 
 
 func _unhandled_input(e: InputEvent) -> void:
-	if e is InputEventKey and e.pressed and not e.echo and e.physical_keycode == KEY_G:
+	if e is InputEventKey and e.pressed and not e.echo and e.physical_keycode == KEY_F2:
 		set_quality((quality + 1) % 4)
 
 
@@ -441,19 +461,78 @@ func sound(n: String, db := 0.0) -> void:
 	s.finished.connect(s.queue_free)
 
 
-func enemy_spawn_point() -> Vector3:
-	var best := enemy_spawns[0]
-	var tries := 0
-	while tries < 12:
-		var p: Vector3 = enemy_spawns[randi() % enemy_spawns.size()]
-		if p.distance_to(player.global_position) > 35.0:
-			return p
-		best = p
-		tries += 1
-	return best
+func start_match(cls: String) -> void:
+	var names: Array = D.BOT_NAMES.duplicate()
+	names.shuffle()
+	var k := 0
+	for t in 2:
+		var n: int = per_team - (1 if t == player.team else 0)
+		for i in n:
+			var s: CharacterBody3D = SoldierScript.new()
+			s.setup(self, t, D.CLASS_ORDER[i % 4], names[k % names.size()])
+			k += 1
+			add_child(s)
+			soldiers.append(s)
+			s.deploy(conquest.spawn_at(t, conquest.spawn_points(t)[0]))
+	soldiers.append(player)
+	deploy_player(cls, 0)
 
 
-func on_kill() -> void:
-	kills += 1
-	if hud:
-		hud.kill()
+func deploy_player(cls: String, idx: int) -> void:
+	if not conquest.use_ticket(player.team):
+		return
+	var pts: Array = conquest.spawn_points(player.team)
+	player.deploy(conquest.spawn_at(player.team, pts[clampi(idx, 0, pts.size() - 1)]), cls)
+	menu.visible = false
+	menu_open = false
+	hud.reset_touch()
+	if not hud.touch_ui:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func on_player_dead() -> void:
+	if conquest.over:
+		return
+	menu_open = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	menu.show_deploy()
+
+
+func on_match_end(win: int) -> void:
+	await get_tree().create_timer(2.5).timeout
+	menu_open = true
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	menu.show_end(win)
+
+
+func explode(pos: Vector3, radius: float, dmg: float, by: Node, what: String) -> void:
+	flash(pos + Vector3(0, 0.5, 0), 3.0)
+	for i in 3:
+		impact(pos, Vector3(randf_range(-0.5, 0.5), 1, randf_range(-0.5, 0.5)).normalized())
+	sound3d("boom", pos, 6.0)
+	var space := get_world_3d().direct_space_state
+	for s in soldiers:
+		if s.dead:
+			continue
+		var d: float = s.global_position.distance_to(pos)
+		if d > radius:
+			continue
+		var chest: Vector3 = s.global_position + Vector3(0, 1.0, 0)
+		var blocked := not space.intersect_ray(PhysicsRayQueryParameters3D.create(pos + Vector3(0, 0.3, 0), chest, 1)).is_empty()
+		s.damage(dmg * (1.0 - d / radius) * (0.35 if blocked else 1.0), pos, by, false, what)
+
+
+func detail_mat() -> StandardMaterial3D:
+	if not _detail:
+		_detail = _noise_mat([Color(0.78, 0.78, 0.78), Color(1, 1, 1), Color(0.88, 0.88, 0.88)], 0.05, 4.0, 0.95, 4.0)
+		_detail.vertex_color_use_as_albedo = true
+		_detail.vertex_color_is_srgb = true
+	return _detail
+
+
+func soldier_mat() -> StandardMaterial3D:
+	if not _soldier_mat:
+		_soldier_mat = _noise_mat([Color(0.8, 0.8, 0.8), Color(1, 1, 1)], 0.2, 2.0, 0.85, 0.3, false, 0.0, false)
+		_soldier_mat.vertex_color_use_as_albedo = true
+		_soldier_mat.vertex_color_is_srgb = true
+	return _soldier_mat

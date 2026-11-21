@@ -1,5 +1,8 @@
 extends Control
-## HUD (crosshair, hit markers, health, ammo) and the touch controls for phones and tablets.
+## The battle HUD (tickets and flags, mini-map, flag and squad markers, kill feed, crosshair, health, ammo, scope)
+## and the touch controls for phones and tablets.
+
+const D := preload("res://scripts/data.gd")
 
 var w: Node
 var move := Vector2.ZERO
@@ -16,7 +19,8 @@ var _look_id := -1
 var _hit_t := 0.0
 var _hit_kill := false
 var _hurt_t := 0.0
-var _kill_t := 0.0
+var _toast := ""
+var _toast_t := 0.0
 var _font: Font
 
 
@@ -45,12 +49,21 @@ func hitmark(killed: bool, _head: bool) -> void:
 	_hit_kill = killed
 
 
-func hurt() -> void:
+func hurt(_from: Vector3) -> void:
 	_hurt_t = 1.0
 
 
-func kill() -> void:
-	_kill_t = 1.5
+func toast(t: String) -> void:
+	_toast = t
+	_toast_t = 2.0
+
+
+func reset_touch() -> void:
+	fire = false
+	move = Vector2.ZERO
+	_btn_touch.clear()
+	_stick_id = -1
+	_look_id = -1
 
 
 func _buttons() -> Dictionary:
@@ -58,7 +71,8 @@ func _buttons() -> Dictionary:
 	return {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "ads": [Vector2(s.x - 310, s.y - 95), 46.0],
 		"jump": [Vector2(s.x - 70, s.y - 300), 42.0], "crouch": [Vector2(s.x - 70, s.y - 80), 40.0],
 		"reload": [Vector2(s.x - 300, s.y - 250), 40.0], "switch": [Vector2(s.x - 185, s.y - 340), 40.0],
-		"gfx": [Vector2(s.x - 50, 115), 30.0]}
+		"grenade": [Vector2(s.x - 425, s.y - 150), 38.0], "gadget": [Vector2(s.x - 410, s.y - 290), 38.0],
+		"gfx": [Vector2(s.x - 50, 150), 28.0]}
 
 
 func _button_at(pos: Vector2) -> String:
@@ -70,6 +84,8 @@ func _button_at(pos: Vector2) -> String:
 
 
 func _input(e: InputEvent) -> void:
+	if w.menu_open:
+		return
 	if e is InputEventScreenTouch:
 		touch_ui = true
 		if e.pressed:
@@ -110,7 +126,7 @@ func _input(e: InputEvent) -> void:
 func _process(dt: float) -> void:
 	_hit_t -= dt
 	_hurt_t = maxf(0.0, _hurt_t - dt * 1.5)
-	_kill_t -= dt
+	_toast_t -= dt
 	queue_redraw()
 
 
@@ -119,21 +135,103 @@ func _text(pos: Vector2, t: String, sz: int, c := Color(1, 1, 1, 0.9), align := 
 	draw_string(_font, pos, t, align, width, sz, c)
 
 
+func _team_col(t: int) -> Color:
+	return Color(0.9, 0.9, 0.88) if t < 0 else D.TEAMS[t]["color"]
+
+
 func _draw() -> void:
 	var p = w.player
-	if p == null:
+	if p == null or w.menu_open:
 		return
+	var cq = w.conquest
 	var s := size
 	var c := s / 2.0
-	# damage: red edges
+	var cam: Camera3D = p.camera
+	# sniper scope
+	var g: Dictionary = p.gun()
+	if not p.dead and g.get("scope", false) and p.ads > 0.85:
+		var R := s.y * 0.45
+		draw_arc(c, R + 200.0, 0, TAU, 96, Color.BLACK, 400.0)
+		draw_rect(Rect2(0, 0, c.x - R - 390.0, s.y), Color.BLACK)
+		draw_rect(Rect2(c.x + R + 390.0, 0, s.x, s.y), Color.BLACK)
+		draw_line(Vector2(c.x - R, c.y), Vector2(c.x + R, c.y), Color(0, 0, 0, 0.9), 1.5)
+		draw_line(Vector2(c.x, c.y - R), Vector2(c.x, c.y + R), Color(0, 0, 0, 0.9), 1.5)
+	# damage
 	if _hurt_t > 0.0 or p.health < 60.0:
 		var a := maxf(_hurt_t * 0.45, (60.0 - p.health) / 60.0 * 0.4)
 		for i in 6:
 			var m := 18.0 * i
 			draw_rect(Rect2(m, m, s.x - 2 * m, s.y - 2 * m), Color(0.6, 0.0, 0.0, a * (1.0 - i / 6.0)), false, 18.0)
-	# crosshair
-	if p.ads < 0.6 and not p.dead:
-		var gap: float = 9.0 + Vector2(p.velocity.x, p.velocity.z).length() * 2.0 + (0.0 if p.crouch else 3.0)
+	# flag markers and teammates
+	for f in cq.flags:
+		var fp: Vector3 = f["pos"] + Vector3(0, 7, 0)
+		if cam.is_position_behind(fp):
+			continue
+		var sp := cam.unproject_position(fp)
+		var col := _team_col(f["owner"])
+		draw_circle(sp, 13.0, Color(0, 0, 0, 0.4))
+		draw_arc(sp, 13.0, 0, TAU, 24, col, 2.0, true)
+		_text(sp + Vector2(-20, 6), f["id"], 16, col, HORIZONTAL_ALIGNMENT_CENTER, 40)
+		_text(sp + Vector2(-30, 30), "%dm" % int(p.global_position.distance_to(f["pos"])), 12, Color(1, 1, 1, 0.7), HORIZONTAL_ALIGNMENT_CENTER, 60)
+	for o in w.soldiers:
+		if o == p or o.dead or o.team != p.team:
+			continue
+		var hp: Vector3 = o.global_position + Vector3(0, 2.2, 0)
+		if cam.is_position_behind(hp) or p.global_position.distance_to(hp) > 90.0:
+			continue
+		var sp := cam.unproject_position(hp)
+		draw_colored_polygon(PackedVector2Array([sp + Vector2(-6, -8), sp + Vector2(6, -8), sp + Vector2(0, 2)]), D.TEAMS[p.team]["color"])
+	# tickets and flags
+	var cx := c.x
+	_text(Vector2(cx - 260, 36), "%s  %d" % [D.TEAMS[p.team]["short"], ceili(cq.tickets[p.team])], 22, D.TEAMS[p.team]["color"], HORIZONTAL_ALIGNMENT_RIGHT, 150)
+	_text(Vector2(cx + 110, 36), "%d  %s" % [ceili(cq.tickets[1 - p.team]), D.TEAMS[1 - p.team]["short"]], 22, D.TEAMS[1 - p.team]["color"], HORIZONTAL_ALIGNMENT_LEFT, 150)
+	for i in cq.flags.size():
+		var f: Dictionary = cq.flags[i]
+		var x: float = cx - 98.0 + i * 40.0
+		draw_rect(Rect2(x, 12, 34, 30), Color(0, 0, 0, 0.45))
+		draw_rect(Rect2(x, 12, 34, 30), _team_col(f["owner"]), false, 2.0)
+		var pr: float = f["progress"]
+		draw_rect(Rect2(x, 38, 34 * absf(pr), 4), _team_col(0 if pr > 0.0 else 1))
+		_text(Vector2(x, 34), f["id"], 18, _team_col(f["owner"]), HORIZONTAL_ALIGNMENT_CENTER, 34)
+	# mini-map: north is wherever you face
+	var mc := Vector2(100, 125)
+	var mr := 80.0
+	draw_circle(mc, mr, Color(0, 0, 0, 0.4))
+	draw_arc(mc, mr, 0, TAU, 48, Color(1, 1, 1, 0.3), 1.5, true)
+	var k := mr / 110.0
+	var pp: Vector3 = p.global_position
+	var rot: float = p.yaw
+	for f in cq.flags:
+		var d: Vector3 = f["pos"] - pp
+		var v := Vector2(d.x, d.z).rotated(rot) * k
+		if v.length() < mr - 8.0:
+			_text(mc + v + Vector2(-10, 6), f["id"], 14, _team_col(f["owner"]), HORIZONTAL_ALIGNMENT_CENTER, 20)
+	for o in w.soldiers:
+		if o == p or o.dead:
+			continue
+		var mine: bool = o.team == p.team
+		if not mine and o.fired > 2.0:
+			continue
+		var d: Vector3 = o.global_position - pp
+		var v := Vector2(d.x, d.z).rotated(rot) * k
+		if v.length() < mr - 3.0:
+			draw_circle(mc + v, 3.0, D.TEAMS[o.team]["color"])
+	draw_colored_polygon(PackedVector2Array([mc + Vector2(0, -7), mc + Vector2(5, 5), mc + Vector2(-5, 5)]), Color.WHITE)
+	# kill feed
+	var y := 200.0 if touch_ui else 70.0
+	for e in cq.feed:
+		var a := clampf(e[5], 0.0, 1.0)
+		if e[0] == "" and e[2] == "":
+			_text(Vector2(s.x - 520, y), e[1], 15, Color(_team_col(e[3]), a), HORIZONTAL_ALIGNMENT_RIGHT, 500)
+		else:
+			_text(Vector2(s.x - 520, y), "%s   [%s]   %s" % [e[0], e[1], e[2]], 15, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_RIGHT, 500)
+		y += 22.0
+	if p.dead:
+		_text(Vector2(0, c.y - 20), "YOU WERE KILLED", 40, Color(1, 0.3, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		return
+	# crosshair and hit marker
+	if p.ads < 0.6:
+		var gap: float = 9.0 + Vector2(p.velocity.x, p.velocity.z).length() * 2.0 + (0.0 if p.crouch else 3.0) + p._bloom * 300.0
 		for d in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
 			draw_line(c + d * gap, c + d * (gap + 9.0), Color(0, 0, 0, 0.5), 3.5)
 			draw_line(c + d * gap, c + d * (gap + 9.0), Color(1, 1, 1, 0.9), 1.6)
@@ -141,25 +239,27 @@ func _draw() -> void:
 		var col := Color(1, 0.25, 0.2) if _hit_kill else Color(1, 1, 1)
 		for d in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
 			draw_line(c + d * 7.0, c + d * 15.0, col, 2.5)
-	# health, ammo, kills, frame rate
-	draw_rect(Rect2(28, s.y - 46, 220, 12), Color(0, 0, 0, 0.45))
-	draw_rect(Rect2(28, s.y - 46, 220 * maxf(p.health, 0.0) / 100.0, 12), Color(0.85, 0.9, 0.85, 0.9) if p.health > 35.0 else Color(0.9, 0.25, 0.2, 0.95))
-	_text(Vector2(28, s.y - 56), "HEALTH", 15)
-	var g: Dictionary = p.GUNS[p.cur]
-	var ammo_x := s.x - 30.0 - (330.0 if touch_ui else 0.0)
-	var ammo_y := 60.0 if touch_ui else s.y - 30.0
-	_text(Vector2(ammo_x - 300, ammo_y), "%d  /  %d" % [p.mag[p.cur], p.spare[p.cur]], 34, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 300)
-	_text(Vector2(ammo_x - 300, ammo_y - 40), String(g["name"]) + ("   RELOADING" if p._reload_t > 0.0 else ""), 17, Color(1, 0.9, 0.7, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 300)
-	_text(Vector2(s.x - 330, 40), "KILLS  %d" % w.kills, 22, Color(1, 0.85, 0.5) if _kill_t > 0.0 else Color(1, 1, 1, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 300 if not touch_ui else 230)
-	_text(Vector2(24, 34), "%d FPS   GRAPHICS: %s%s" % [Engine.get_frames_per_second(), w.QNAMES[w.quality], "" if touch_ui else " (G)"], 16, Color(1, 1, 1, 0.75))
-	_text(Vector2(24, 56), "Godot %s  %s" % [Engine.get_version_info()["string"], w.method], 13, Color(1, 1, 1, 0.5))
-	if p.dead:
-		_text(Vector2(0, c.y - 20), "YOU WERE KILLED", 40, Color(1, 0.3, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	if _toast_t > 0.0:
+		_text(Vector2(0, c.y + 90), _toast, 22, Color(1, 0.9, 0.6, clampf(_toast_t, 0.0, 1.0)), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	# health, ammo, grenades, gadget
+	var hx := 28.0 if not touch_ui else 230.0
+	draw_rect(Rect2(hx, s.y - 46, 220, 12), Color(0, 0, 0, 0.45))
+	draw_rect(Rect2(hx, s.y - 46, 220 * maxf(p.health, 0.0) / 100.0, 12), Color(0.85, 0.9, 0.85, 0.9) if p.health > 35.0 else Color(0.9, 0.25, 0.2, 0.95))
+	_text(Vector2(hx, s.y - 56), "%s   %d FPS   %s" % [D.CLASSES[p.cls]["name"], Engine.get_frames_per_second(), w.QNAMES[w.quality]], 15)
+	var ax := s.x - 30.0 - (470.0 if touch_ui else 0.0)
+	var ay := s.y - 30.0 if not touch_ui else s.y - 20.0
+	_text(Vector2(ax - 300, ay), "%d  /  %d" % [p.mag[p.cur], p.spare[p.cur]], 34, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	_text(Vector2(ax - 300, ay - 40), String(g["name"]) + ("   RELOADING" if p._reload_t > 0.0 else ""), 17, Color(1, 0.9, 0.7, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 300)
+	var gname: String = D.GADGETS[D.CLASSES[p.cls]["gadget"]]["name"]
+	var gtxt := "%s x%d" % [gname, p.gadget_ammo]
+	if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty():
+		gtxt = "DETONATE C-4"
+	_text(Vector2(ax - 400, ay - 64), ("" if touch_ui else "G ") + "GRENADE x%d     " % p.grenades + ("" if touch_ui else "F ") + gtxt, 14, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_RIGHT, 400)
 	if not touch_ui:
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
 			draw_rect(Rect2(0, c.y - 70, s.x, 120), Color(0, 0, 0, 0.5))
 			_text(Vector2(0, c.y - 15), "CLICK TO PLAY", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, s.x)
-			_text(Vector2(0, c.y + 25), "WASD move · Shift sprint · Space jump · C crouch · Right mouse aim · R reload · 1 2 3 / wheel guns · G graphics · Esc mouse", 16, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+			_text(Vector2(0, c.y + 25), "WASD move · Shift sprint · Space jump · C crouch · Right mouse aim · R reload · 1 2 guns · G grenade · F gadget · F2 graphics · Esc mouse", 15, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		return
 	# touch controls
 	if _stick_id >= 0:
@@ -170,9 +270,10 @@ func _draw() -> void:
 		draw_arc(Vector2(150, s.y - 170), 70.0, 0, TAU, 48, Color(1, 1, 1, 0.18), 2.0, true)
 		_text(Vector2(80, s.y - 165), "MOVE", 14, Color(1, 1, 1, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 140)
 	var bs := _buttons()
-	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN", "gfx": "GFX"}
-	for k in bs:
-		var on: bool = (k == "fire" and fire) or (k == "ads" and ads_on) or (k == "crouch" and p.crouch)
-		draw_circle(bs[k][0], bs[k][1], Color(1, 0.55, 0.3, 0.35) if on else Color(0, 0, 0, 0.28))
-		draw_arc(bs[k][0], bs[k][1], 0, TAU, 40, Color(1, 1, 1, 0.5), 2.0, true)
-		_text(bs[k][0] + Vector2(-60, 6), names[k], 15 if k != "fire" else 20, Color(1, 1, 1, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 120)
+	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN", "grenade": "GRENADE",
+		"gadget": "DETONATE" if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty() else gname.split(" ")[0], "gfx": "GFX"}
+	for kk in bs:
+		var on: bool = (kk == "fire" and fire) or (kk == "ads" and ads_on) or (kk == "crouch" and p.crouch)
+		draw_circle(bs[kk][0], bs[kk][1], Color(1, 0.55, 0.3, 0.35) if on else Color(0, 0, 0, 0.28))
+		draw_arc(bs[kk][0], bs[kk][1], 0, TAU, 40, Color(1, 1, 1, 0.5), 2.0, true)
+		_text(bs[kk][0] + Vector2(-60, 6), names[kk], 15 if kk != "fire" else 20, Color(1, 1, 1, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 120)

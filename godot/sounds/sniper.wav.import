@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://cr1can26vtxg2"
-path="res://.godot/imported/enemy.wav-471d96d706121594e9d72ca84cce69ac.sample"
+uid="uid://cgt4qj85r7jwi"
+path="res://.godot/imported/sniper.wav-633a5a1a5236c1f033a54ca751c52065.sample"
 
 [deps]
 
-source_file="res://sounds/enemy.wav"
-dest_files=["res://.godot/imported/enemy.wav-471d96d706121594e9d72ca84cce69ac.sample"]
+source_file="res://sounds/sniper.wav"
+dest_files=["res://.godot/imported/sniper.wav-633a5a1a5236c1f033a54ca751c52065.sample"]
 
 [params]
 
