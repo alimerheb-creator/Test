@@ -4,6 +4,7 @@ extends CharacterBody3D
 
 const D := preload("res://scripts/data.gd")
 const Proj := preload("res://scripts/proj.gd")
+const KnifeScene := preload("res://models/combat_knife.glb")
 const VM := {
 	"ar": {"hip": Vector3(0.17, -0.19, -0.5), "ads_y": 0.075, "muzzle": Vector3(0, 0.012, -0.66)},
 	"smg": {"hip": Vector3(0.16, -0.18, -0.46), "ads_y": 0.062, "muzzle": Vector3(0, 0.01, -0.2)},
@@ -55,6 +56,8 @@ var _sway := Vector2.ZERO
 var _lower := 0.0
 var _jump_q := false
 var _protect := 0.0
+var _melee_t := 0.0
+var knife: Node3D
 
 
 func _ready() -> void:
@@ -82,6 +85,7 @@ func _ready() -> void:
 	camera.add_child(vm)
 	for id in VM:
 		models[id] = _build_gun(id)
+	_build_knife()
 
 
 func _part(parent: Node3D, kind: String, size: Vector3, pos: Vector3, rx: float, m: Material) -> void:
@@ -256,6 +260,8 @@ func _input(e: InputEvent) -> void:
 				_grenade()
 			KEY_F:
 				_gadget()
+			KEY_V:
+				_melee()
 
 
 func _reload() -> void:
@@ -303,6 +309,63 @@ func _gadget() -> void:
 	_kick = 1.0
 
 
+func _build_knife() -> void:
+	knife = Node3D.new()
+	knife.rotation_order = EULER_ORDER_XYZ
+	knife.visible = false
+	camera.add_child(knife)
+	var k: Node3D = KnifeScene.instantiate()
+	var box := AABB()
+	var first := true
+	for mi in k.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var xf := Transform3D.IDENTITY
+		var n: Node = mi
+		while n != k:
+			xf = (n as Node3D).transform * xf
+			n = n.get_parent()
+		var b: AABB = xf * (mi as MeshInstance3D).get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	# The model lies along +X with the blade at the far end: turn it to point down -Z like the web game's knife,
+	# 28 cm long and held at the grip.
+	var s := 0.28 / maxf(box.size.x, 0.001)
+	var grip := Vector3(box.position.x + box.size.x * 0.2, box.get_center().y, box.get_center().z)
+	var r := Basis(Vector3.UP, PI / 2.0)
+	k.transform = Transform3D(r.scaled(Vector3.ONE * s), -(r * grip) * s)
+	knife.add_child(k)
+
+
+## The combat knife, as in the web game: a quick stab at the enemy in reach in front of you, a kill from behind.
+func _melee() -> void:
+	if dead or _melee_t > 0.0:
+		return
+	_melee_t = 0.45
+	w.sound("knife", -4.0)
+	var eye := camera.global_position
+	var f := -camera.global_basis.z
+	var space := get_world_3d().direct_space_state
+	var best = null
+	var bd := 2.4
+	for e in w.soldiers:
+		if e == self or e.dead or e.team == team:
+			continue
+		var c: Vector3 = e.global_position + Vector3(0, 1.25, 0)
+		var d := eye.distance_to(c)
+		if d > bd or (c - eye).dot(f) / maxf(d, 0.01) < 0.6:
+			continue
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, c, 1)).is_empty():
+			continue
+		best = e
+		bd = d
+	if best == null:
+		return
+	var back := absf(wrapf(best.rotation.y - yaw, -PI, PI)) < 1.0
+	var killed: bool = best.damage(250.0 if back else 60.0, global_position, self, false, "COMBAT KNIFE")
+	w.impact(best.global_position + Vector3(0, 1.25, 0), -f, true)
+	w.hud.hitmark(killed, false)
+
+
 func resupply() -> void:
 	for i in 2:
 		var wd: Dictionary = D.WEAPONS[slots[i]]
@@ -315,6 +378,7 @@ func resupply() -> void:
 func _physics_process(dt: float) -> void:
 	shot_t += dt
 	if dead or w.conquest.over:
+		knife.visible = false
 		return
 	var hud = w.hud
 	var g := gun()
@@ -331,6 +395,8 @@ func _physics_process(dt: float) -> void:
 		_grenade()
 	if hud.take("gadget"):
 		_gadget()
+	if hud.take("knife"):
+		_melee()
 	# look
 	var tl: Vector2 = hud.take_look() * w.sens
 	var sens := lerpf(1.0, 0.5 if not g.get("scope", false) else 0.2, ads)
@@ -393,6 +459,7 @@ func _physics_process(dt: float) -> void:
 	_fire_cd -= dt
 	_bloom = move_toward(_bloom, 0.0, dt * 0.08)
 	_switch_t = maxf(0.0, _switch_t - dt)
+	_melee_t = maxf(0.0, _melee_t - dt)
 	if _reload_t > 0.0:
 		_reload_t -= dt
 		if _reload_t <= 0.0:
@@ -400,7 +467,7 @@ func _physics_process(dt: float) -> void:
 			mag[cur] += take
 			spare[cur] -= take
 	var trig: bool = (mouse_ok and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) or hud.fire
-	if trig and _fire_cd <= 0.0 and _reload_t <= 0.0 and _switch_t <= 0.0 and not sprint and (g["kind"] == "auto" or not _trig_was):
+	if trig and _fire_cd <= 0.0 and _reload_t <= 0.0 and _switch_t <= 0.0 and _melee_t <= 0.0 and not sprint and (g["kind"] == "auto" or not _trig_was):
 		if mag[cur] > 0:
 			_shoot(g)
 			_fire_cd = 60.0 / float(g["rpm"])
@@ -477,6 +544,14 @@ func _viewmodel(dt: float, hs: float, sprint: bool) -> void:
 		pos.y -= 0.08 * dip
 	if _switch_t > 0.0:
 		pos.y -= _switch_t * 0.5
+	if _melee_t > 0.0:
+		var mt := 1.0 - _melee_t / 0.45
+		pos.y -= sin(mt * PI) * 0.12
+		knife.visible = true
+		knife.position = Vector3(lerpf(0.25, -0.2, mt), -0.12 + sin(mt * PI) * 0.05, -0.35)
+		knife.rotation = Vector3(-0.2, lerpf(0.9, -0.6, mt), -0.6)
+	else:
+		knife.visible = false
 	vm.position = vm.position.lerp(pos, 1.0 - exp(-25.0 * dt))
 	vm.rotation = vm.rotation.lerp(rot, 1.0 - exp(-18.0 * dt))
 

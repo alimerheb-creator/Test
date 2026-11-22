@@ -48,7 +48,7 @@ func _ready() -> void:
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
 	per_team = 8 if mobile else 12
-	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom"]:
+	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
 	_make_materials()
 	_make_environment()
@@ -96,6 +96,10 @@ func _shots(prefix: String) -> void:
 		for f in 150:
 			await get_tree().process_frame
 		get_viewport().get_texture().get_image().save_png("%s-%d.png" % [prefix, i])
+	player._melee()
+	while player._melee_t > 0.25:
+		await get_tree().process_frame
+	get_viewport().get_texture().get_image().save_png("%s-knife.png" % prefix)
 	get_tree().quit()
 
 

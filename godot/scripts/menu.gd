@@ -110,6 +110,7 @@ func show_main() -> void:
 	_label("GRAPHICS", 15, Color(1, 1, 1, 0.55))
 	_row("gfx", [["LOW", 0], ["MEDIUM", 1], ["HIGH", 2], ["ULTRA", 3]], w.quality)
 	_big("DEPLOY", func(): w.start_match(sel_class))
+	_label("Combat knife model: \"Combat Knife\" by Overlord (Sketchfab), CC BY 4.0", 12, Color(1, 1, 1, 0.4))
 
 
 func show_deploy() -> void:
