@@ -246,7 +246,8 @@ func _draw() -> void:
 	var hx := 28.0 if not touch_ui else 230.0
 	draw_rect(Rect2(hx, s.y - 46, 220, 12), Color(0, 0, 0, 0.45))
 	draw_rect(Rect2(hx, s.y - 46, 220 * maxf(p.health, 0.0) / 100.0, 12), Color(0.85, 0.9, 0.85, 0.9) if p.health > 35.0 else Color(0.9, 0.25, 0.2, 0.95))
-	_text(Vector2(hx, s.y - 56), "%s   %d FPS   %s" % [D.CLASSES[p.cls]["name"], Engine.get_frames_per_second(), w.QNAMES[w.quality]], 15)
+	var fps := "" if w.has_meta("shot") else "%d FPS   " % Engine.get_frames_per_second()  # not in test films
+	_text(Vector2(hx, s.y - 56), "%s   %s%s" % [D.CLASSES[p.cls]["name"], fps, w.QNAMES[w.quality]], 15)
 	var ax := s.x - 30.0 - (470.0 if touch_ui else 0.0)
 	var ay := s.y - 30.0 if not touch_ui else s.y - 20.0
 	_text(Vector2(ax - 300, ay), "%d  /  %d" % [p.mag[p.cur], p.spare[p.cur]], 34, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 300)

@@ -79,6 +79,55 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="):
 			_shots(a.substr(7))
+		elif a == "--demo-knife":
+			_demo_knife()
+
+
+## Test helper: `-- --demo-knife` (record it with --write-movie) films the knife: two stabs on an enemy in front
+## of you, then a takedown on one with his back to you.
+func _demo_knife() -> void:
+	set_meta("shot", true)
+	await get_tree().process_frame
+	start_match("assault")
+	var p0 := Vector3(-8, 0, 22)
+	p0.y = TerrainScript.height(p0.x, p0.z) + 0.05
+	player.global_position = p0
+	player.yaw = 0.0
+	player.pitch = -0.08
+	player._protect = 999.0
+	var foes := []
+	for s in soldiers:
+		if s != player:
+			s.set_physics_process(false)
+			if s.team != player.team and foes.size() < 2:
+				foes.append(s)
+	var spots := [[0.0, PI], [-1.0, -1.0]]
+	for i in 2:
+		var a: float = spots[i][0]
+		var q: Vector3 = p0 + Vector3(-sin(a), 0, -cos(a)) * 1.9
+		q.y = TerrainScript.height(q.x, q.z)
+		foes[i].global_position = q
+		foes[i].rotation.y = spots[i][1]
+		foes[i]._protect = 0.0
+	for f in 30:
+		await get_tree().process_frame
+	player._melee()
+	for f in 24:
+		await get_tree().process_frame
+	player._melee()
+	for f in 45:
+		await get_tree().process_frame
+	var to: Vector3 = foes[1].global_position - player.global_position
+	var y1 := atan2(-to.x, -to.z)
+	for f in 20:
+		player.yaw = lerp_angle(0.0, y1, smoothstep(0.0, 1.0, (f + 1) / 20.0))
+		await get_tree().process_frame
+	for f in 10:
+		await get_tree().process_frame
+	player._melee()
+	for f in 70:
+		await get_tree().process_frame
+	get_tree().quit()
 
 
 ## Test helper: `-- --shot=/path/prefix` starts a battle and saves screenshots from a few places, then quits.
