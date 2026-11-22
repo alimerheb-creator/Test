@@ -4,6 +4,7 @@ extends CharacterBody3D
 
 const D := preload("res://scripts/data.gd")
 const T := preload("res://scripts/terrain.gd")
+const Proj := preload("res://scripts/proj.gd")
 
 var w: Node
 var team := 0
@@ -39,6 +40,8 @@ var _protect := 0.0
 var _respawn_t := 0.0
 var _strafe := 1.0
 var fired := 99.0
+var vehicle: Node = null
+var _rpg_t := 3.0
 
 
 func setup(world: Node, t: int, c: String, name_tag: String) -> void:
@@ -237,13 +240,13 @@ func _scan() -> void:
 	var rng: float = wpn["bot_range"] * 1.15
 	var cands := []
 	for s in w.soldiers:
-		if s.dead or s.team == team:
+		if s.dead or s.team == team or s.get("vehicle"):
 			continue
 		var d := global_position.distance_to(s.global_position)
 		if d < rng:
 			cands.append([d, s])
 	cands.sort_custom(func(a, b): return a[0] < b[0])
-	if target and (target.dead or global_position.distance_to(target.global_position) > rng or not _sees(target)):
+	if target and (target.dead or target.get("vehicle") != null or global_position.distance_to(target.global_position) > rng or not _sees(target)):
 		target = null
 	if target:
 		return
@@ -273,6 +276,8 @@ func _physics_process(dt: float) -> void:
 		return
 	_protect -= dt
 	_think -= dt
+	if cls == "engineer":
+		_anti_tank(dt)
 	if _think <= 0.0:
 		_think = 0.3
 		_scan()
@@ -358,6 +363,33 @@ func _face(d: Vector3, k: float) -> void:
 	if d.length() < 0.01:
 		return
 	rotation.y = lerp_angle(rotation.y, atan2(-d.x, -d.z), clampf(k, 0.0, 1.0))
+
+
+## Engineers fire their RPG at enemy tanks in range that they can see.
+func _anti_tank(dt: float) -> void:
+	_rpg_t -= dt
+	if _rpg_t > 0.0:
+		return
+	_rpg_t = 1.0
+	var eye := global_position + Vector3(0, 1.6, 0)
+	for v in w.vehicles:
+		if v.dead or v.team == team or v.driver == null:
+			continue
+		var to: Vector3 = v.global_position + Vector3(0, 1.4, 0) - eye
+		var d := to.length()
+		if d > 110.0:
+			continue
+		var q := PhysicsRayQueryParameters3D.create(eye, eye + to, 1, [v.get_rid()])
+		if not get_world_3d().direct_space_state.intersect_ray(q).is_empty():
+			continue
+		rotation.y = atan2(-to.x, -to.z)
+		var err := Vector3(randf_range(-1, 1), randf_range(-0.4, 0.4), randf_range(-1, 1)) * float(diff["aim"]) * d * 0.5
+		var lift := Vector3(0, 1.5 * pow(d / 72.0, 2.0), 0)
+		Proj.new().launch(w, "rocket", eye + to.normalized() * 0.8, (to + err + lift).normalized(), self)
+		w.sound3d("pistol", eye, 2.0)
+		fired = 0.0
+		_rpg_t = randf_range(7.0, 11.0)
+		return
 
 
 func _fire(dt: float, dist: float) -> void:

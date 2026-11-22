@@ -73,9 +73,21 @@ static var PROJECTILES := {
 	"grenade": {"speed": 18.0, "gravity": 20.0, "fuse": 2.4, "bounce": 0.35, "radius": 7.5, "dmg": 125.0},
 	"ugl": {"speed": 62.0, "gravity": 12.0, "radius": 4.8, "dmg": 105.0},
 	"rocket": {"speed": 72.0, "gravity": 3.0, "radius": 4.8, "dmg": 110.0},
+	"shell": {"speed": 240.0, "gravity": 4.0, "radius": 5.0, "dmg": 130.0, "fuse": 6.0},
 	"c4": {"speed": 11.0, "gravity": 20.0, "radius": 7.5, "dmg": 220.0, "sticky": true},
 	"crate": {"speed": 9.0, "gravity": 20.0, "bounce": 0.2},
 }
+
+## The tanks, from the web game's (one a side): Vanguard's M1A2 Abrams, Onyx's T-90A.
+static var TANKS := [
+	{"model": "abrams", "name": "M1A2 ABRAMS", "gun": "120MM CANNON", "mg": "M240 COAX", "health": 1000.0, "speed": 11.0,
+		"reverse": 5.0, "accel": 4.0, "turn": 0.8, "turret": 1.15, "reload": 3.2, "bot_reload": 4.8, "respawn": 35.0},
+	{"model": "t90", "name": "T-90A", "gun": "125MM CANNON", "mg": "PKT COAX", "health": 1000.0, "speed": 11.0,
+		"reverse": 5.0, "accel": 4.0, "turn": 0.8, "turret": 1.15, "reload": 3.2, "bot_reload": 4.8, "respawn": 35.0},
+]
+## What an explosion does to a tank in its blast (by the weapon's name); bullets do nothing.
+static var VEHICLE_DMG := {"RPG-7V": 340.0, "C-4": 560.0, "120MM CANNON": 360.0, "125MM CANNON": 360.0,
+	"40MM LAUNCHER": 70.0, "FRAG GRENADE": 30.0}
 
 static var CLASSES := {
 	"assault": {"name": "ASSAULT", "primary": "ar", "gadget": "ugl", "grenades": 2, "blurb": "Frontline rifleman. Carries a 40mm launcher to crack defenders out of cover."},

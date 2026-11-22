@@ -12,6 +12,8 @@ var p: Dictionary
 var fuse := 0.0
 var stuck := false
 var life := 0.0
+var label := ""
+var ignore := RID()
 
 
 func launch(world: Node, k: String, from: Vector3, dir: Vector3, by: Node) -> void:
@@ -32,7 +34,7 @@ func launch(world: Node, k: String, from: Vector3, dir: Vector3, by: Node) -> vo
 		sm.radius = 0.06 if kind != "rocket" else 0.08
 		sm.height = sm.radius * (2.0 if kind != "rocket" else 6.0)
 		mi.mesh = sm
-		mi.material_override = w.mat("gunmetal")
+		mi.material_override = w.mat("gunmetal") if kind != "shell" else w.glow_mat(Color(1, 0.75, 0.35), 4.0)
 	add_child(mi)
 	w.add_child(self)
 	global_position = from
@@ -51,6 +53,8 @@ func _physics_process(dt: float) -> void:
 	vel.y -= float(p["gravity"]) * dt
 	var to := global_position + vel * dt
 	var ex := [owner_soldier.get_rid()] if owner_soldier and life < 0.3 else []
+	if ignore.is_valid():
+		ex.append(ignore)
 	var r := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(global_position, to, 7, ex))
 	if r.is_empty():
 		global_position = to
@@ -88,5 +92,5 @@ func detonate() -> void:
 func _boom() -> void:
 	if not is_inside_tree():
 		return
-	w.explode(global_position, float(p["radius"]), float(p["dmg"]), owner_soldier, {"grenade": "FRAG GRENADE", "ugl": "40MM LAUNCHER", "rocket": "RPG-7V", "c4": "C-4"}.get(kind, "EXPLOSION"))
+	w.explode(global_position, float(p["radius"]), float(p["dmg"]), owner_soldier, label if label != "" else {"grenade": "FRAG GRENADE", "ugl": "40MM LAUNCHER", "rocket": "RPG-7V", "c4": "C-4"}.get(kind, "EXPLOSION"))
 	queue_free()

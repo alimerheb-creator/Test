@@ -70,6 +70,8 @@ var _jump_q := false
 var _protect := 0.0
 var _melee_t := 0.0
 var knife: Node3D
+var vehicle: Node = null
+var near_vehicle: Node = null
 var _forearm: MeshInstance3D
 var _melee_len := 0.5
 var _melee_back := false
@@ -257,8 +259,20 @@ func _input(e: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 			_trig_was = true
 		elif e.button_index == MOUSE_BUTTON_WHEEL_UP or e.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_select(1 - cur)
+			if vehicle:
+				vehicle.weapon = 1 - vehicle.weapon
+			else:
+				_select(1 - cur)
 	elif e is InputEventKey and e.pressed and not e.echo:
+		if e.physical_keycode == KEY_E:
+			_use()
+			return
+		if vehicle:
+			if e.physical_keycode == KEY_1 or e.physical_keycode == KEY_2:
+				vehicle.weapon = 0 if e.physical_keycode == KEY_1 else 1
+			elif e.physical_keycode == KEY_ESCAPE:
+				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+			return
 		match e.physical_keycode:
 			KEY_ESCAPE:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -435,6 +449,16 @@ func _melee_strike() -> void:
 	_vkick.x -= 0.03 if back else 0.012
 
 
+## E (or the touch button): get into the tank you're next to, or out of the one you're in.
+func _use() -> void:
+	if dead or w.menu_open:
+		return
+	if vehicle:
+		vehicle.exit()
+	elif near_vehicle:
+		near_vehicle.enter(self)
+
+
 func resupply() -> void:
 	for i in 2:
 		var wd: Dictionary = D.WEAPONS[slots[i]]
@@ -451,6 +475,17 @@ func _physics_process(dt: float) -> void:
 		_forearm.visible = false
 		_melee_t = 0.0
 		_melee_due = false
+		return
+	if vehicle:
+		return
+	near_vehicle = null
+	for v in w.vehicles:
+		if not v.dead and v.team == team and v.driver == null:
+			var l: Vector3 = v.to_local(global_position)
+			if absf(l.x) < 3.6 and absf(l.z) < 5.6:
+				near_vehicle = v
+	if w.hud.take("use"):
+		_use()
 		return
 	var hud = w.hud
 	var g := gun()
@@ -577,7 +612,8 @@ func _shoot(g: Dictionary) -> void:
 				var dmg := D.damage_at(g, ct.origin.distance_to(to)) * float(D.RULES["bullet"]) * (float(g["head"]) if hd else 1.0)
 				var killed: bool = col.damage(dmg, global_position, self, hd, g["name"])
 				w.impact(hit.position, hit.normal, true)
-				w.hud.hitmark(killed, hd)
+				if col.get("S") == null:
+					w.hud.hitmark(killed, hd)
 				w.sound("hit", -8.0)
 		else:
 			w.impact(hit.position, hit.normal)

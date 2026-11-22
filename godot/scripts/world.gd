@@ -7,6 +7,7 @@ static var I: Node3D
 const D := preload("res://scripts/data.gd")
 const PlayerScript := preload("res://scripts/player.gd")
 const SoldierScript := preload("res://scripts/soldier.gd")
+const TankScript := preload("res://scripts/tank.gd")
 const HudScript := preload("res://scripts/hud.gd")
 const MenuScript := preload("res://scripts/menu.gd")
 const MapScript := preload("res://scripts/map.gd")
@@ -27,6 +28,7 @@ var hud: Control
 var menu: Control
 var conquest: Node
 var soldiers: Array = []
+var vehicles: Array = []
 var menu_open := true
 var difficulty := "normal"
 var per_team := 12
@@ -48,8 +50,11 @@ func _ready() -> void:
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
 	per_team = 8 if mobile else 12
-	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife"]:
+	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
+	var eng: AudioStreamWAV = sounds["engine"]
+	eng.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	eng.loop_end = int(eng.get_length() * eng.mix_rate)
 	_make_materials()
 	_make_environment()
 	TerrainScript.build(self)
@@ -79,8 +84,68 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="):
 			_shots(a.substr(7))
+		elif a == "--demo-tank":
+			_demo_tank()
 		elif a == "--demo-knife":
 			_demo_knife()
+
+
+## Test helper: `-- --demo-tank` (record it with --write-movie) films a tank fight: you drive the Abrams out and
+## duel a T-90 with a bot crew.
+func _demo_tank() -> void:
+	set_meta("shot", true)
+	await get_tree().process_frame
+	start_match("assault")
+	# the duel on the flat ground of Vanguard's headquarters, everyone else out of the way
+	var ab = vehicles[0]
+	var t9 = vehicles[1]
+	var crew: Node = null
+	for s in soldiers:
+		if s != player:
+			if s.team == 1 and crew == null:
+				crew = s
+			s.process_mode = Node.PROCESS_MODE_DISABLED
+			s.visible = false
+	ab.home = Transform3D(Basis(), Vector3(3, TerrainScript.height(3, 250) + 0.3, 250))
+	ab._respawn()
+	var p0 := Vector3(-4, TerrainScript.height(-4, 172) + 0.3, 172)
+	t9.home = Transform3D(Basis(Vector3.UP, PI), p0)
+	t9._respawn()
+	t9.enter(crew)
+	t9._goal = p0
+	t9._goal_t = 999.0
+	t9._think = 0.5
+	t9.reload = 3.0
+	ab.enter(player)
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_W
+	key.pressed = true
+	Input.parse_input_event(key)
+	var done := -1
+	for f in 480:
+		t9._goal_t = 999.0
+		if f == 75:
+			key.pressed = false
+			Input.parse_input_event(key)
+		if f >= 30 and not t9.dead:
+			var to: Vector3 = t9.global_position + Vector3(0, 1.4, 0) - (ab.global_position + Vector3(0, 3.6, 0))
+			ab._cam_yaw = lerp_angle(ab._cam_yaw, atan2(-to.x, -to.z), 0.08)
+			ab._cam_pitch = lerpf(ab._cam_pitch, atan2(to.y, Vector2(to.x, to.z).length()), 0.08)
+			var m0: Vector3 = ab.muzzle.global_position
+			var mr := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(m0, m0 - ab.barrel.global_basis.z * 300.0, 5, [ab.get_rid()]))
+			if ab.reload <= 0.0 and not mr.is_empty() and (mr.position as Vector3).distance_to(t9.global_position) < 5.0:
+				ab._cannon()
+				print("fire f=", f, " t90 hp=", t9.health, " abrams hp=", ab.health)
+		if t9.dead and done < 0:
+			done = f
+			print("T-90 destroyed f=", f, " abrams hp=", ab.health)
+		if ab.dead:
+			print("abrams destroyed f=", f)
+			break
+		if done >= 0 and f > done + 80:
+			break
+		await get_tree().process_frame
+	get_tree().quit()
 
 
 ## Test helper: `-- --demo-knife` (record it with --write-movie) films the knife: two stabs on an enemy in front
@@ -539,6 +604,14 @@ func start_match(cls: String) -> void:
 			soldiers.append(s)
 			s.deploy(conquest.spawn_at(t, conquest.spawn_points(t)[0]))
 	soldiers.append(player)
+	# a tank a side, ready at the front of each headquarters
+	for t in 2:
+		var tk: CharacterBody3D = TankScript.new()
+		add_child(tk)
+		var x := -24.0 if t == 0 else 24.0
+		var z: float = D.HQS[t]["z"] + (-16.0 if t == 0 else 16.0)
+		tk.setup(self, t, Transform3D(Basis(Vector3.UP, 0.0 if t == 0 else PI), Vector3(x, TerrainScript.height(x, z) + 0.3, z)))
+		vehicles.append(tk)
 	deploy_player(cls, 0)
 
 
@@ -576,7 +649,7 @@ func explode(pos: Vector3, radius: float, dmg: float, by: Node, what: String) ->
 	sound3d("boom", pos, 6.0)
 	var space := get_world_3d().direct_space_state
 	for s in soldiers:
-		if s.dead:
+		if s.dead or s.get("vehicle"):
 			continue
 		var d: float = s.global_position.distance_to(pos)
 		if d > radius:
@@ -584,6 +657,9 @@ func explode(pos: Vector3, radius: float, dmg: float, by: Node, what: String) ->
 		var chest: Vector3 = s.global_position + Vector3(0, 1.0, 0)
 		var blocked := not space.intersect_ray(PhysicsRayQueryParameters3D.create(pos + Vector3(0, 0.3, 0), chest, 1)).is_empty()
 		s.damage(dmg * (1.0 - d / radius) * (0.35 if blocked else 1.0), pos, by, false, what)
+	for v in vehicles:
+		if not v.dead and v.global_position.distance_to(pos) < radius + 3.5:
+			v.hurt(float(D.VEHICLE_DMG.get(what, dmg * 0.15)), by, what)
 
 
 func detail_mat() -> StandardMaterial3D:
