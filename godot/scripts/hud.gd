@@ -188,6 +188,8 @@ func _draw() -> void:
 		if cam.is_position_behind(hp) or p.global_position.distance_to(hp) > 90.0:
 			continue
 		var sp := cam.unproject_position(hp)
+		if not Rect2(-s, s * 3.0).has_point(sp):
+			continue
 		draw_colored_polygon(PackedVector2Array([sp + Vector2(-6, -8), sp + Vector2(6, -8), sp + Vector2(0, 2)]), D.TEAMS[p.team]["color"])
 	# tickets and flags
 	var cx := c.x

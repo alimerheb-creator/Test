@@ -8,6 +8,7 @@ extends CharacterBody3D
 const D := preload("res://scripts/data.gd")
 const T := preload("res://scripts/terrain.gd")
 const Proj := preload("res://scripts/proj.gd")
+const Marks := preload("res://scripts/track_marks.gd")
 
 var w: Node
 var team := 0
@@ -86,6 +87,12 @@ func setup(world: Node, t: int, xf: Transform3D) -> void:
 	body.add_child(_tracks)
 	_meshes.append(_tracks)
 	_links()
+	# the ruts the tracks leave behind
+	var ruts: MeshInstance3D = Marks.new()
+	ruts.xs = _path["x"]
+	ruts.z0 = (_path["cen"] as Vector2).y
+	ruts.wide = clampf((body.get_node("link") as MeshInstance3D).mesh.get_aabb().size.x, 0.4, 0.8)
+	add_child(ruts)
 	cam = Camera3D.new()
 	cam.top_level = true
 	cam.near = 0.1
