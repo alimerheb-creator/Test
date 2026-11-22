@@ -260,7 +260,7 @@ func _input(e: InputEvent) -> void:
 			_trig_was = true
 		elif e.button_index == MOUSE_BUTTON_WHEEL_UP or e.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			if vehicle:
-				vehicle.weapon = 1 - vehicle.weapon
+				vehicle.next_weapon()
 			else:
 				_select(1 - cur)
 	elif e is InputEventKey and e.pressed and not e.echo:
@@ -268,8 +268,8 @@ func _input(e: InputEvent) -> void:
 			_use()
 			return
 		if vehicle:
-			if e.physical_keycode == KEY_1 or e.physical_keycode == KEY_2:
-				vehicle.weapon = 0 if e.physical_keycode == KEY_1 else 1
+			if e.physical_keycode >= KEY_1 and e.physical_keycode <= KEY_3:
+				vehicle.pick_weapon(e.physical_keycode - KEY_1)
 			elif e.physical_keycode == KEY_ESCAPE:
 				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 			return
@@ -482,7 +482,8 @@ func _physics_process(dt: float) -> void:
 	for v in w.vehicles:
 		if not v.dead and v.team == team and v.driver == null:
 			var l: Vector3 = v.to_local(global_position)
-			if absf(l.x) < 3.6 and absf(l.z) < 5.6:
+			var reach: Vector2 = v.get("reach") if v.get("reach") != null else Vector2(3.6, 5.6)
+			if absf(l.x) < reach.x and absf(l.z) < reach.y and absf(l.y) < 4.0:
 				near_vehicle = v
 	if w.hud.take("use"):
 		_use()
@@ -611,7 +612,7 @@ func _shoot(g: Dictionary) -> void:
 				var hd: bool = hit.position.y > (col as Node3D).global_position.y + 1.45
 				var dmg := D.damage_at(g, ct.origin.distance_to(to)) * float(D.RULES["bullet"]) * (float(g["head"]) if hd else 1.0)
 				var killed: bool = col.damage(dmg, global_position, self, hd, g["name"])
-				w.impact(hit.position, hit.normal, true)
+				w.impact(hit.position, hit.normal, col.get("S") == null)
 				if col.get("S") == null:
 					w.hud.hitmark(killed, hd)
 				w.sound("hit", -8.0)

@@ -12,6 +12,8 @@ static var PLAY_HALF := 240.0
 
 # Vanguard deploys from the south, Onyx from the north
 static var HQS := [{"x": 0.0, "z": 212.0, "yaw": 0.0}, {"x": 0.0, "z": -212.0, "yaw": PI}]
+## Each side's helicopter pad (x, z), beside its headquarters.
+static var PADS := [[30.0, 204.0], [-30.0, -204.0]]
 
 static var FLAGS := [
 	{"id": "A", "name": "QUARRY", "x": -135.0, "z": 110.0, "radius": 13.0, "flat": 46.0},
@@ -74,6 +76,8 @@ static var PROJECTILES := {
 	"ugl": {"speed": 62.0, "gravity": 12.0, "radius": 4.8, "dmg": 105.0},
 	"rocket": {"speed": 72.0, "gravity": 3.0, "radius": 4.8, "dmg": 110.0},
 	"shell": {"speed": 240.0, "gravity": 4.0, "radius": 5.0, "dmg": 130.0, "fuse": 6.0},
+	"hydra": {"speed": 150.0, "gravity": 2.5, "radius": 5.0, "dmg": 115.0, "fuse": 5.0},
+	"atgm": {"speed": 70.0, "max": 150.0, "gravity": 0.0, "radius": 4.0, "dmg": 140.0, "fuse": 9.0},
 	"c4": {"speed": 11.0, "gravity": 20.0, "radius": 7.5, "dmg": 220.0, "sticky": true},
 	"crate": {"speed": 9.0, "gravity": 20.0, "bounce": 0.2},
 }
@@ -85,9 +89,24 @@ static var TANKS := [
 	{"model": "t90", "name": "T-90A", "gun": "125MM CANNON", "mg": "PKT COAX", "health": 1000.0, "speed": 11.0,
 		"reverse": 5.0, "accel": 4.0, "turn": 0.8, "turret": 1.15, "reload": 3.2, "bot_reload": 4.8, "respawn": 35.0},
 ]
-## What an explosion does to a tank in its blast (by the weapon's name); bullets do nothing.
+## The attack helicopters, from the web game's (one a side): Vanguard's AH-64E Apache, Onyx's Mi-24V Hind. Speeds in
+## m/s; hit: the boxes it's hit in (centre, half size), the first reaching down to its gear.
+static var HELIS := [
+	{"model": "ah64", "name": "AH-64E APACHE", "health": 620.0, "speed": 40.0, "back": 12.0, "side": 15.0, "accel": 9.0,
+		"climb": 9.0, "yaw_rate": 1.15, "ceiling": 120.0, "cruise": 32.0, "cam": 19.0, "exit": 3.8, "respawn": 45.0,
+		"gun": "M230 30MM CHAIN GUN", "gun_cd": 0.1, "gun_dmg": 46.0, "gun_veh": 12.0, "gun_he": true, "gun_ammo": 1200,
+		"rocket": "HYDRA 70 ROCKETS", "rockets": 38, "atgm": "AGM-114 HELLFIRE", "atgm_reload": 2.5,
+		"hit": [[0, 0.3, -0.65, 0.85, 1.6, 4.25], [0, 0.45, 6.8, 0.35, 0.45, 3.2], [0, -0.1, 0.25, 2.7, 0.35, 0.65]]},
+	{"model": "mi24", "name": "MI-24V HIND", "health": 680.0, "speed": 42.0, "back": 11.0, "side": 14.0, "accel": 8.5,
+		"climb": 8.5, "yaw_rate": 1.0, "ceiling": 120.0, "cruise": 32.0, "cam": 21.0, "exit": 4.6, "respawn": 45.0,
+		"gun": "YAKB-12.7 GATLING", "gun_cd": 0.06, "gun_dmg": 30.0, "gun_veh": 5.0, "gun_he": false, "gun_ammo": 1470,
+		"rocket": "S-8 ROCKETS", "rockets": 40, "atgm": "9M114 SHTURM", "atgm_reload": 2.8,
+		"hit": [[0, -0.15, -1.7, 0.95, 1.7, 4.7], [0, 0.9, 7.3, 0.35, 1.0, 4.0], [0, -0.5, 1.0, 3.4, 0.4, 1.1]]},
+]
+## What an explosion does to a tank or helicopter in its blast (by the weapon's name); bullets do nothing to a tank.
 static var VEHICLE_DMG := {"RPG-7V": 340.0, "C-4": 560.0, "120MM CANNON": 360.0, "125MM CANNON": 360.0,
-	"40MM LAUNCHER": 70.0, "FRAG GRENADE": 30.0}
+	"40MM LAUNCHER": 70.0, "FRAG GRENADE": 30.0, "HYDRA 70 ROCKETS": 170.0, "S-8 ROCKETS": 170.0,
+	"AGM-114 HELLFIRE": 720.0, "9M114 SHTURM": 720.0}
 
 static var CLASSES := {
 	"assault": {"name": "ASSAULT", "primary": "ar", "gadget": "ugl", "grenades": 2, "blurb": "Frontline rifleman. Carries a 40mm launcher to crack defenders out of cover."},

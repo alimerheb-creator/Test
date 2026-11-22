@@ -112,6 +112,7 @@ func show_main() -> void:
 	_big("DEPLOY", func(): w.start_match(sel_class))
 	_label("Combat knife model: \"Combat Knife\" by Overlord (Sketchfab), CC BY 4.0", 12, Color(1, 1, 1, 0.4))
 	_label("Tanks: M1 Abrams by Felipe · \"T-90 with moving turret and barrel\" by kuyongcreates (Printables), CC BY-NC 4.0", 12, Color(1, 1, 1, 0.4))
+	_label("Helicopters: \"Apache AH-64D\" by SalamSadeq (CGTrader) · \"Mi-24\" by Chris Kuhn (BlendSwap), CC BY 3.0", 12, Color(1, 1, 1, 0.4))
 
 
 func show_deploy() -> void:

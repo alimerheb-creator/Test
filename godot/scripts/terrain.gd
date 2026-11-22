@@ -27,6 +27,8 @@ static func setup() -> void:
 		flats.append([f["x"], f["z"], f["flat"], _raw(f["x"], f["z"])])
 	for h in D.HQS:
 		flats.append([h["x"], h["z"], 45.0, _raw(h["x"], h["z"])])
+	for p in D.PADS:
+		flats.append([p[0], p[1], 20.0, height(p[0], p[1])])
 	# level ground under every building (after the flags, so a town's houses sit on its levelled square)
 	for b in D.BUILDINGS:
 		flats.append([float(b[0]), float(b[1]), maxf(b[2], b[3]) * 3.2 * 0.8 + 6.0, height(b[0], b[1])])

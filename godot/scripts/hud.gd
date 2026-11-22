@@ -8,6 +8,7 @@ var w: Node
 var move := Vector2.ZERO
 var fire := false
 var ads_on := false
+var hold := {}
 var touch_ui := false
 var _look := Vector2.ZERO
 var _taps := {}
@@ -38,6 +39,11 @@ func take(n: String) -> bool:
 	return v
 
 
+## A touch button held down (a helicopter's UP and DOWN).
+func held(n: String) -> bool:
+	return hold.get(n, false)
+
+
 func take_look() -> Vector2:
 	var v := _look
 	_look = Vector2.ZERO
@@ -61,6 +67,7 @@ func toast(t: String) -> void:
 func reset_touch() -> void:
 	fire = false
 	move = Vector2.ZERO
+	hold.clear()
 	_btn_touch.clear()
 	_stick_id = -1
 	_look_id = -1
@@ -70,8 +77,13 @@ func _buttons() -> Dictionary:
 	var s := size
 	var p = w.player
 	if p and p.vehicle:
-		return {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "ads": [Vector2(s.x - 310, s.y - 95), 46.0],
+		var vb := {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "ads": [Vector2(s.x - 310, s.y - 95), 46.0],
 			"switch": [Vector2(s.x - 185, s.y - 340), 40.0], "use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
+		if p.vehicle.get("air"):
+			vb["use"] = [Vector2(s.x - 70, s.y - 430), 40.0]
+			vb["up"] = [Vector2(s.x - 60, s.y - 305), 42.0]
+			vb["down"] = [Vector2(s.x - 60, s.y - 72), 40.0]
+		return vb
 	var b := {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "ads": [Vector2(s.x - 310, s.y - 95), 46.0],
 		"jump": [Vector2(s.x - 70, s.y - 300), 42.0], "crouch": [Vector2(s.x - 70, s.y - 80), 40.0],
 		"reload": [Vector2(s.x - 300, s.y - 250), 40.0], "switch": [Vector2(s.x - 185, s.y - 340), 40.0],
@@ -101,6 +113,9 @@ func _input(e: InputEvent) -> void:
 			if b == "fire":
 				fire = true
 				_btn_touch[e.index] = b
+			elif b == "up" or b == "down":
+				hold[b] = true
+				_btn_touch[e.index] = b
 			elif b == "ads":
 				ads_on = not ads_on
 			elif b == "gfx":
@@ -115,7 +130,10 @@ func _input(e: InputEvent) -> void:
 				_look_id = e.index
 		else:
 			if _btn_touch.has(e.index):
-				fire = false
+				if _btn_touch[e.index] == "fire":
+					fire = false
+				else:
+					hold[_btn_touch[e.index]] = false
 				_btn_touch.erase(e.index)
 			if e.index == _stick_id:
 				_stick_id = -1
@@ -252,12 +270,16 @@ func _draw() -> void:
 	if _toast_t > 0.0:
 		_text(Vector2(0, c.y + 90), _toast, 22, Color(1, 0.9, 0.6, clampf(_toast_t, 0.0, 1.0)), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 	# health, ammo, grenades, gadget (or the tank's)
-	if p.vehicle:
+	if p.vehicle and p.vehicle.get("air"):
+		_heli_hud(p.vehicle, s, c)
+	elif p.vehicle:
 		_vehicle_hud(p.vehicle, s, c)
 	else:
 		_infantry_hud(p, s, c)
 	var gname: String = D.GADGETS[D.CLASSES[p.cls]["gadget"]]["name"]
 	if not touch_ui:
+		if p.vehicle and p.vehicle.get("air") and not w.has_meta("shot"):
+			_text(Vector2(0, s.y - 16), "W S A D fly · Space / Shift up · C / Ctrl down · Mouse look · Left mouse fire · Right mouse zoom · 1 2 3 weapons · E get out (on the ground)", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
 			draw_rect(Rect2(0, c.y - 70, s.x, 120), Color(0, 0, 0, 0.5))
 			_text(Vector2(0, c.y - 15), "CLICK TO PLAY", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, s.x)
@@ -272,10 +294,10 @@ func _draw() -> void:
 		draw_arc(Vector2(150, s.y - 170), 70.0, 0, TAU, 48, Color(1, 1, 1, 0.18), 2.0, true)
 		_text(Vector2(80, s.y - 165), "MOVE", 14, Color(1, 1, 1, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 140)
 	var bs := _buttons()
-	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else ("MG" if p.vehicle.weapon == 0 else "CANNON"), "use": "EXIT" if p.vehicle else "ENTER", "grenade": "GRENADE",
+	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else (["ROCKETS", "MISSILE", "GUN"][p.vehicle.weapon] if p.vehicle.get("air") else ("MG" if p.vehicle.weapon == 0 else "CANNON")), "up": "UP", "down": "DOWN", "use": "EXIT" if p.vehicle else "ENTER", "grenade": "GRENADE",
 		"gadget": "DETONATE" if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty() else gname.split(" ")[0], "knife": "KNIFE", "gfx": "GFX"}
 	for kk in bs:
-		var on: bool = (kk == "fire" and fire) or (kk == "ads" and ads_on) or (kk == "crouch" and p.crouch)
+		var on: bool = (kk == "fire" and fire) or (kk == "ads" and ads_on) or (kk == "crouch" and p.crouch) or held(kk)
 		draw_circle(bs[kk][0], bs[kk][1], Color(1, 0.55, 0.3, 0.35) if on else Color(0, 0, 0, 0.28))
 		draw_arc(bs[kk][0], bs[kk][1], 0, TAU, 40, Color(1, 1, 1, 0.5), 2.0, true)
 		_text(bs[kk][0] + Vector2(-60, 6), names[kk], 15 if kk != "fire" else 20, Color(1, 1, 1, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 120)
@@ -323,3 +345,36 @@ func _vehicle_hud(v, s: Vector2, c: Vector2) -> void:
 		gp = gr.position
 	if not v.cam.is_position_behind(gp):
 		draw_arc(v.cam.unproject_position(gp), 11.0, 0, TAU, 24, Color(1, 0.85, 0.4, 0.9), 2.0, true)
+
+
+## In a helicopter: its armour, height and speed, the weapon and what's left of it, and a circle where the chin gun
+## points (it turns slower than you look).
+func _heli_hud(v, s: Vector2, c: Vector2) -> void:
+	var hx := 28.0 if not touch_ui else 230.0
+	var hp: float = maxf(v.health, 0.0) / float(v.S["health"])
+	draw_rect(Rect2(hx, s.y - 46, 220, 12), Color(0, 0, 0, 0.45))
+	draw_rect(Rect2(hx, s.y - 46, 220 * hp, 12), Color(0.85, 0.9, 0.85, 0.9) if hp > 0.35 else Color(0.9, 0.25, 0.2, 0.95))
+	_text(Vector2(hx, s.y - 56), "%s   %d%%" % [v.S["name"], roundi(hp * 100.0)], 15)
+	var kmh := Vector2(v.velocity.x, v.velocity.z).length() * 3.6
+	var info := "ALT %d M   %d KM/H" % [maxi(roundi(v.agl()), 0), roundi(kmh)]
+	if v.rpm < 0.9:
+		info = "ROTOR %d%%   HOLD UP TO TAKE OFF" % roundi(v.rpm * 100.0)
+	_text(Vector2(hx, s.y - 82), info, 15, Color(1, 1, 1, 0.85))
+	var ax := s.x - 30.0 - (470.0 if touch_ui else 0.0)
+	var ay := s.y - 30.0 if not touch_ui else s.y - 20.0
+	var n: int = v.ammo[v.weapon]
+	var st := "%d" % n if n > 0 else "EMPTY"
+	if v.weapon == 2 and n > 0 and v.reload > 0.0:
+		st = "RELOADING"
+	_text(Vector2(ax - 400, ay), st, 30, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 400)
+	_text(Vector2(ax - 400, ay - 40), String([v.S["gun"], v.S["rocket"], v.S["atgm"]][v.weapon]), 17, Color(1, 0.9, 0.7, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 400)
+	if v.weapon == 2 and v.reload > 0.0:
+		draw_arc(c, 24.0, -PI / 2.0, -PI / 2.0 + TAU * (1.0 - v.reload / float(v.S["atgm_reload"])), 32, Color(1, 1, 1, 0.6), 2.0)
+	if v.weapon == 0:
+		var m0: Vector3 = v.muzzle.global_position
+		var gp: Vector3 = m0 - v.barrel.global_basis.z * 500.0
+		var gr: Dictionary = v.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(m0, gp, 5, [v.get_rid()]))
+		if not gr.is_empty():
+			gp = gr.position
+		if not v.cam.is_position_behind(gp):
+			draw_arc(v.cam.unproject_position(gp), 11.0, 0, TAU, 24, Color(1, 0.85, 0.4, 0.9), 2.0, true)

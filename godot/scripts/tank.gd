@@ -284,6 +284,14 @@ func _mg() -> void:
 	w.sound3d("lmg", from, -3.0)
 
 
+func next_weapon() -> void:
+	weapon = 1 - weapon
+
+
+func pick_weapon(i: int) -> void:
+	weapon = mini(i, 1)
+
+
 ## Bullets only scratch the armour.
 func damage(_amount: float, _from: Vector3, _attacker: Node, _head := false, _weapon := "") -> bool:
 	return false
@@ -421,7 +429,7 @@ func _drive_player(dt: float) -> Array:
 	var want_zoom: bool = (mouse_ok and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)) or hud.ads_on
 	zoom = move_toward(zoom, 1.0 if want_zoom else 0.0, dt * 5.0)
 	if hud.take("switch"):
-		weapon = 1 - weapon
+		next_weapon()
 	if hud.take("use"):
 		exit()
 		return [0.0, 0.0, false]

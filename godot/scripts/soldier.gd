@@ -232,7 +232,7 @@ func _pick_goal() -> void:
 func _sees(s: Node3D) -> bool:
 	var eye := global_position + Vector3(0, 1.6, 0)
 	var at: Vector3 = s.global_position + Vector3(0, 1.2 if not s.crouch else 0.8, 0)
-	var q := PhysicsRayQueryParameters3D.create(eye, at, 1)
+	var q := PhysicsRayQueryParameters3D.create(eye, at, 1, [(s as CollisionObject3D).get_rid()])
 	return get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 
 
@@ -245,6 +245,12 @@ func _scan() -> void:
 		var d := global_position.distance_to(s.global_position)
 		if d < rng:
 			cands.append([d, s])
+	# and helicopters flying in range (a bot shoots at one only when no soldier is closer)
+	for v in w.vehicles:
+		if v.get("air") and not v.dead and v.team != team and v.driver:
+			var d := global_position.distance_to(v.global_position)
+			if d < rng:
+				cands.append([d + 25.0, v])
 	cands.sort_custom(func(a, b): return a[0] < b[0])
 	if target and (target.dead or target.get("vehicle") != null or global_position.distance_to(target.global_position) > rng or not _sees(target)):
 		target = null

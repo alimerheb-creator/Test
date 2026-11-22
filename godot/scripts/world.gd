@@ -8,6 +8,7 @@ const D := preload("res://scripts/data.gd")
 const PlayerScript := preload("res://scripts/player.gd")
 const SoldierScript := preload("res://scripts/soldier.gd")
 const TankScript := preload("res://scripts/tank.gd")
+const HeliScript := preload("res://scripts/heli.gd")
 const HudScript := preload("res://scripts/hud.gd")
 const MenuScript := preload("res://scripts/menu.gd")
 const MapScript := preload("res://scripts/map.gd")
@@ -50,11 +51,12 @@ func _ready() -> void:
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
 	per_team = 8 if mobile else 12
-	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine"]:
+	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine", "rotor"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
-	var eng: AudioStreamWAV = sounds["engine"]
-	eng.loop_mode = AudioStreamWAV.LOOP_FORWARD
-	eng.loop_end = int(eng.get_length() * eng.mix_rate)
+	for n in ["engine", "rotor"]:
+		var eng: AudioStreamWAV = sounds[n]
+		eng.loop_mode = AudioStreamWAV.LOOP_FORWARD
+		eng.loop_end = int(eng.get_length() * eng.mix_rate)
 	_make_materials()
 	_make_environment()
 	TerrainScript.build(self)
@@ -612,7 +614,52 @@ func start_match(cls: String) -> void:
 		var z: float = D.HQS[t]["z"] + (-16.0 if t == 0 else 16.0)
 		tk.setup(self, t, Transform3D(Basis(Vector3.UP, 0.0 if t == 0 else PI), Vector3(x, TerrainScript.height(x, z) + 0.3, z)))
 		vehicles.append(tk)
+	# and an attack helicopter a side, on its pad on the other side of the headquarters
+	for t in 2:
+		var hx: float = D.PADS[t][0]
+		var hz: float = D.PADS[t][1]
+		var hc: CharacterBody3D = HeliScript.new()
+		add_child(hc)
+		hc.setup(self, t, Transform3D(Basis(Vector3.UP, 0.0 if t == 0 else PI), Vector3(hx, _helipad(hx, hz), hz)))
+		vehicles.append(hc)
 	deploy_player(cls, 0)
+
+
+## A level concrete helicopter pad at x, z, its top just over the highest ground under it, with a white H; returns
+## how high its top is.
+func _helipad(x: float, z: float) -> float:
+	var top := -INF
+	for i in 5:
+		for j in 5:
+			top = maxf(top, TerrainScript.height(x - 7.5 + i * 3.75, z - 7.5 + j * 3.75))
+	top += 0.15
+	var body := StaticBody3D.new()
+	var sh := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(16, 4, 16)
+	sh.shape = box
+	body.add_child(sh)
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = box.size
+	mi.mesh = bm
+	mi.material_override = mat("concrete")
+	body.add_child(mi)
+	var white := StandardMaterial3D.new()
+	white.albedo_color = Color(0.86, 0.86, 0.8)
+	white.roughness = 0.9
+	for b in [[Vector3(-1.7, 0, 0), Vector3(0.7, 0.04, 6.0)], [Vector3(1.7, 0, 0), Vector3(0.7, 0.04, 6.0)], [Vector3.ZERO, Vector3(2.8, 0.04, 0.7)]]:
+		var hm := MeshInstance3D.new()
+		var hb := BoxMesh.new()
+		hb.size = b[1]
+		hm.mesh = hb
+		hm.material_override = white
+		hm.position = b[0] + Vector3(0, 2.0, 0)
+		hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		body.add_child(hm)
+	add_child(body)
+	body.global_position = Vector3(x, top - 2.0, z)
+	return top
 
 
 func deploy_player(cls: String, idx: int) -> void:

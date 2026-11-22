@@ -41,3 +41,14 @@ write('step', [x * math.exp(-i / (R * 0.03)) for i, x in enumerate(lp([random.un
 write('hit', [math.sin(2 * math.pi * 1900 * i / R) * math.exp(-i / (R * 0.02)) for i in range(int(R * 0.08))])
 write('knife', [x * math.sin(math.pi * i / (R * 0.22)) ** 2 for i, x in enumerate(lp([random.uniform(-1, 1) for _ in range(int(R * 0.22))], 0.35))])
 write('engine', [(0.6 + 0.4 * math.sin(2 * math.pi * 7.5 * i / R)) * (math.sin(2 * math.pi * 30 * i / R) + 0.6 * math.sin(2 * math.pi * 60 * i / R + 0.5) + 0.35 * math.sin(2 * math.pi * 90 * i / R + 1.1) + 0.2 * math.sin(2 * math.pi * 150 * i / R)) for i in range(int(R * 2.0))])
+# the helicopters' rotor: the blades' thump 15 times a second over the turbine's whine; every part repeats within
+# the 2 s loop, so it loops without a seam
+per = R // 15
+burst = lp([random.uniform(-1, 1) for _ in range(per)], 0.06)
+rotor = []
+for i in range(R * 2):
+    j = i % per; t = j / R
+    thump = burst[j] * math.exp(-t / 0.02) * (1.0 if (i // per) % 2 == 0 else 0.8) + math.sin(2 * math.pi * 60 * t) * math.exp(-t / 0.025) * 0.5
+    rotor.append(thump * 3.0 + 0.05 * math.sin(2 * math.pi * 1350 * i / R) + 0.03 * math.sin(2 * math.pi * 2700 * i / R)
+                 + 0.2 * math.sin(2 * math.pi * 30 * i / R) + 0.12 * math.sin(2 * math.pi * 45 * i / R))
+write('rotor', rotor)
