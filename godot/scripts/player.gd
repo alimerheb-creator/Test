@@ -5,6 +5,18 @@ extends CharacterBody3D
 const D := preload("res://scripts/data.gd")
 const Proj := preload("res://scripts/proj.gd")
 const KnifeScene := preload("res://models/combat_knife.glb")
+## Knife moves in camera space: [time 0..1, position, rotation]. A stab: draw, pull back, thrust, pull out.
+const STAB := [[0.0, Vector3(0.24, -0.38, -0.28), Vector3(0.5, 0.3, -0.4)],
+	[0.22, Vector3(0.2, -0.16, -0.24), Vector3(0.12, 0.28, -0.35)],
+	[0.4, Vector3(0.08, -0.13, -0.5), Vector3(0.05, 0.35, -0.5)],
+	[0.55, Vector3(0.1, -0.14, -0.46), Vector3(0.05, 0.38, -0.52)],
+	[1.0, Vector3(0.26, -0.42, -0.26), Vector3(0.5, 0.35, -0.5)]]
+## From behind: raise the knife high and drive it down.
+const TAKEDOWN := [[0.0, Vector3(0.22, -0.4, -0.3), Vector3(0.3, 0.2, -0.3)],
+	[0.3, Vector3(0.08, 0.1, -0.32), Vector3(-1.1, 0.1, -0.1)],
+	[0.5, Vector3(0.02, -0.2, -0.5), Vector3(-1.3, 0.05, -0.1)],
+	[0.68, Vector3(0.03, -0.24, -0.48), Vector3(-1.3, 0.05, -0.1)],
+	[1.0, Vector3(0.25, -0.45, -0.25), Vector3(0.3, 0.3, -0.4)]]
 const VM := {
 	"ar": {"hip": Vector3(0.17, -0.19, -0.5), "ads_y": 0.075, "muzzle": Vector3(0, 0.012, -0.66)},
 	"smg": {"hip": Vector3(0.16, -0.18, -0.46), "ads_y": 0.062, "muzzle": Vector3(0, 0.01, -0.2)},
@@ -58,6 +70,10 @@ var _jump_q := false
 var _protect := 0.0
 var _melee_t := 0.0
 var knife: Node3D
+var _forearm: MeshInstance3D
+var _melee_len := 0.5
+var _melee_back := false
+var _melee_due := false
 
 
 func _ready() -> void:
@@ -314,6 +330,18 @@ func _build_knife() -> void:
 	knife.rotation_order = EULER_ORDER_XYZ
 	knife.visible = false
 	camera.add_child(knife)
+	# a gloved fist round the grip, the thumb over it and the sleeve
+	_part(knife, "p", Vector3(0.031, 0.095, 0), Vector3(0.003, -0.004, 0.004), 0.0, w.mat("glove"))
+	_part(knife, "p", Vector3(0.012, 0.05, 0), Vector3(-0.024, 0.024, -0.012), 0.0, w.mat("glove"))
+	_forearm = MeshInstance3D.new()
+	var fm := CapsuleMesh.new()
+	fm.radius = 0.042
+	fm.height = 0.38
+	_forearm.mesh = fm
+	_forearm.material_override = w.mat("olive")
+	_forearm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_forearm.visible = false
+	camera.add_child(_forearm)
 	var k: Node3D = KnifeScene.instantiate()
 	var box := AABB()
 	var first := true
@@ -336,17 +364,24 @@ func _build_knife() -> void:
 	knife.add_child(k)
 
 
-## The combat knife, as in the web game: a quick stab at the enemy in reach in front of you, a kill from behind.
+## The combat knife: a stab at the enemy in reach in front of you (60 damage), a kill from behind. The hit
+## lands when the blade goes in, with a short lunge.
 func _melee() -> void:
 	if dead or _melee_t > 0.0:
 		return
-	_melee_t = 0.45
-	w.sound("knife", -4.0)
+	var tgt = _melee_find(2.4)
+	_melee_back = tgt != null and _is_back(tgt)
+	_melee_len = 0.8 if _melee_back else 0.5
+	_melee_t = _melee_len
+	_melee_due = true
+
+
+func _melee_find(reach: float):
 	var eye := camera.global_position
 	var f := -camera.global_basis.z
 	var space := get_world_3d().direct_space_state
 	var best = null
-	var bd := 2.4
+	var bd := reach
 	for e in w.soldiers:
 		if e == self or e.dead or e.team == team:
 			continue
@@ -358,12 +393,46 @@ func _melee() -> void:
 			continue
 		best = e
 		bd = d
+	return best
+
+
+func _is_back(e) -> bool:
+	return absf(wrapf(e.rotation.y - yaw, -PI, PI)) < 1.0
+
+
+## The sleeve runs from the wrist to an elbow worked out from the right shoulder (a two-bone reach), so the arm
+## always comes in from the lower right, whatever the knife does.
+func _arm() -> void:
+	var sh := Vector3(0.2, -0.28, 0.05)
+	var wr := knife.position + knife.basis * Vector3(0, -0.005, 0.05)
+	var d := wr - sh
+	var l := clampf(d.length(), 0.05, 0.57)
+	var dn := d.normalized()
+	var x := (0.09 - 0.0784 + l * l) / (2.0 * l)
+	var h := sqrt(maxf(0.09 - x * x, 0.0))
+	var pole := Vector3(0.6, -1.0, 0.2)
+	pole = (pole - dn * dn.dot(pole)).normalized()
+	var el := sh + dn * x + pole * h
+	var y := wr - el
+	var ln := y.length()
+	y /= maxf(ln, 0.001)
+	var bx := y.cross(Vector3(0, 0, 1))
+	bx = bx.normalized() if bx.length() > 0.01 else Vector3(1, 0, 0)
+	_forearm.transform = Transform3D(Basis(bx, y * (ln / 0.38), bx.cross(y)), (el + wr) * 0.5)
+
+
+func _melee_strike() -> void:
+	w.sound("knife", -4.0)
+	var best = _melee_find(2.7)
 	if best == null:
 		return
-	var back := absf(wrapf(best.rotation.y - yaw, -PI, PI)) < 1.0
+	var f := -camera.global_basis.z
+	velocity += Vector3(f.x, 0, f.z).normalized() * 4.0
+	var back := _is_back(best)
 	var killed: bool = best.damage(250.0 if back else 60.0, global_position, self, false, "COMBAT KNIFE")
 	w.impact(best.global_position + Vector3(0, 1.25, 0), -f, true)
 	w.hud.hitmark(killed, false)
+	_vkick.x -= 0.03 if back else 0.012
 
 
 func resupply() -> void:
@@ -379,6 +448,9 @@ func _physics_process(dt: float) -> void:
 	shot_t += dt
 	if dead or w.conquest.over:
 		knife.visible = false
+		_forearm.visible = false
+		_melee_t = 0.0
+		_melee_due = false
 		return
 	var hud = w.hud
 	var g := gun()
@@ -460,6 +532,9 @@ func _physics_process(dt: float) -> void:
 	_bloom = move_toward(_bloom, 0.0, dt * 0.08)
 	_switch_t = maxf(0.0, _switch_t - dt)
 	_melee_t = maxf(0.0, _melee_t - dt)
+	if _melee_due and _melee_t <= _melee_len * (0.52 if _melee_back else 0.62):
+		_melee_due = false
+		_melee_strike()
 	if _reload_t > 0.0:
 		_reload_t -= dt
 		if _reload_t <= 0.0:
@@ -545,13 +620,24 @@ func _viewmodel(dt: float, hs: float, sprint: bool) -> void:
 	if _switch_t > 0.0:
 		pos.y -= _switch_t * 0.5
 	if _melee_t > 0.0:
-		var mt := 1.0 - _melee_t / 0.45
-		pos.y -= sin(mt * PI) * 0.12
+		var mt := 1.0 - _melee_t / _melee_len
+		pos += Vector3(-0.06, -0.3, 0.05) * sin(mt * PI)
 		knife.visible = true
-		knife.position = Vector3(lerpf(0.25, -0.2, mt), -0.12 + sin(mt * PI) * 0.05, -0.35)
-		knife.rotation = Vector3(-0.2, lerpf(0.9, -0.6, mt), -0.6)
+		var keys: Array = TAKEDOWN if _melee_back else STAB
+		var i := 0
+		while i < keys.size() - 2 and mt > float(keys[i + 1][0]):
+			i += 1
+		var u := smoothstep(float(keys[i][0]), float(keys[i + 1][0]), mt)
+		var p0: Vector3 = keys[i][1]
+		var p1: Vector3 = keys[i + 1][1]
+		var r0: Vector3 = keys[i][2]
+		var r1: Vector3 = keys[i + 1][2]
+		knife.position = p0.lerp(p1, u)
+		knife.rotation = r0.lerp(r1, u)
+		_arm()
 	else:
 		knife.visible = false
+	_forearm.visible = knife.visible
 	vm.position = vm.position.lerp(pos, 1.0 - exp(-25.0 * dt))
 	vm.rotation = vm.rotation.lerp(rot, 1.0 - exp(-18.0 * dt))
 

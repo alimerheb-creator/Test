@@ -87,7 +87,8 @@ func _shots(prefix: String) -> void:
 	await get_tree().process_frame
 	start_match("assault")
 	var views := [[Vector3(0, 0, 200), 0.0, -0.05], [Vector3(-8, 0, 22), 0.2, -0.02], [Vector3(-118, 0, 130), -2.3, -0.05], [Vector3(30, 0, -20), PI, 0.0]]
-	for i in views.size():
+	var knife_only := OS.get_cmdline_user_args().has("--knife-only")
+	for i in (0 if knife_only else views.size()):
 		var v: Vector3 = views[i][0]
 		player.global_position = Vector3(v.x, TerrainScript.height(v.x, v.z) + 0.2, v.z)
 		player.yaw = views[i][1]
@@ -96,10 +97,20 @@ func _shots(prefix: String) -> void:
 		for f in 150:
 			await get_tree().process_frame
 		get_viewport().get_texture().get_image().save_png("%s-%d.png" % [prefix, i])
-	player._melee()
-	while player._melee_t > 0.25:
+	# the knife at three points of the stab and of the takedown
+	player._protect = 999.0
+	for f in 40:
 		await get_tree().process_frame
-	get_viewport().get_texture().get_image().save_png("%s-knife.png" % prefix)
+	player.set_physics_process(false)
+	for back in [false, true]:
+		player._melee_back = back
+		player._melee_len = 0.8 if back else 0.5
+		for ph in [0.25, 0.42, 0.6]:
+			player._melee_t = player._melee_len * (1.0 - ph)
+			player._viewmodel(1.0, 0.0, false)
+			for f in 8:
+				await get_tree().process_frame
+			get_viewport().get_texture().get_image().save_png("%s-knife%d-%d.png" % [prefix, int(back), int(ph * 100)])
 	get_tree().quit()
 
 
