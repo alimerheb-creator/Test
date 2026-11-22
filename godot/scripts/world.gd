@@ -620,8 +620,16 @@ func start_match(cls: String) -> void:
 		var hz: float = D.PADS[t][1]
 		var hc: CharacterBody3D = HeliScript.new()
 		add_child(hc)
-		hc.setup(self, t, Transform3D(Basis(Vector3.UP, 0.0 if t == 0 else PI), Vector3(hx, _helipad(hx, hz), hz)))
+		hc.setup(self, t, Transform3D(Basis(Vector3.UP, 0.0 if t == 0 else PI), Vector3(hx, _helipad(hx, hz), hz)), D.HELIS[t])
 		vehicles.append(hc)
+	# and a transport helicopter a side, on a pad of its own
+	for t in 2:
+		var px: float = D.PADS[2 + t][0]
+		var pz: float = D.PADS[2 + t][1]
+		var tr: CharacterBody3D = HeliScript.new()
+		add_child(tr)
+		tr.setup(self, t, Transform3D(Basis(Vector3.UP, 0.0 if t == 0 else PI), Vector3(px, _helipad(px, pz), pz)), D.TRANSPORTS[t])
+		vehicles.append(tr)
 	deploy_player(cls, 0)
 
 

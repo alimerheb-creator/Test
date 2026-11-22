@@ -80,6 +80,11 @@ func _buttons() -> Dictionary:
 		var vb := {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "ads": [Vector2(s.x - 310, s.y - 95), 46.0],
 			"switch": [Vector2(s.x - 185, s.y - 340), 40.0], "use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
 		if p.vehicle.get("air"):
+			if p.vehicle.driver != p:
+				return {"use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
+			if p.vehicle.transport:
+				for k in ["fire", "ads", "switch"]:
+					vb.erase(k)
 			vb["use"] = [Vector2(s.x - 70, s.y - 430), 40.0]
 			vb["up"] = [Vector2(s.x - 60, s.y - 305), 42.0]
 			vb["down"] = [Vector2(s.x - 60, s.y - 72), 40.0]
@@ -278,7 +283,9 @@ func _draw() -> void:
 		_infantry_hud(p, s, c)
 	var gname: String = D.GADGETS[D.CLASSES[p.cls]["gadget"]]["name"]
 	if not touch_ui:
-		if p.vehicle and p.vehicle.get("air") and not w.has_meta("shot"):
+		if p.vehicle and p.vehicle.get("air") and p.vehicle.driver != p and not w.has_meta("shot"):
+			_text(Vector2(0, s.y - 16), "Mouse look · E get out (on the ground)", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		elif p.vehicle and p.vehicle.get("air") and not w.has_meta("shot"):
 			_text(Vector2(0, s.y - 16), "W S A D fly · Space / Shift up · C / Ctrl down · Mouse look · Left mouse fire · Right mouse zoom · 1 2 3 weapons · E get out (on the ground)", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
 			draw_rect(Rect2(0, c.y - 70, s.x, 120), Color(0, 0, 0, 0.5))
@@ -320,7 +327,7 @@ func _infantry_hud(p, s: Vector2, c: Vector2) -> void:
 		gtxt = "DETONATE C-4"
 	_text(Vector2(ax - 400, ay - 64), ("" if touch_ui else "G ") + "GRENADE x%d     " % p.grenades + ("" if touch_ui else "F ") + gtxt, 14, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_RIGHT, 400)
 	if p.near_vehicle:
-		_text(Vector2(0, c.y + 70), ("" if touch_ui else "E  ") + "ENTER " + String(p.near_vehicle.S["name"]), 20, Color(1, 0.9, 0.6, 0.95), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		_text(Vector2(0, c.y + 70), ("" if touch_ui else "E  ") + ("BOARD " if p.near_vehicle.get("transport") and p.near_vehicle.driver else "ENTER ") + String(p.near_vehicle.S["name"]), 20, Color(1, 0.9, 0.6, 0.95), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 
 
 ## In a tank: its armour, the gun's state, a ring round the crosshair while the cannon reloads, and a circle where
@@ -357,11 +364,17 @@ func _heli_hud(v, s: Vector2, c: Vector2) -> void:
 	_text(Vector2(hx, s.y - 56), "%s   %d%%" % [v.S["name"], roundi(hp * 100.0)], 15)
 	var kmh := Vector2(v.velocity.x, v.velocity.z).length() * 3.6
 	var info := "ALT %d M   %d KM/H" % [maxi(roundi(v.agl()), 0), roundi(kmh)]
-	if v.rpm < 0.9:
+	if v.rpm < 0.9 and v.driver == w.player:
 		info = "ROTOR %d%%   HOLD UP TO TAKE OFF" % roundi(v.rpm * 100.0)
 	_text(Vector2(hx, s.y - 82), info, 15, Color(1, 1, 1, 0.85))
 	var ax := s.x - 30.0 - (470.0 if touch_ui else 0.0)
 	var ay := s.y - 30.0 if not touch_ui else s.y - 20.0
+	if v.transport:
+		var line := "TROOPS %d / %d" % [v.riders.size(), int(v.S["seats"])]
+		if v.driver != w.player:
+			line = "RIDING IN THE BACK" if not touch_ui else "RIDING · EXIT ON THE GROUND"
+		_text(Vector2(ax - 500, ay), line, 24, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 500)
+		return
 	var n: int = v.ammo[v.weapon]
 	var st := "%d" % n if n > 0 else "EMPTY"
 	if v.weapon == 2 and n > 0 and v.reload > 0.0:

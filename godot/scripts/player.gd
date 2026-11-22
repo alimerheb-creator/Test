@@ -480,7 +480,7 @@ func _physics_process(dt: float) -> void:
 		return
 	near_vehicle = null
 	for v in w.vehicles:
-		if not v.dead and v.team == team and v.driver == null:
+		if v.team == team and v.can_take(self):
 			var l: Vector3 = v.to_local(global_position)
 			var reach: Vector2 = v.get("reach") if v.get("reach") != null else Vector2(3.6, 5.6)
 			if absf(l.x) < reach.x and absf(l.z) < reach.y and absf(l.y) < 4.0:

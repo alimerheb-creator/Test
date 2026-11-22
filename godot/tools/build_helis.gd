@@ -1,9 +1,11 @@
 extends SceneTree
-## Builds the Godot edition's attack helicopters from the web game's packed models (mods/helicopters.sfmod.json):
+## Builds the Godot edition's attack helicopters and Vanguard's transport from the web game's packed models
+## (mods/helicopters.sfmod.json):
 ## Vanguard's AH-64E Apache ("Apache AH-64D" by SalamSadeq, CGTrader, Royalty Free License; its own two textures,
 ## tinted olive drab) and Onyx's Mi-24V Hind ("Mi-24" by Chris Kuhn, BlendSwap, CC BY 3.0; painted in code, olive
 ## and tan over a blue-grey belly). Each keeps the lighter close-up version (@1) up to FAR metres, the simple one (@2)
-## beyond.
+## beyond. And Vanguard's UH-60M Black Hawk ("UH-60 Blackhawk" from done3d.com), its textures and seats as in the
+## web game (one version).
 ## Saves res://models/ah64.scn and res://models/mi24.scn: body (with its crew) and far; rotor > spin (the head and
 ## blades about the hub; it turns about y); trotor > tspin (the tail rotor; it turns about x); chin (turns) > barrel
 ## (elevates) > the gun and its muzzle; the Apache's Hellfires (atgm0..7) and rocket pods. Its metadata: the main
@@ -41,22 +43,17 @@ func _initialize() -> void:
 	_glass.metallic = 0.6
 	_suit = _flat(Color8(0x4a, 0x4f, 0x3c))
 	_helmet = _flat(Color8(0x3b, 0x3f, 0x34))
-	# the Apache's textures: written out once, then imported by Godot
+	# the textures: written out once, then imported by Godot
 	var tex: Dictionary = _const(lines, "AH64_TEX")
+	var utex: Dictionary = _const(lines, "UH60_TEX")
 	var fresh := false
 	for k in ["tex1", "tex2"]:
-		var path := "res://models/ah64_%s.jpg" % k
-		if FileAccess.file_exists(path):
-			continue
-		var f := FileAccess.open(path, FileAccess.WRITE)
-		f.store_buffer(Marshalls.base64_to_raw(String(tex[k]).get_slice(",", 1)))
-		f.close()
-		f = FileAccess.open(path + ".import", FileAccess.WRITE)
-		f.store_string("[remap]\n\nimporter=\"texture\"\ntype=\"CompressedTexture2D\"\n\n[deps]\n\nsource_file=\"%s\"\n\n[params]\n\ncompress/mode=2\nmipmaps/generate=true\n" % path)
-		f.close()
-		fresh = true
+		fresh = _tex_file("res://models/ah64_%s.jpg" % k, String(tex[k])) or fresh
+	for k in utex:
+		if (utex[k] as Dictionary).has("t"):
+			fresh = _tex_file("res://models/uh60_%s.png" % k, String(utex[k]["t"])) or fresh
 	if fresh:
-		print("wrote the Apache's textures: run godot --headless --path . --import, then this again")
+		print("wrote the textures: run godot --headless --path . --import, then this again")
 		quit()
 		return
 	var mats := {"glass": _glass}
@@ -69,7 +66,66 @@ func _initialize() -> void:
 		mats[k] = m
 	_apache(_const(lines, "AH64_MESH"), mats)
 	_hind(_const(lines, "MI24_MESH"))
+	_blackhawk(_const(lines, "UH60_MESH"), utex)
 	quit()
+
+
+## Writes a texture from its data URL (and asks for it to be imported, compressed and with mipmaps) unless it's there.
+func _tex_file(path: String, url: String) -> bool:
+	if FileAccess.file_exists(path):
+		return false
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_buffer(Marshalls.base64_to_raw(url.get_slice(",", 1)))
+	f.close()
+	f = FileAccess.open(path + ".import", FileAccess.WRITE)
+	f.store_string("[remap]\n\nimporter=\"texture\"\ntype=\"CompressedTexture2D\"\n\n[deps]\n\nsource_file=\"%s\"\n\n[params]\n\ncompress/mode=2\nmipmaps/generate=true\n" % path)
+	f.close()
+	return true
+
+
+## The Black Hawk: its hull, doors, engines and cabin seats (one seat model set at each place), the rotors about
+## their hubs, the two pilots.
+func _blackhawk(d: Dictionary, tex: Dictionary) -> void:
+	var mats := {"06___Default": _glass}
+	var rough := {"rotorhead": 0.45, "lamp": 0.4, "black": 0.6, "wheel": 0.92, "rotor": 0.7, "chair": 0.9}
+	var metal := {"rotorhead": 0.6, "black": 0.2, "wheel": 0.0}
+	for m in ["mainhull", "main", "door", "frontdoor", "tailwing", "engine", "rotor", "chair", "black", "wheel", "rotorhead", "lamp", "jammer"]:
+		var key: String = "dif" if m == "main" else (m if m == "black" else m + "_dif")
+		var e: Dictionary = tex[key]
+		var sm := StandardMaterial3D.new()
+		if e.has("t"):
+			sm.albedo_texture = load("res://models/uh60_%s.png" % key)
+		else:
+			sm.albedo_color = Color.html(e["c"])
+		sm.roughness = rough.get(m, 0.8)
+		sm.metallic = metal.get(m, 0.08)
+		mats[m] = sm
+	var p := _parts(d, true, false)
+	var hub := _v(d["hub"])
+	var thub := _v(d["thub"])
+	for k in ["head", "blade"]:
+		p[k] = p[k].map(func(q): return _shift(q, -hub))
+	for k in ["thead", "tblade"]:
+		p[k] = p[k].map(func(q): return _shift(q, -thub))
+	for q in p.get("seat", []):
+		for o in q["off"]:
+			p["body"].append(_shift(q, _v(o)))
+	var root := _root("uh60", d, p, mats, Vector3(0, -0.6, -7.5))
+	root.set_meta("r", 8.18)
+	root.set_meta("rest", 1.55)
+	root.set_meta("rockets", PackedVector3Array())
+	root.set_meta("atgms", PackedVector3Array())
+	_crew(root, [Vector3(0.67, 0.42, -3.85), Vector3(-0.67, 0.42, -3.85)])
+	_save(root)
+
+
+func _shift(q: Dictionary, by: Vector3) -> Dictionary:
+	var pp: PackedVector3Array = (q["pos"] as PackedVector3Array).duplicate()
+	for k in pp.size():
+		pp[k] += by
+	var c := q.duplicate()
+	c["pos"] = pp
+	return c
 
 
 func _apache(d: Dictionary, mats: Dictionary) -> void:
@@ -122,11 +178,12 @@ func _root(id: String, d: Dictionary, p: Dictionary, mats: Dictionary, muzzle: V
 	var root := Node3D.new()
 	root.name = id
 	var body := _mi("body", _mesh(p["body"] + p.get("gear", []), mats), root)
-	body.visibility_range_end = FAR
-	body.visibility_range_end_margin = 10.0
 	var far := _mi("far", _mesh(p["far"], mats), root)
-	far.visibility_range_begin = FAR
-	far.visibility_range_begin_margin = 10.0
+	if not p["far"].is_empty():
+		body.visibility_range_end = FAR
+		body.visibility_range_end_margin = 10.0
+		far.visibility_range_begin = FAR
+		far.visibility_range_begin_margin = 10.0
 	var rotor := Node3D.new()
 	rotor.name = "rotor"
 	root.add_child(rotor)
@@ -143,14 +200,14 @@ func _root(id: String, d: Dictionary, p: Dictionary, mats: Dictionary, muzzle: V
 	chin.name = "chin"
 	root.add_child(chin)
 	chin.owner = root
-	chin.position = _v(d["gunPivot"])
+	chin.position = _v(d.get("gunPivot", [0, -0.6, -7.0]))
 	if p.has("turret"):
 		_mi("turret", _mesh(p["turret"], mats), chin)
 	var barrel := Node3D.new()
 	barrel.name = "barrel"
 	chin.add_child(barrel)
 	barrel.owner = root
-	_mi("gun", _mesh(p["gun"], mats), barrel)
+	_mi("gun", _mesh(p.get("gun", []), mats), barrel)
 	var mz := Node3D.new()
 	mz.name = "muzzle"
 	barrel.add_child(mz)
@@ -177,7 +234,7 @@ func _crew(root: Node3D, heads: Array) -> void:
 		var t := _mi("pilot%d" % i, tm, body)
 		t.position = heads[i] + Vector3(0, -0.42, 0.06)
 		for n in [h, t]:
-			n.visibility_range_end = FAR
+			n.visibility_range_end = body.visibility_range_end
 			n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
@@ -217,12 +274,12 @@ func _mi(n: String, mesh: Mesh, parent: Node) -> MeshInstance3D:
 
 
 ## The close-up (@1) and far (@2) parts, unpacked and sorted by kind (the far ones all under "far").
-func _parts(d: Dictionary, uvs: bool) -> Dictionary:
+func _parts(d: Dictionary, uvs: bool, tiers := true) -> Dictionary:
 	var bin := Marshalls.base64_to_raw(d["bin"])
 	var out := {"far": []}
 	for h in d["parts"]:
 		var n: String = h["n"]
-		if not (n.ends_with("@1") or n.ends_with("@2")):
+		if tiers and not (n.ends_with("@1") or n.ends_with("@2")):
 			continue
 		var k: String = "far" if n.ends_with("@2") else h["k"]
 		if not out.has(k):
@@ -270,7 +327,7 @@ func _part(bin: PackedByteArray, d: Dictionary, h: Dictionary, uvs: bool) -> Dic
 		var t := idx[k + 1]
 		idx[k + 1] = idx[k + 2]
 		idx[k + 2] = t
-	return {"m": h["m"], "pos": pos, "nor": nor, "uv": uv, "idx": idx}
+	return {"m": h["m"], "pos": pos, "nor": nor, "uv": uv, "idx": idx, "off": h.get("off", [])}
 
 
 ## A mesh of the parts, a surface per material: the textured and glass ones keep theirs; the rest are painted into

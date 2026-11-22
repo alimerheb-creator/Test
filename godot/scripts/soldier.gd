@@ -5,6 +5,7 @@ extends CharacterBody3D
 const D := preload("res://scripts/data.gd")
 const T := preload("res://scripts/terrain.gd")
 const Proj := preload("res://scripts/proj.gd")
+const TrooperScript := preload("res://scripts/trooper.gd")
 
 var w: Node
 var team := 0
@@ -19,8 +20,6 @@ var health := 100.0
 var dead := false
 var crouch := false
 var model: Node3D
-var hips: Array[Node3D] = []
-var arms: Node3D
 var muzzle: Node3D
 var target: Node3D
 var goal := Vector3.ZERO
@@ -41,6 +40,8 @@ var _respawn_t := 0.0
 var _strafe := 1.0
 var fired := 99.0
 var vehicle: Node = null
+var rig: Node3D
+var _pitch := 0.0
 var _rpg_t := 3.0
 
 
@@ -72,80 +73,12 @@ func _ready() -> void:
 	_strafe = 1.0 if randf() < 0.5 else -1.0
 
 
-func _cap(r: float, h: float) -> CapsuleMesh:
-	var c := CapsuleMesh.new()
-	c.radius = r
-	c.height = h
-	c.radial_segments = 10
-	c.rings = 3
-	return c
-
-
-func _boxm(s: Vector3) -> BoxMesh:
-	var b := BoxMesh.new()
-	b.size = s
-	return b
-
-
-func _x(pos: Vector3, rot := Vector3.ZERO, s := Vector3.ONE) -> Transform3D:
-	return Transform3D(Basis.from_euler(rot).scaled(s), pos)
-
-
-func _part(parent: Node3D, parts: Array) -> MeshInstance3D:
-	var mi := MeshInstance3D.new()
-	mi.mesh = T.merge(parts)
-	mi.material_override = w.soldier_mat()
-	parent.add_child(mi)
-	return mi
-
-
+## His body: the web game's modern soldier (scripts/trooper.gd), his rifle's muzzle where the shots leave from.
 func _build() -> void:
-	var C: Dictionary = D.TEAMS[team]
-	var top: Color = C["top"]
-	var pants: Color = C["pants"]
-	var vest: Color = C["vest"]
-	var dark := Color(0.12, 0.11, 0.1)
-	var skin := Color(0.62, 0.46, 0.36) if randf() < 0.6 else Color(0.42, 0.3, 0.22)
-	for side in [-1.0, 1.0]:
-		var hip := Node3D.new()
-		hip.position = Vector3(0.11 * side, 0.95, 0)
-		model.add_child(hip)
-		_part(hip, [[_cap(0.085, 0.55), _x(Vector3(0, -0.24, 0)), pants], [_cap(0.075, 0.5), _x(Vector3(0, -0.66, 0)), pants],
-			[_boxm(Vector3(0.11, 0.1, 0.27)), _x(Vector3(0, -0.9, -0.05)), Color(0.2, 0.16, 0.12)],
-			[_boxm(Vector3(0.12, 0.12, 0.08)), _x(Vector3(0, -0.47, -0.08)), vest]])
-		hips.append(hip)
-	var helm := SphereMesh.new()
-	helm.radius = 0.135
-	helm.height = 0.2
-	helm.is_hemisphere = true
-	helm.radial_segments = 12
-	helm.rings = 4
-	var body := [[_cap(0.19, 0.7), _x(Vector3(0, 1.28, 0), Vector3.ZERO, Vector3(1, 1, 0.75)), top],
-		[_boxm(Vector3(0.4, 0.42, 0.3)), _x(Vector3(0, 1.3, -0.01)), vest],
-		[_boxm(Vector3(0.3, 0.32, 0.12)), _x(Vector3(0, 1.32, 0.2)), vest.darkened(0.15)],
-		[_boxm(Vector3(0.38, 0.07, 0.3)), _x(Vector3(0, 0.98, 0)), dark],
-		[_cap(0.1, 0.24), _x(Vector3(0, 1.67, 0)), skin], [helm, _x(Vector3(0, 1.72, 0)), C["helmet"]],
-		[_boxm(Vector3(0.15, 0.04, 0.05)), _x(Vector3(0, 1.73, -0.11)), Color(0.05, 0.06, 0.07)],
-		[_boxm(Vector3(0.16, 0.05, 0.06)), _x(Vector3(0, 1.58, -0.06)), vest]]
-	for x in [-0.12, 0.0, 0.12]:
-		body.append([_boxm(Vector3(0.09, 0.12, 0.07)), _x(Vector3(x, 1.2, -0.18)), vest.darkened(0.1)])
-	_part(model, body)
-	arms = Node3D.new()
-	arms.position = Vector3(0, 1.42, 0)
-	model.add_child(arms)
-	var g := Vector3(0.08, -0.12, -0.4)
-	var gun := Color(0.13, 0.13, 0.14)
-	var long := 0.2 if cls == "recon" else (0.0 if cls != "engineer" else -0.08)
-	_part(arms, [[_cap(0.065, 0.5), _x(Vector3(0.2, -0.12, -0.12), Vector3(-1.0, 0, 0.2)), top],
-		[_cap(0.065, 0.55), _x(Vector3(-0.12, -0.1, -0.24), Vector3(-1.2, -0.5, -0.2)), top],
-		[_boxm(Vector3(0.06, 0.09, 0.42)), _x(g), gun], [_boxm(Vector3(0.05, 0.08, 0.22)), _x(g + Vector3(0, -0.01, 0.3)), gun],
-		[_boxm(Vector3(0.03, 0.14 if cls != "support" else 0.1, 0.06 if cls != "support" else 0.14)), _x(g + Vector3(0, -0.1, -0.05)), gun],
-		[_boxm(Vector3(0.025, 0.025, 0.3 + long)), _x(g + Vector3(0, 0.015, -0.34 - long / 2.0)), gun],
-		[_boxm(Vector3(0.05, 0.06, 0.06)), _x(g + Vector3(0.1, -0.12, 0.25)), dark],
-		[_boxm(Vector3(0.05, 0.06, 0.06)), _x(g + Vector3(-0.02, -0.06, -0.22)), dark]])
-	muzzle = Node3D.new()
-	muzzle.position = g + Vector3(0, 0.015, -0.52 - long)
-	arms.add_child(muzzle)
+	rig = TrooperScript.new()
+	model.add_child(rig)
+	rig.setup(w, team, cls)
+	muzzle = rig.muzzle
 
 
 func damage(amount: float, from: Vector3, attacker: Node, head := false, weapon := "") -> bool:
@@ -165,6 +98,7 @@ func damage(amount: float, from: Vector3, attacker: Node, head := false, weapon 
 	target = null
 	w.conquest.on_kill(self, attacker, weapon, head)
 	_respawn_t = D.RULES["respawn"]
+	rig.die()
 	var tw := create_tween()
 	var back := (global_position - from).dot(-global_transform.basis.z) > 0.0
 	tw.tween_property(model, "rotation:x", 1.45 if back else -1.45, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -176,6 +110,7 @@ func deploy(xf: Transform3D) -> void:
 	global_transform = xf
 	model.rotation = Vector3.ZERO
 	model.position = Vector3.ZERO
+	rig.revive()
 	velocity = Vector3.ZERO
 	health = D.RULES["health"]
 	dead = false
@@ -352,17 +287,13 @@ func _physics_process(dt: float) -> void:
 					_pick_goal()
 			_stuck_t = 0.0
 			_last = global_position
-	var hs := Vector2(velocity.x, velocity.z).length()
-	_walk += hs * dt * 2.4
-	var sw := sin(_walk) * clampf(hs / 3.0, 0.0, 1.0) * 0.6
-	hips[0].rotation.x = sw
-	hips[1].rotation.x = -sw
 	model.rotation.x = lerpf(model.rotation.x, 0.0, 1.0 - exp(-8.0 * dt))
-	var pitch := -0.35
+	var pitch := 0.0
 	if target:
 		var to := target.global_position - global_position
 		pitch = clampf(atan2(to.y, Vector2(to.x, to.z).length()), -0.6, 0.6)
-	arms.rotation.x = lerpf(arms.rotation.x, pitch, 1.0 - exp(-6.0 * dt))
+	_pitch = lerpf(_pitch, pitch, 1.0 - exp(-6.0 * dt))
+	rig.pose(dt, velocity, _pitch, target != null or fired < 2.5)
 
 
 func _face(d: Vector3, k: float) -> void:

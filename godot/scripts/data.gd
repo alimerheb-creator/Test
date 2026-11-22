@@ -12,8 +12,9 @@ static var PLAY_HALF := 240.0
 
 # Vanguard deploys from the south, Onyx from the north
 static var HQS := [{"x": 0.0, "z": 212.0, "yaw": 0.0}, {"x": 0.0, "z": -212.0, "yaw": PI}]
-## Each side's helicopter pad (x, z), beside its headquarters.
-static var PADS := [[30.0, 204.0], [-30.0, -204.0]]
+## The helicopter pads (x, z) beside each headquarters: Vanguard's and Onyx's attack helicopters', then their
+## transports'.
+static var PADS := [[30.0, 204.0], [-30.0, -204.0], [60.0, 198.0], [-60.0, -198.0]]
 
 static var FLAGS := [
 	{"id": "A", "name": "QUARRY", "x": -135.0, "z": 110.0, "radius": 13.0, "flat": 46.0},
@@ -102,6 +103,16 @@ static var HELIS := [
 		"gun": "YAKB-12.7 GATLING", "gun_cd": 0.06, "gun_dmg": 30.0, "gun_veh": 5.0, "gun_he": false, "gun_ammo": 1470,
 		"rocket": "S-8 ROCKETS", "rockets": 40, "atgm": "9M114 SHTURM", "atgm_reload": 2.8,
 		"hit": [[0, -0.15, -1.7, 0.95, 1.7, 4.7], [0, 0.9, 7.3, 0.35, 1.0, 4.0], [0, -0.5, 1.0, 3.4, 0.4, 1.1]]},
+]
+## The transport helicopters (one a side): Vanguard's UH-60M Black Hawk (from the web game), Onyx's Mi-8AMTSh ("Mil
+## Mi-8AMTSh" by 42manako, CC BY 4.0). A pilot and `seats` soldiers, no weapons.
+static var TRANSPORTS := [
+	{"model": "uh60", "name": "UH-60M BLACK HAWK", "health": 720.0, "speed": 38.0, "back": 10.0, "side": 13.0, "accel": 8.0,
+		"climb": 8.0, "yaw_rate": 0.95, "ceiling": 120.0, "cruise": 28.0, "cam": 22.0, "exit": 2.6, "respawn": 45.0, "seats": 6,
+		"hit": [[0, -0.18, -1.6, 1.32, 1.37, 4.1], [0, 0.9, 6.5, 0.38, 0.6, 4.0], [0, 2.0, 10.0, 0.15, 1.1, 0.9]]},
+	{"model": "mi8", "name": "MI-8AMTSH", "health": 780.0, "speed": 36.0, "back": 9.0, "side": 12.0, "accel": 7.5,
+		"climb": 7.5, "yaw_rate": 0.9, "ceiling": 120.0, "cruise": 28.0, "cam": 24.0, "exit": 2.4, "respawn": 45.0, "seats": 8,
+		"hit": [[0, 0.3, -2.0, 1.3, 1.9, 4.6], [0, 1.6, 7.4, 0.45, 0.6, 4.6], [0, -0.85, -0.6, 3.2, 0.3, 0.9]]},
 ]
 ## What an explosion does to a tank or helicopter in its blast (by the weapon's name); bullets do nothing to a tank.
 static var VEHICLE_DMG := {"RPG-7V": 340.0, "C-4": 560.0, "120MM CANNON": 360.0, "125MM CANNON": 360.0,

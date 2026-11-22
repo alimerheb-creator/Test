@@ -284,6 +284,10 @@ func _mg() -> void:
 	w.sound3d("lmg", from, -3.0)
 
 
+func can_take(_s: Node) -> bool:
+	return not dead and driver == null
+
+
 func next_weapon() -> void:
 	weapon = 1 - weapon
 

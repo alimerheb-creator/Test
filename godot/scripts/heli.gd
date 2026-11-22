@@ -6,12 +6,17 @@ extends CharacterBody3D
 ## rockets, and guided missiles that fly to wherever you keep the sight. Get in at its pad, out once it's down; land
 ## back on the pad to rearm and patch up. Bots take one left empty at their base and hunt tanks first, then whatever
 ## else they see. Bullets chip at it; rockets, missiles, shells and RPGs bring it down, and a new one comes to the pad.
+## A transport (S has "seats": the UH-60 and the Mi-8) carries no weapons but a squad: bots climb aboard on its pad,
+## and its bot pilot sets them down near a flag their side doesn't hold, then comes back for more. You can fly it
+## (the soldiers aboard get out where you land) or ride in it, and get out once it's down.
 
 const D := preload("res://scripts/data.gd")
 const T := preload("res://scripts/terrain.gd")
 const Proj := preload("res://scripts/proj.gd")
 
 var air := true
+var transport := false
+var riders: Array = []
 var crouch := false  # (what the bots' sights read off a target)
 var reach := Vector2(5.0, 7.5)  # (how close you get in from, across and along)
 var w: Node
@@ -68,13 +73,20 @@ var _circle_t := 0.0
 var _burst := 0.0
 var _err := Vector3.ZERO
 var _rtb := false
+var _state := "wait"
+var _state_t := 0.0
+var _lz := Vector3.ZERO
+var _dropped := false
+var _down_t := 0.0
+var _ride_t := 0.0
 static var _wreck_mat: StandardMaterial3D
 
 
-func setup(world: Node, t: int, xf: Transform3D) -> void:
+func setup(world: Node, t: int, xf: Transform3D, spec: Dictionary) -> void:
 	w = world
 	team = t
-	S = D.HELIS[t]
+	S = spec
+	transport = S.has("seats")
 	collision_layer = 1
 	collision_mask = 1
 	motion_mode = CharacterBody3D.MOTION_MODE_FLOATING
@@ -153,7 +165,7 @@ func _respawn() -> void:
 
 
 func _rearm() -> void:
-	ammo = [int(S["gun_ammo"]), int(S["rockets"]), _atgms.size()]
+	ammo = [int(S.get("gun_ammo", 0)), int(S.get("rockets", 0)), _atgms.size()]
 	reload = 0.0
 	for s in _stores:
 		s.visible = true
@@ -165,10 +177,14 @@ func _paint(m: Material) -> void:
 
 
 func next_weapon() -> void:
+	if transport:
+		return
 	weapon = (weapon + 1) % 3
 
 
 func pick_weapon(i: int) -> void:
+	if transport:
+		return
 	weapon = clampi(i, 0, 2)
 
 
@@ -199,6 +215,8 @@ func _physics_process(dt: float) -> void:
 		c[2] = -0.5
 	elif driver == w.player:
 		c = _fly_player(dt)
+	elif transport:
+		c = _fly_transport(dt)
 	else:
 		c = _fly_bot(dt)
 	if w.conquest.over:
@@ -206,7 +224,7 @@ func _physics_process(dt: float) -> void:
 	rpm = move_toward(rpm, 1.0 if driver else 0.0, dt / 3.0)
 	_move(dt, c[0], c[1], c[2], c[3])
 	_aim_gun(dt)
-	if c[4] and driver:
+	if c[4] and driver and not transport:
 		if weapon == 0:
 			_gun()
 		elif weapon == 1:
@@ -216,8 +234,22 @@ func _physics_process(dt: float) -> void:
 	_service(dt)
 	if driver:
 		driver.global_position = global_position + Vector3(0, 1.2, 0)
+	for r in riders:
+		r.global_position = global_position + Vector3(0, 1.0, 0)
+	if transport:
+		_ride_t -= dt
+		if _ride_t <= 0.0:
+			_ride_t = 1.0
+			_find_riders()
+		# flying it yourself: the soldiers aboard get out where you put it down (not on your own pad)
+		_down_t = _down_t + dt if driver == w.player and _landed() and _flat(home.origin) > 30.0 else 0.0
+		if _down_t > 1.5 and riders.any(func(r): return r != w.player):
+			_drop()
+			w.hud.toast("TROOPS OUT")
 	if driver == w.player:
 		_camera(dt)
+	elif riders.has(w.player):
+		_ride(dt)
 
 
 func _move(dt: float, fwd: float, side: float, up: float, want_yaw: float) -> void:
@@ -403,7 +435,7 @@ func _service(dt: float) -> void:
 		return
 	_svc += dt
 	if _svc > 2.0 and _svc - dt <= 2.0:
-		var full: bool = ammo[0] == int(S["gun_ammo"]) and ammo[1] == int(S["rockets"]) and ammo[2] == _atgms.size()
+		var full: bool = ammo[0] == int(S.get("gun_ammo", 0)) and ammo[1] == int(S.get("rockets", 0)) and ammo[2] == _atgms.size()
 		_rearm()
 		if driver == w.player and not full:
 			w.hud.toast("REARMED")
@@ -451,13 +483,15 @@ func _destroy(by: Node, what: String) -> void:
 		_wreck_mat.roughness = 1.0
 	_paint(_wreck_mat)
 	var d := driver
-	if d:
-		if d == w.player:
+	for x in [d] + riders.duplicate():
+		if x == null:
+			continue
+		if x == w.player:
 			exit(true)
 		else:
-			_let_out(d)
-		d._protect = 0.0
-		d.damage(999.0, global_position, by, false, what)
+			_let_out(x)
+		x._protect = 0.0
+		x.damage(999.0, global_position, by, false, what)
 	if by and by != d and by.get("score") != null:
 		by.score += 300
 	if by == w.player:
@@ -485,13 +519,40 @@ func _crash(dt: float) -> void:
 			w.flash(global_position + Vector3(randf_range(-2, 2), 1.0 + i, randf_range(-2, 2)), 3.5)
 
 
+## Whether there's a place for someone: the pilot's, or a seat in the back of a transport with a pilot.
+func can_take(_s: Node) -> bool:
+	return not dead and (driver == null or (transport and riders.size() < int(S["seats"])))
+
+
 func enter(s: Node) -> void:
-	if dead or driver:
+	if dead:
+		return
+	if driver and transport and riders.size() < int(S["seats"]):
+		_board(s)
+		return
+	if driver:
 		return
 	driver = s
 	s.vehicle = self
 	_target = null
 	_goal_t = 0.0
+	_go("wait")
+	_take(s)
+	if s == w.player:
+		w.hud.toast(S["name"])
+	w.sound3d("reload", global_position, -2.0)
+
+
+func _board(s: Node) -> void:
+	riders.append(s)
+	s.vehicle = self
+	_take(s)
+	if s == w.player:
+		w.hud.toast("ABOARD THE %s" % S["name"])
+
+
+## Someone gets in: you see from behind it; a bot is hidden away till he gets out.
+func _take(s: Node) -> void:
 	if s == w.player:
 		_layers = Vector2i(s.collision_layer, s.collision_mask)
 		s.collision_layer = 0
@@ -504,28 +565,28 @@ func enter(s: Node) -> void:
 		zoom = 0.0
 		_camera(0.0)
 		cam.current = true
-		w.hud.toast(S["name"])
 	else:
 		s.visible = false
 		s.process_mode = Node.PROCESS_MODE_DISABLED
-	w.sound3d("reload", global_position, -2.0)
 
 
-## You get out on the right-hand side once it's down (or as it's shot down); a bot only leaves a wreck.
+## You get out once it's down (or as it's shot down): the pilot on the right, from the back on the left; a bot pilot
+## only leaves a wreck.
 func exit(force := false) -> void:
-	var p := driver
-	if p == null:
+	var p = w.player
+	var pilot: bool = driver == p
+	if not pilot and not riders.has(p):
 		return
-	if p != w.player:
-		_let_out(p)
+	if not force and not _landed() and agl() > 3.0:
+		w.hud.toast("LAND TO GET OUT" if pilot else "TOO HIGH TO JUMP")
 		return
-	if not force and not _landed():
-		w.hud.toast("LAND TO GET OUT")
-		return
-	driver = null
+	if pilot:
+		driver = null
+		_empty = 0.0
+	else:
+		riders.erase(p)
 	p.vehicle = null
-	_empty = 0.0
-	var spot := global_position + global_basis.x * float(S["exit"])
+	var spot := global_position + global_basis.x * float(S["exit"]) * (1.0 if pilot else -1.0)
 	spot.y = maxf(T.height(spot.x, spot.z), global_position.y - _rest) + 0.4
 	p.global_position = spot
 	p.collision_layer = _layers.x
@@ -536,12 +597,14 @@ func exit(force := false) -> void:
 	p.camera.current = true
 
 
-func _let_out(d: Node) -> void:
-	driver = null
+func _let_out(d: Node, side := 1.0) -> void:
+	if d == driver:
+		driver = null
+	riders.erase(d)
 	d.vehicle = null
 	d.process_mode = Node.PROCESS_MODE_INHERIT
 	d.visible = true
-	var spot := global_position + global_basis.x * float(S["exit"])
+	var spot := global_position + global_basis.x * float(S["exit"]) * side + global_basis.z * randf_range(-2.0, 2.0)
 	d.global_position = Vector3(spot.x, maxf(T.height(spot.x, spot.z), global_position.y - _rest) + 0.5, spot.z)
 
 
@@ -734,3 +797,122 @@ func _find_crew() -> void:
 			bd = d
 	if best:
 		enter(best)
+
+## Riding in the back: look round, and get out (E) once it's down.
+func _ride(dt: float) -> void:
+	var hud = w.hud
+	var p = w.player
+	var look: Vector2 = (p._mouse * 0.0022 + hud.take_look() * 0.0055) * float(w.sens)
+	p._mouse = Vector2.ZERO
+	_cam_yaw -= look.x
+	_cam_pitch = clampf(_cam_pitch - look.y, -1.25, 0.5)
+	zoom = 0.0
+	if hud.take("use"):
+		exit()
+		if not riders.has(p):
+			return
+	_camera(dt)
+
+
+## The soldiers aboard get out (both sides) and make for a flag.
+func _drop() -> void:
+	var i := 0
+	for r in riders.duplicate():
+		if r == w.player:
+			continue
+		_let_out(r, -1.0 if i % 2 == 0 else 1.0)
+		r._pick_goal()
+		i += 1
+
+
+## Bots climb aboard a transport with a pilot, waiting on its pad: those nearby, and some just deployed (into it).
+func _find_riders() -> void:
+	var room: int = int(S["seats"]) - riders.size()
+	if room <= 0 or driver == null or dead or _flat(home.origin) > 16.0 or not _landed():
+		return
+	for s in w.soldiers:
+		if room <= 0:
+			break
+		if s == w.player or s.dead or s.team != team or s.get("vehicle"):
+			continue
+		if s.global_position.distance_to(global_position) < 60.0 or (s._protect > 0.0 and randf() < 0.7):
+			_board(s)
+			room -= 1
+
+
+func _go(st: String) -> void:
+	_state = st
+	_state_t = 0.0
+	_dropped = false
+
+
+## A bot flying a transport: it waits on its pad till it has a squad aboard (or you), takes them to land on open
+## ground short of the nearest flag its side doesn't hold, lets them out and comes back. Badly hit, it turns home.
+func _fly_transport(dt: float) -> Array:
+	_state_t += dt
+	var pos := global_position
+	var face := yaw
+	var fwd := 0.0
+	var up := 0.0
+	var g := T.height(pos.x, pos.z)
+	if _state == "go" and health < float(S["health"]) * 0.35:
+		_go("back")
+	match _state:
+		"wait":
+			if not _landed() or _flat(home.origin) > 16.0:
+				_go("back")
+			elif riders.size() >= int(S["seats"]) or (riders.size() >= 3 and _state_t > 10.0) or (riders.has(w.player) and _state_t > 4.0) or (not riders.is_empty() and _state_t > 25.0):
+				_lz = _pick_lz()
+				_go("go")
+		"go", "back":
+			var dest := _lz if _state == "go" else home.origin
+			var to := dest - pos
+			var flat := Vector2(to.x, to.z).length()
+			if flat > 2.0:
+				face = atan2(-to.x, -to.z)
+			var lined := absf(wrapf(face - yaw, -PI, PI)) < 0.5
+			if flat > 45.0:
+				fwd = 1.0 if lined else 0.25
+				up = clampf((g + float(S["cruise"]) - pos.y) / 6.0, -1.0, 1.0)
+			else:
+				# slowing over the spot, then down onto it
+				fwd = clampf(flat / 45.0, 0.0, 0.6) * (1.0 if lined else 0.3)
+				up = -0.8 if flat < 10.0 else clampf((g + 12.0 - pos.y) / 6.0, -1.0, 1.0)
+			if _landed() and flat < 25.0 and _state_t > 3.0:
+				_go("drop" if _state == "go" else "wait")
+		"drop":
+			if _state_t > 0.8 and not _dropped:
+				_drop()
+				_dropped = true
+			if _state_t > (8.0 if riders.has(w.player) else 3.5):
+				_go("back")
+	return [fwd, 0.0, up, face, false]
+
+
+## Where to set the soldiers down: open ground (no roof, tree or wall under the rotor) 28-45 m short of the nearest
+## flag its side doesn't hold, on the side it comes from.
+func _pick_lz() -> Vector3:
+	var best: Dictionary = {}
+	var bd := INF
+	for f in w.conquest.flags:
+		var d := _flat(f["pos"]) * (1.0 if f["owner"] != team else 3.0)
+		if d < bd:
+			bd = d
+			best = f
+	var fp: Vector3 = best["pos"]
+	var back := Vector3(home.origin.x - fp.x, 0.0, home.origin.z - fp.z).normalized()
+	var space := get_world_3d().direct_space_state
+	for i in 10:
+		var c := fp + back.rotated(Vector3.UP, randf_range(-1.0, 1.0)) * randf_range(28.0, 45.0)
+		var clear := true
+		for o in [Vector3.ZERO, Vector3(8, 0, 0), Vector3(-8, 0, 0), Vector3(0, 0, 8), Vector3(0, 0, -8)]:
+			var q: Vector3 = c + o
+			var h := T.height(q.x, q.z)
+			var r := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(q.x, h + 40.0, q.z), Vector3(q.x, h - 1.0, q.z), 1, [get_rid()]))
+			if r.is_empty() or (r.position as Vector3).y > h + 0.6:
+				clear = false
+				break
+		if clear:
+			return Vector3(c.x, T.height(c.x, c.z), c.z)
+	return fp + back * 45.0
+
