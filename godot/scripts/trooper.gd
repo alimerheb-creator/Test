@@ -42,6 +42,7 @@ static var _scene: PackedScene
 static var _carry := {}
 static var _mats := []
 static var _dead_arms := []
+static var _kneel := {}
 
 var skel: Skeleton3D
 var gun: Node3D
@@ -52,6 +53,8 @@ var _walk := randf() * 6.0
 var _k := 1.0
 var _seed := randf() * 10.0
 var _dead := false
+var _kn := 0.0
+var _pump := 0.0
 
 
 func setup(world: Node, team: int, cls: String) -> void:
@@ -108,6 +111,9 @@ func setup(world: Node, team: int, cls: String) -> void:
 func pose(dt: float, vel: Vector3, pitch: float, fighting: bool) -> void:
 	if _dead:
 		return
+	_kn = 0.0
+	if not gun.visible:
+		gun.visible = true
 	var sp := Vector2(vel.x, vel.z).length()
 	_walk += sp * dt * 2.1
 	_k = move_toward(_k, 0.0 if fighting else 1.0, dt * 4.0)
@@ -140,6 +146,65 @@ func pose(dt: float, vel: Vector3, pitch: float, fighting: bool) -> void:
 	skel.set_bone_pose_rotation(_b["head"], (A["head"] as Quaternion).slerp(L["head"], k))
 	gun.position = (A["gun_pos"] as Vector3).lerp(L["gun_pos"], k)
 	gun.quaternion = (A["gun_quat"] as Quaternion).slerp(L["gun_quat"], k)
+
+
+## Kneeling over a downed teammate (each frame), both hands on his chest and pressing: the right knee down, the left
+## foot forward, the back bent over him, the rifle slung (hidden). He goes down into it over a fifth of a second.
+func kneel(dt: float) -> void:
+	if _dead:
+		return
+	if _kneel.is_empty():
+		_kneel = _kneel_pose()
+	_kn = move_toward(_kn, 1.0, dt * 5.0)
+	_pump += dt * 9.0
+	var k := smoothstep(0.0, 1.0, _kn)
+	gun.visible = false
+	var K: Dictionary = _kneel
+	skel.set_bone_pose_position(_b["hips"], _hips0.lerp(K["hips"], k))
+	_rot("hips", Vector3.ZERO)
+	for n in ["thighL", "shinL", "footL", "thighR", "shinR", "footR", "spine", "chest", "head"]:
+		_rot(n, (K[n] as Vector3) * k)
+	var L: Dictionary = _carry["low"]
+	var pr := (sin(_pump) + 1.0) * 0.5
+	for i in 6:
+		var a: Quaternion = (K["up"][i] as Quaternion).slerp(K["down"][i], pr)
+		skel.set_bone_pose_rotation(_b[ARMS[i]], (L["arms"][i] as Quaternion).slerp(a, k))
+
+
+## The kneel worked out once from the bones: the hips dropped till the right knee (its thigh straight down) touches
+## the ground, its shin back and the toes tucked; the left leg a two-bone reach in its own plane to a foot flat on
+## the ground ahead; the back bent over; each arm reaching for a chest 0.55 m ahead, up and pressed down.
+func _kneel_pose() -> Dictionary:
+	var rest := {}
+	for n in _b:
+		rest[n] = skel.get_bone_rest(_b[n]).origin
+	var l1: float = (rest["shinL"] as Vector3).length()
+	var l2: float = (rest["footL"] as Vector3).length()
+	var ankle: float = _hips0.y + rest["thighL"].y + rest["shinL"].y + rest["footL"].y
+	var hy: float = 0.08 + (rest["shinR"] as Vector3).length() - rest["thighR"].y
+	var K := {"hips": Vector3(_hips0.x, hy, _hips0.z), "thighR": Vector3(0.05, 0, 0.05), "shinR": Vector3(-1.72, 0, 0),
+		"footR": Vector3(0.47, 0, 0), "spine": Vector3(-0.42, 0, 0), "chest": Vector3(-0.36, 0, 0), "head": Vector3(-0.3, 0, 0)}
+	# (a bone pointing down turned by a about x points along (y, z) = (-cos a, -sin a): forward is -z)
+	var hip := Vector2(hy + rest["thighL"].y, rest["thighL"].z)
+	var to := Vector2(ankle, rest["thighL"].z - 0.42) - hip
+	var d := minf(to.length(), l1 + l2 - 1e-3)
+	var phi := atan2(-to.y, -to.x)
+	var a1 := phi + acos(clampf((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d), -1.0, 1.0))
+	var a2 := phi - acos(clampf((l2 * l2 + d * d - l1 * l1) / (2.0 * l2 * d), -1.0, 1.0))
+	K["thighL"] = Vector3(a1, 0, -0.06)
+	K["shinL"] = Vector3(a2 - a1, 0, 0)
+	K["footL"] = Vector3(-a2, 0, 0)
+	var spine := Transform3D(Basis(), K["hips"]) * Transform3D(Basis(_qe(K["spine"])), rest["spine"])
+	var chest := (spine * Transform3D(Basis(_qe(K["chest"])), rest["chest"])).affine_inverse()
+	for e in [["up", 0.44], ["down", 0.36]]:
+		var arms := []
+		for s in ["R", "L"]:
+			var x := 0.1 if s == "R" else -0.1
+			var r := _reach(rest["upperArm" + s], rest["foreArm" + s], rest["hand" + s], chest * Vector3(x, e[1], -0.55),
+				Vector3(x * 10.0, 0, 0.5), Quaternion())
+			arms.append_array([r[0], r[1], Quaternion()])
+		K[e[0]] = arms
+	return K
 
 
 ## Shot: the arms fling loose, the legs fold a little and the rifle falls (the body itself falls as the soldier does).

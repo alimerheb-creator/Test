@@ -49,7 +49,10 @@ static var ROADS := [
 static var MOVE := {"walk": 4.6, "sprint": 7.3, "crouch": 2.5, "ads": 0.6, "jump": 6.2}
 
 static var RULES := {"gravity": 20.0, "health": 100.0, "regen_delay": 5.0, "regen_rate": 14.0, "bullet": 0.7,
-	"respawn": 5.0, "protect": 1.5, "capture": 0.085, "tickets": 250}
+	"respawn": 5.0, "protect": 1.5, "capture": 0.085, "tickets": 250,
+	# revive: how long a downed soldier lasts, the health he gets back, how long a revive takes (support's defibrillator
+	# and anyone else's hands), how close you must be, and the damage that kills outright (a wreck, a knife from behind)
+	"bleed": 15.0, "revive_hp": 50.0, "revive_fast": 2.0, "revive_slow": 4.5, "revive_reach": 2.2, "overkill": 200.0}
 
 # Hitscan guns. dmg [near, far] across range [start, end] metres; spread and recoil in radians.
 static var WEAPONS := {

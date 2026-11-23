@@ -51,7 +51,7 @@ func _ready() -> void:
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
 	per_team = 8 if mobile else 12
-	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine", "rotor"]:
+	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine", "rotor", "revive"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
 	for n in ["engine", "rotor"]:
 		var eng: AudioStreamWAV = sounds[n]
@@ -688,6 +688,17 @@ func on_player_dead() -> void:
 	menu_open = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	menu.show_deploy()
+
+
+## Someone revived: points to whoever did it, the defibrillator's sound, and a word to you if it was you either way.
+func on_revive(s: Node, by: Node) -> void:
+	if by and by.get("score") != null:
+		by.score += 50
+	sound3d("revive", s.global_position, -3.0)
+	if by == player:
+		hud.toast("+50  REVIVED " + String(s.tag))
+	elif s == player and by:
+		hud.toast("REVIVED BY " + String(by.tag))
 
 
 func on_match_end(win: int) -> void:

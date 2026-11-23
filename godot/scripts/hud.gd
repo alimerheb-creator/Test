@@ -76,6 +76,8 @@ func reset_touch() -> void:
 func _buttons() -> Dictionary:
 	var s := size
 	var p = w.player
+	if p and p.dead:
+		return {"use": [Vector2(s.x * 0.5, s.y - 110), 54.0]} if p.downed else {}
 	if p and p.vehicle:
 		var vb := {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "ads": [Vector2(s.x - 310, s.y - 95), 46.0],
 			"switch": [Vector2(s.x - 185, s.y - 340), 40.0], "use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
@@ -95,7 +97,7 @@ func _buttons() -> Dictionary:
 		"grenade": [Vector2(s.x - 425, s.y - 150), 38.0], "gadget": [Vector2(s.x - 410, s.y - 290), 38.0],
 		"knife": [Vector2(s.x - 300, s.y - 395), 36.0],
 		"gfx": [Vector2(s.x - 50, 150), 28.0]}
-	if p and p.near_vehicle:
+	if p and (p.near_vehicle or p.near_downed):
 		b["use"] = [Vector2(s.x - 70, s.y - 420), 42.0]
 	return b
 
@@ -214,6 +216,21 @@ func _draw() -> void:
 		if not Rect2(-s, s * 3.0).has_point(sp):
 			continue
 		draw_colored_polygon(PackedVector2Array([sp + Vector2(-6, -8), sp + Vector2(6, -8), sp + Vector2(0, 2)]), D.TEAMS[p.team]["color"])
+	# teammates down: a cross with the time they have left round it
+	if not p.dead and p.vehicle == null:
+		for o in w.soldiers:
+			if o == p or not o.downed or o.team != p.team:
+				continue
+			var hp: Vector3 = o.chest() + Vector3(0, 0.9, 0)
+			var dist: float = p.global_position.distance_to(hp)
+			if cam.is_position_behind(hp) or dist > 70.0:
+				continue
+			var sp := cam.unproject_position(hp)
+			draw_circle(sp, 13.0, Color(0, 0, 0, 0.45))
+			draw_arc(sp, 13.0, -PI / 2.0, -PI / 2.0 + TAU * clampf(o._bleed / D.RULES["bleed"], 0.0, 1.0), 28, Color(1, 0.3, 0.25), 2.5, true)
+			draw_rect(Rect2(sp + Vector2(-2, -7), Vector2(4, 14)), Color.WHITE)
+			draw_rect(Rect2(sp + Vector2(-7, -2), Vector2(14, 4)), Color.WHITE)
+			_text(sp + Vector2(-30, 30), "%dm" % int(dist), 12, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_CENTER, 60)
 	# tickets and flags
 	var cx := c.x
 	_text(Vector2(cx - 260, 36), "%s  %d" % [D.TEAMS[p.team]["short"], ceili(cq.tickets[p.team])], 22, D.TEAMS[p.team]["color"], HORIZONTAL_ALIGNMENT_RIGHT, 150)
@@ -240,7 +257,15 @@ func _draw() -> void:
 		if v.length() < mr - 8.0:
 			_text(mc + v + Vector2(-10, 6), f["id"], 14, _team_col(f["owner"]), HORIZONTAL_ALIGNMENT_CENTER, 20)
 	for o in w.soldiers:
-		if o == p or o.dead:
+		if o == p:
+			continue
+		if o.dead:
+			if o.downed and o.team == p.team:
+				var dd: Vector3 = o.global_position - pp
+				var vv := Vector2(dd.x, dd.z).rotated(rot) * k
+				if vv.length() < mr - 4.0:
+					draw_rect(Rect2(mc + vv + Vector2(-1.5, -4.5), Vector2(3, 9)), Color(1, 0.35, 0.3))
+					draw_rect(Rect2(mc + vv + Vector2(-4.5, -1.5), Vector2(9, 3)), Color(1, 0.35, 0.3))
 			continue
 		var mine: bool = o.team == p.team
 		if not mine and o.fired > 2.0:
@@ -260,7 +285,10 @@ func _draw() -> void:
 			_text(Vector2(s.x - 520, y), "%s   [%s]   %s" % [e[0], e[1], e[2]], 15, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_RIGHT, 500)
 		y += 22.0
 	if p.dead:
-		_text(Vector2(0, c.y - 20), "YOU WERE KILLED", 40, Color(1, 0.3, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		if p.downed:
+			_downed_hud(p, s, c)
+		else:
+			_text(Vector2(0, c.y - 20), "YOU WERE KILLED", 40, Color(1, 0.3, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		return
 	# crosshair and hit marker
 	if p.ads < 0.6:
@@ -290,7 +318,7 @@ func _draw() -> void:
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
 			draw_rect(Rect2(0, c.y - 70, s.x, 120), Color(0, 0, 0, 0.5))
 			_text(Vector2(0, c.y - 15), "CLICK TO PLAY", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, s.x)
-			_text(Vector2(0, c.y + 25), "WASD move · Shift sprint · Space jump · C crouch · Right mouse aim · R reload · 1 2 guns · G grenade · F gadget · V knife · E tank · F2 graphics · Esc mouse", 15, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+			_text(Vector2(0, c.y + 25), "WASD move · Shift sprint · Space jump · C crouch · Right mouse aim · R reload · 1 2 guns · G grenade · F gadget · V knife · E vehicle or revive · F2 graphics · Esc mouse", 15, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		return
 	# touch controls
 	if _stick_id >= 0:
@@ -301,7 +329,7 @@ func _draw() -> void:
 		draw_arc(Vector2(150, s.y - 170), 70.0, 0, TAU, 48, Color(1, 1, 1, 0.18), 2.0, true)
 		_text(Vector2(80, s.y - 165), "MOVE", 14, Color(1, 1, 1, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 140)
 	var bs := _buttons()
-	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else (["ROCKETS", "MISSILE", "GUN"][p.vehicle.weapon] if p.vehicle.get("air") else ("MG" if p.vehicle.weapon == 0 else "CANNON")), "up": "UP", "down": "DOWN", "use": "EXIT" if p.vehicle else "ENTER", "grenade": "GRENADE",
+	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else (["ROCKETS", "MISSILE", "GUN"][p.vehicle.weapon] if p.vehicle.get("air") else ("MG" if p.vehicle.weapon == 0 else "CANNON")), "up": "UP", "down": "DOWN", "use": "EXIT" if p.vehicle else ("REVIVE" if p.near_downed else "ENTER"), "grenade": "GRENADE",
 		"gadget": "DETONATE" if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty() else gname.split(" ")[0], "knife": "KNIFE", "gfx": "GFX"}
 	for kk in bs:
 		var on: bool = (kk == "fire" and fire) or (kk == "ads" and ads_on) or (kk == "crouch" and p.crouch) or held(kk)
@@ -326,8 +354,33 @@ func _infantry_hud(p, s: Vector2, c: Vector2) -> void:
 	if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty():
 		gtxt = "DETONATE C-4"
 	_text(Vector2(ax - 400, ay - 64), ("" if touch_ui else "G ") + "GRENADE x%d     " % p.grenades + ("" if touch_ui else "F ") + gtxt, 14, Color(1, 1, 1, 0.75), HORIZONTAL_ALIGNMENT_RIGHT, 400)
-	if p.near_vehicle:
+	if p.reviving:
+		var rt: float = D.RULES["revive_fast" if p.cls == "support" else "revive_slow"]
+		_text(Vector2(0, c.y + 70), "REVIVING " + String(p.reviving.tag), 20, Color(0.6, 1, 0.7, 0.95), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		draw_rect(Rect2(c.x - 100, c.y + 80, 200, 8), Color(0, 0, 0, 0.5))
+		draw_rect(Rect2(c.x - 100, c.y + 80, 200 * clampf(p._rev / rt, 0.0, 1.0), 8), Color(0.5, 1, 0.6, 0.95))
+	elif p.near_downed:
+		_text(Vector2(0, c.y + 70), ("" if touch_ui else "E  ") + "REVIVE " + String(p.near_downed.tag), 20, Color(0.6, 1, 0.7, 0.95), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	elif p.near_vehicle:
 		_text(Vector2(0, c.y + 70), ("" if touch_ui else "E  ") + ("BOARD " if p.near_vehicle.get("transport") and p.near_vehicle.driver else "ENTER ") + String(p.near_vehicle.S["name"]), 20, Color(1, 0.9, 0.6, 0.95), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+
+
+## Down: the time you have left, who's coming for you, and the way out (redeploy).
+func _downed_hud(p, s: Vector2, c: Vector2) -> void:
+	_text(Vector2(0, c.y - 60), "YOU'RE DOWN", 40, Color(1, 0.3, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	draw_rect(Rect2(c.x - 160, c.y - 34, 320, 10), Color(0, 0, 0, 0.5))
+	draw_rect(Rect2(c.x - 160, c.y - 34, 320 * clampf(p._bleed / D.RULES["bleed"], 0.0, 1.0), 10), Color(0.9, 0.25, 0.2, 0.95))
+	var msg := "WAITING FOR A TEAMMATE"
+	if p.medic:
+		msg = "%s IS REVIVING YOU" % p.medic.tag if p.medic._rev > 0.0 else "%s IS COMING  ·  %dm" % [p.medic.tag, int(p.medic.global_position.distance_to(p.global_position))]
+	_text(Vector2(0, c.y + 6), msg, 18, Color(1, 1, 1, 0.9), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	if touch_ui:
+		var b: Array = _buttons()["use"]
+		draw_circle(b[0], b[1], Color(0, 0, 0, 0.35))
+		draw_arc(b[0], b[1], 0, TAU, 40, Color(1, 1, 1, 0.5), 2.0, true)
+		_text(b[0] + Vector2(-60, 6), "REDEPLOY", 15, Color(1, 1, 1, 0.85), HORIZONTAL_ALIGNMENT_CENTER, 120)
+	else:
+		_text(Vector2(0, c.y + 40), "E  REDEPLOY", 16, Color(1, 0.9, 0.6, 0.9), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 
 
 ## In a tank: its armour, the gun's state, a ring round the crosshair while the cannon reloads, and a circle where

@@ -76,6 +76,13 @@ var _forearm: MeshInstance3D
 var _melee_len := 0.5
 var _melee_back := false
 var _melee_due := false
+## Revive: down and waiting (`medic`, a teammate on his way), a downed teammate in reach, the one you're reviving.
+var downed := false
+var medic: Node = null
+var near_downed: Node = null
+var reviving: Node = null
+var _bleed := 0.0
+var _rev := 0.0
 
 
 func _ready() -> void:
@@ -222,6 +229,11 @@ func deploy(xf: Transform3D, c: String) -> void:
 	pitch = 0.0
 	health = D.RULES["health"]
 	dead = false
+	downed = false
+	medic = null
+	near_downed = null
+	reviving = null
+	vm.visible = true
 	crouch = false
 	ads = 0.0
 	_protect = D.RULES["protect"]
@@ -451,12 +463,52 @@ func _melee_strike() -> void:
 
 ## E (or the touch button): get into the tank you're next to, or out of the one you're in.
 func _use() -> void:
-	if dead or w.menu_open:
+	if w.menu_open:
+		return
+	if downed:
+		# (not a press meant for something else as you fell)
+		if _bleed < D.RULES["bleed"] - 1.0:
+			give_up()
+		return
+	if dead:
 		return
 	if vehicle:
 		vehicle.exit()
+	elif near_downed:
+		reviving = near_downed
+		_rev = 0.0
 	elif near_vehicle:
 		near_vehicle.enter(self)
+
+
+## Down and done waiting: to the deploy screen.
+func give_up() -> void:
+	if not downed:
+		return
+	downed = false
+	medic = null
+	w.on_player_dead()
+
+
+## Brought back by a teammate (`by`): up again with half your health, your kit as it was.
+func revive_by(by: Node) -> void:
+	if not downed:
+		return
+	downed = false
+	dead = false
+	medic = null
+	health = D.RULES["revive_hp"]
+	_regen = D.RULES["regen_delay"]
+	_protect = 1.0
+	collision_layer = 2
+	crouch = false
+	vm.visible = true
+	w.on_revive(self, by)
+
+
+## Where a teammate kneels to revive you.
+func chest() -> Vector3:
+	return global_position
 
 
 func resupply() -> void:
@@ -475,9 +527,23 @@ func _physics_process(dt: float) -> void:
 		_forearm.visible = false
 		_melee_t = 0.0
 		_melee_due = false
+		if downed and not w.conquest.over:
+			_bleed -= dt
+			if medic and (medic.dead or medic.get("vehicle") or medic.get("patient") != self):
+				medic = null
+			if (w.hud.take("use") and _bleed < D.RULES["bleed"] - 1.0) or _bleed <= 0.0:
+				give_up()
 		return
 	if vehicle:
 		return
+	near_downed = null
+	var nd: float = D.RULES["revive_reach"]
+	for s in w.soldiers:
+		if s != self and s.downed and s.team == team:
+			var dd: float = global_position.distance_to(s.chest())
+			if dd < nd:
+				nd = dd
+				near_downed = s
 	near_vehicle = null
 	for v in w.vehicles:
 		if v.team == team and v.can_take(self):
@@ -525,6 +591,18 @@ func _physics_process(dt: float) -> void:
 	mv += hud.move
 	if mv.length() > 1.0:
 		mv = mv.normalized()
+	# reviving: crouched over him, still, till it's done (moving, jumping or firing stops it)
+	if reviving:
+		if not reviving.downed or global_position.distance_to(reviving.chest()) > D.RULES["revive_reach"] + 0.8 or mv.length() > 0.3 or _jump_q:
+			reviving = null
+		else:
+			mv = Vector2.ZERO
+			crouch = true
+			_rev += dt
+			if _rev >= D.RULES["revive_fast" if cls == "support" else "revive_slow"]:
+				var pt := reviving
+				reviving = null
+				pt.revive_by(self)
 	var mouse_ok: bool = not hud.touch_ui and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	var want_ads: bool = (mouse_ok and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)) or hud.ads_on
 	var sprint: bool = ((not hud.touch_ui and Input.is_physical_key_pressed(KEY_SHIFT)) or hud.move.length() > 0.97) and mv.y < -0.5 and not want_ads
@@ -578,6 +656,8 @@ func _physics_process(dt: float) -> void:
 			mag[cur] += take
 			spare[cur] -= take
 	var trig: bool = (mouse_ok and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) or hud.fire
+	if trig and reviving:
+		reviving = null
 	if trig and _fire_cd <= 0.0 and _reload_t <= 0.0 and _switch_t <= 0.0 and _melee_t <= 0.0 and not sprint and (g["kind"] == "auto" or not _trig_was):
 		if mag[cur] > 0:
 			_shoot(g)
@@ -591,7 +671,7 @@ func _physics_process(dt: float) -> void:
 	_regen -= dt
 	if _regen <= 0.0:
 		health = minf(D.RULES["health"], health + D.RULES["regen_rate"] * dt)
-	_viewmodel(dt, hs, sprint)
+	_viewmodel(dt, hs, sprint or reviving != null)
 
 
 func _shoot(g: Dictionary) -> void:
@@ -690,10 +770,17 @@ func damage(amount: float, from: Vector3, attacker: Node, hd := false, weapon :=
 	dead = true
 	collision_layer = 0
 	velocity = Vector3.ZERO
+	reviving = null
 	w.conquest.on_kill(self, attacker, weapon, hd)
+	# down, not out (unless it was a wreck or a knife from behind): wait for a teammate, or give up and redeploy
+	downed = amount < D.RULES["overkill"]
+	_bleed = D.RULES["bleed"]
+	medic = null
+	vm.visible = false
 	var tw := create_tween()
 	tw.tween_property(head, "position:y", 0.35, 0.6)
 	tw.parallel().tween_property(head, "rotation:z", 0.6, 0.6)
-	tw.tween_interval(2.2)
-	tw.tween_callback(w.on_player_dead)
+	if not downed:
+		tw.tween_interval(2.2)
+		tw.tween_callback(w.on_player_dead)
 	return true

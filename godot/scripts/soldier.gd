@@ -43,6 +43,15 @@ var vehicle: Node = null
 var rig: Node3D
 var _pitch := 0.0
 var _rpg_t := 3.0
+## Revive: down and waiting for a teammate (`medic`, whoever is on his way), or on his way to one (`patient`).
+var downed := false
+var medic: Node = null
+var patient: Node = null
+var _bleed := 0.0
+var _down_t := 0.0
+var _wait := 0.0
+var _rev := 0.0
+var _kneel := false
 
 
 func setup(world: Node, t: int, c: String, name_tag: String) -> void:
@@ -96,14 +105,89 @@ func damage(amount: float, from: Vector3, attacker: Node, head := false, weapon 
 	collision_layer = 0
 	velocity = Vector3.ZERO
 	target = null
+	_drop_patient()
 	w.conquest.on_kill(self, attacker, weapon, head)
 	_respawn_t = D.RULES["respawn"]
+	# down, not out (unless it was a wreck or a knife from behind): a teammate can bring him back for a while
+	downed = amount < D.RULES["overkill"]
+	_bleed = D.RULES["bleed"]
+	_down_t = 0.0
+	_wait = randf_range(4.0, 8.0)
+	medic = null
 	rig.die()
 	var tw := create_tween()
 	var back := (global_position - from).dot(-global_transform.basis.z) > 0.0
 	tw.tween_property(model, "rotation:x", 1.45 if back else -1.45, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.parallel().tween_property(model, "position:y", 0.12, 0.45)
 	return true
+
+
+## Brought back by a teammate (`by`): up on his feet with half his health, his kit as it was.
+func revive_by(by: Node) -> void:
+	if not downed:
+		return
+	dead = false
+	downed = false
+	medic = null
+	health = D.RULES["revive_hp"]
+	collision_layer = 4
+	_protect = 1.0
+	target = null
+	var tw := create_tween()
+	tw.tween_property(model, "rotation:x", 0.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(model, "position:y", 0.0, 0.5)
+	rig.revive()
+	w.on_revive(self, by)
+
+
+## Where a teammate kneels to revive him: his chest, lying on the ground.
+func chest() -> Vector3:
+	return model.to_global(Vector3(0, 1.2, 0)) if downed else global_position
+
+
+## Bleeding out: he gives up (and waits to redeploy) when no one is coming for him after a few seconds, or when it's
+## too late. You count as coming while you're on foot near him.
+func _down(dt: float) -> void:
+	_down_t += dt
+	_bleed -= dt
+	if medic and (medic.dead or medic.get("vehicle") or medic.get("patient") != self):
+		medic = null
+	var p = w.player
+	var hope: bool = medic != null or (p.team == team and not p.dead and p.vehicle == null and p.global_position.distance_to(global_position) < 35.0)
+	if _bleed <= 0.0 or (not hope and _down_t > _wait):
+		downed = false
+		medic = null
+		_respawn_t = maxf(1.0, D.RULES["respawn"] - _down_t)
+
+
+func _drop_patient() -> void:
+	if patient and patient.medic == self:
+		patient.medic = null
+	patient = null
+	_rev = 0.0
+	_kneel = false
+
+
+## A teammate down nearby: a support (with his defibrillator) goes to anyone within 40 m, fighting or not; anyone
+## else to one within 12 m when he isn't fighting. One at a time each, and one helper each.
+func _medic() -> void:
+	if patient and (not patient.downed or patient.medic != self):
+		_drop_patient()
+	if patient or (target and cls != "support"):
+		return
+	var r := 40.0 if cls == "support" else 12.0
+	var best: Node = null
+	for s in w.soldiers:
+		if s == self or not s.downed or s.team != team or (s.medic != null and s.medic != self):
+			continue
+		var d := global_position.distance_to(s.global_position)
+		if d < r:
+			r = d
+			best = s
+	if best:
+		patient = best
+		best.medic = self
+		_rev = 0.0
 
 
 func deploy(xf: Transform3D) -> void:
@@ -116,6 +200,9 @@ func deploy(xf: Transform3D) -> void:
 	dead = false
 	collision_layer = 4
 	target = null
+	downed = false
+	medic = null
+	_drop_patient()
 	goal_flag = -1
 	_protect = D.RULES["protect"]
 	_pick_goal()
@@ -207,6 +294,9 @@ func _scan() -> void:
 func _physics_process(dt: float) -> void:
 	fired += dt
 	if dead:
+		if downed:
+			_down(dt)
+			return
 		_respawn_t -= dt
 		if _respawn_t <= 0.0 and not w.conquest.over:
 			_respawn_t = 1.0
@@ -222,9 +312,13 @@ func _physics_process(dt: float) -> void:
 	if _think <= 0.0:
 		_think = 0.3
 		_scan()
+		_medic()
 	var move := Vector3.ZERO
+	_kneel = false
 	var speed: float = D.MOVE["walk"]
-	if target:
+	# (a teammate down within 20 m comes before the fight)
+	var going: bool = patient != null and (target == null or global_position.distance_to(patient.global_position) < 20.0)
+	if target and not going:
 		var to := target.global_position - global_position
 		var flat := Vector3(to.x, 0, to.z)
 		_face(flat, dt * float(diff["turn"]))
@@ -238,6 +332,23 @@ func _physics_process(dt: float) -> void:
 			move = global_transform.basis.x * _strafe * 0.5
 			if randf() < dt * 0.4:
 				_strafe = -_strafe
+	elif patient:
+		# run to him, kneel at his chest and bring him back
+		var to: Vector3 = patient.chest() - global_position
+		to.y = 0.0
+		_face(to, dt * 6.0)
+		if to.length() > 0.8:
+			move = to.normalized()
+			if to.length() > 10.0:
+				speed = D.MOVE["sprint"]
+			_rev = 0.0
+		else:
+			_kneel = true
+			_rev += dt
+			if _rev >= D.RULES["revive_fast" if cls == "support" else "revive_slow"]:
+				var pt := patient
+				_drop_patient()
+				pt.revive_by(self)
 	else:
 		var d := goal - global_position
 		d.y = 0.0
@@ -293,7 +404,10 @@ func _physics_process(dt: float) -> void:
 		var to := target.global_position - global_position
 		pitch = clampf(atan2(to.y, Vector2(to.x, to.z).length()), -0.6, 0.6)
 	_pitch = lerpf(_pitch, pitch, 1.0 - exp(-6.0 * dt))
-	rig.pose(dt, velocity, _pitch, target != null or fired < 2.5)
+	if _kneel:
+		rig.kneel(dt)
+	else:
+		rig.pose(dt, velocity, _pitch, target != null or fired < 2.5)
 
 
 func _face(d: Vector3, k: float) -> void:
