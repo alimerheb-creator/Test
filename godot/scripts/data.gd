@@ -1,6 +1,6 @@
 extends RefCounted
-## Sixth Front's battle data, carried over from the web game's js/config.js: the teams, KARSA VALLEY (flags,
-## headquarters, buildings, roads), movement, guns, gadgets, classes, bot difficulty and match rules.
+## Sixth Front's battle data, carried over from the web game's js/config.js: the teams, the maps (flags,
+## headquarters, buildings, roads, cover, ground and light), movement, guns, gadgets, classes, bot difficulty and match rules.
 
 static var TEAMS := [
 	{"name": "VANGUARD", "short": "VGD", "color": Color("3fa9f5"), "helmet": Color("4f5638"), "top": Color("6b6a4c"), "pants": Color("5a5a40"), "vest": Color("46492f")},
@@ -45,6 +45,88 @@ static var ROADS := [
 	[[0, 212], [-60, 170], [-135, 110], [-200, 20], [-120, -100]],
 	[[0, -212], [60, -170], [135, -105], [195, 10], [120, 95]],
 ]
+
+## Cover placed by hand: [kind, x, z, turned 90 degrees, container colour] (DUST RIDGE's; KARSA VALLEY has none).
+static var PROPS := []
+## The ground: the noise seed and how much of each landform (as the web game's map mods have it), how many trees,
+## bushes and rocks, and whether it's sand (with green ground round an oasis at [x, z]).
+static var LAND := {"seed": 0, "hills": 1.0, "bumps": 1.0, "mountains": 1.0, "valley": 1.0, "trees": 1.0, "bushes": 1.0,
+	"rocks": 1.0, "desert": false, "oasis": []}
+## The light: the sun (its angles in degrees, colour and strength), the sky's haze, the fog and the exposure.
+static var LOOK := {"sun": Vector3(-23, -38, 0), "sun_color": Color(1.0, 0.85, 0.68), "sun_energy": 2.6, "turbidity": 5.0,
+	"mie": 0.005, "ground": Color(0.32, 0.27, 0.21), "fog": Color(0.74, 0.68, 0.6), "fog_density": 0.0016,
+	"vfog": Color(0.92, 0.86, 0.78), "exposure": 1.0}
+
+## The maps to fight on: KARSA VALLEY (the data above) and DUST RIDGE, from the web game's map mod (a desert under a
+## hard midday sun: the bazaar in the middle, walled compounds at the oasis and the outposts, dunes and rocky ridges).
+## use_map(i) puts map i's data in place of the current map's; both share the headquarters and helicopter pads.
+static var map := 0
+static var MAPS := [
+	{"name": MAP_NAME, "flags": FLAGS, "buildings": BUILDINGS, "roads": ROADS, "props": PROPS, "land": LAND, "look": LOOK},
+	{"name": "DUST RIDGE",
+		"flags": [
+			{"id": "A", "name": "OASIS", "x": -125.0, "z": 95.0, "radius": 13.0, "flat": 46.0},
+			{"id": "B", "name": "PUMP STATION", "x": 115.0, "z": 115.0, "radius": 13.0, "flat": 46.0},
+			{"id": "C", "name": "BAZAAR", "x": 0.0, "z": 5.0, "radius": 15.0, "flat": 64.0},
+			{"id": "D", "name": "RADAR DOME", "x": -110.0, "z": -115.0, "radius": 13.0, "flat": 46.0},
+			{"id": "E", "name": "BORDER POST", "x": 130.0, "z": -85.0, "radius": 13.0, "flat": 46.0}],
+		"buildings": [
+			[-24.2, 51.0, 4, 4, 1], [33.9, -7.2, 3, 3, 3], [-17.2, -53.5, 2, 3, 1], [-7.0, -22.9, 4, 3, 1], [-31.5, 6.3, 3, 4, 3], [-23.9, -6.4, 2, 3, 2],
+			[-55.6, 3.7, 3, 4, 2], [-32.0, -15.8, 2, 3, 3], [18.5, 57.0, 3, 3, 1], [40.8, 21.4, 3, 3, 2], [20.2, -24.0, 3, 2, 3], [-2.9, 52.6, 3, 3, 3],
+			[-48.6, -20.9, 4, 4, 1], [-1.8, -37.8, 3, 2, 2], [-106.0, 114.0, 3, 3, 2], [-144.0, 76.0, 3, 3, 1], [134.0, 96.0, 3, 3, 2], [96.0, 134.0, 3, 3, 1],
+			[-91.0, -134.0, 3, 3, 2], [-129.0, -96.0, 3, 3, 1], [149.0, -66.0, 3, 3, 2], [111.0, -104.0, 3, 3, 1], [-32.4, 145.5, 3, 3, 1], [49.7, 135.9, 2, 3, 2],
+			[138.4, 19.4, 2, 3, 1], [-123.6, -23.4, 2, 3, 2], [-132.2, -42.2, 3, 4, 2], [-71.4, -29.7, 2, 3, 2], [108.0, -32.4, 2, 3, 1], [189.0, 105.7, 3, 4, 2]],
+		"roads": [
+			[[0.0, 250.0], [0.0, 212.0], [10.0, 150.0], [-20.0, 80.0], [0.0, 5.0], [20.0, -70.0], [0.0, -150.0], [0.0, -212.0], [0.0, -250.0]],
+			[[-250.0, 40.0], [-180.0, 70.0], [-125.0, 95.0], [-60.0, 40.0], [0.0, 5.0]],
+			[[250.0, -30.0], [190.0, -60.0], [130.0, -85.0], [60.0, -40.0], [0.0, 5.0]],
+			[[0.0, 5.0], [60.0, 70.0], [115.0, 115.0], [160.0, 190.0]],
+			[[0.0, 5.0], [-55.0, -60.0], [-110.0, -115.0], [-170.0, -180.0]]],
+		"props": [
+			["block", -102.0, 123.0, false], ["block", -102.0, 67.0, false], ["block", -148.0, 123.0, false], ["block", -148.0, 67.0, false], ["block", 138.0, 143.0, false],
+			["block", 138.0, 87.0, false], ["block", 92.0, 143.0, false], ["block", 92.0, 87.0, false], ["block", -87.0, -87.0, false], ["block", -87.0, -143.0, false],
+			["block", -133.0, -87.0, false], ["block", -133.0, -143.0, false], ["block", 153.0, -57.0, false], ["block", 153.0, -113.0, false], ["block", 107.0, -57.0, false],
+			["block", 107.0, -113.0, false], ["sandbags", -132.8, 97.6, true], ["sandbags", -129.9, 102.3, false], ["sandbags", -120.4, 101.1, false], ["barrier", -115.4, 81.6, true],
+			["barrier", -137.5, 103.0, false], ["barrier", -140.1, 107.9, true], ["crate", -136.0, 116.8, false], ["crate", -113.2, 97.0, false], ["crate", -113.8, 76.4, false],
+			["crate", -113.3, 86.4, false], ["container", -134.9, 70.7, true, "grey"], ["container", -99.5, 107.4, true, "grey"], ["container", -130.1, 77.4, true, "orange"], ["sandbags", 116.8, 104.3, false],
+			["sandbags", 124.7, 116.2, true], ["sandbags", 107.0, 115.3, true], ["barrier", 125.5, 122.3, true], ["barrier", 121.8, 130.0, true], ["barrier", 122.4, 121.0, false],
+			["crate", 111.1, 137.9, false], ["crate", 103.9, 93.9, false], ["crate", 106.6, 108.9, false], ["crate", 110.3, 99.2, false], ["container", 123.5, 135.5, false, "red"],
+			["container", 141.6, 118.8, true, "orange"], ["container", 103.9, 100.0, true, "red"], ["sandbags", -3.0, -3.5, false], ["sandbags", -7.4, 9.7, true], ["sandbags", 5.2, -2.5, false],
+			["sandbags", 1.3, 15.7, false], ["sandbags", 8.4, 7.3, true], ["barrier", -9.2, -11.3, false], ["barrier", -2.8, 19.8, false], ["barrier", 12.7, 15.2, false],
+			["barrier", -9.2, 22.6, true], ["barrier", -13.1, 18.9, false], ["crate", -1.0, -11.3, false], ["crate", 7.7, 12.1, false], ["crate", 2.6, -16.3, false],
+			["crate", 12.0, 11.1, false], ["container", 20.9, -3.0, true, "red"], ["container", 0.8, 24.8, false, "red"], ["sandbags", -119.3, -116.3, true], ["sandbags", -117.9, -110.2, true],
+			["sandbags", -104.8, -108.3, false], ["barrier", -124.9, -109.7, true], ["barrier", -119.3, -121.1, false], ["barrier", -114.3, -133.6, true], ["crate", -129.0, -118.0, false],
+			["crate", -93.3, -97.6, false], ["crate", -108.9, -134.5, false], ["crate", -113.3, -90.1, false], ["container", -89.5, -111.9, true, "grey"], ["container", -124.1, -137.6, true, "blue"],
+			["container", -98.3, -128.2, true, "red"], ["sandbags", 121.9, -77.9, true], ["sandbags", 129.7, -75.0, false], ["sandbags", 138.8, -89.7, true], ["barrier", 126.8, -102.0, false],
+			["barrier", 140.2, -71.5, false], ["barrier", 139.1, -82.6, true], ["crate", 111.5, -88.0, false], ["crate", 151.4, -74.5, false], ["crate", 139.4, -68.1, false],
+			["crate", 135.4, -69.9, false], ["container", 134.2, -102.0, false, "orange"], ["container", 119.3, -103.7, true, "orange"], ["container", 128.8, -62.4, false, "grey"], ["container", 111.4, 85.9, true, "grey"],
+			["container", 127.7, 98.2, true, "blue"], ["container", 96.0, 125.0, true, "red"], ["container", 110.6, 134.2, false, "green"], ["barrier", 165.0, -68.0, false], ["barrier", 165.0, -56.0, false],
+			["ruin", 50.0, 36.5, true], ["ruin", 51.4, 153.9, false], ["ruin", -156.6, 4.1, false], ["ruin", 29.9, -48.7, true], ["ruin", -196.6, 79.7, false],
+			["ruin", 135.7, 32.5, true], ["ruin", -102.6, 31.8, true], ["ruin", 70.9, -102.0, true], ["ruin", 136.9, 4.9, false], ["ruin", 42.1, 30.4, false],
+			["ruin", 135.1, -109.8, false], ["ruin", 204.2, 44.5, false], ["ruin", -44.8, -29.5, false], ["ruin", -77.7, -18.7, false], ["ruin", -107.8, -82.2, true],
+			["ruin", 73.0, -184.5, true], ["ruin", -4.4, -44.7, true], ["ruin", 133.9, 162.0, true], ["ruin", 59.5, 157.1, true], ["ruin", 39.6, 27.9, false],
+			["ruin", 13.2, -203.6, true], ["ruin", -94.0, -189.1, true], ["ruin", -206.3, 23.5, true], ["ruin", -21.1, -80.4, true], ["ruin", -124.1, 34.9, false],
+			["ruin", 13.4, 117.0, false], ["wreck", -104.7, 77.4, true], ["wreck", 158.8, 185.5, true], ["wreck", -164.9, -176.2, true], ["wreck", -0.6, -153.3, true],
+			["wreck", 190.7, -59.1, false], ["wreck", -113.6, -120.3, false],
+			["dome", -142.0, -122.0, false]],
+		"land": {"seed": 911, "hills": 1.7, "bumps": 0.55, "mountains": 1.3, "valley": 0.4, "trees": 0.06, "bushes": 0.35,
+			"rocks": 1.9, "desert": true, "oasis": [-125.0, 95.0]},
+		"look": {"sun": Vector3(-58, -38, 0), "sun_color": Color(1.0, 0.945, 0.84), "sun_energy": 2.6, "turbidity": 3.0,
+			"mie": 0.004, "ground": Color(0.6, 0.5, 0.36), "fog": Color(0.86, 0.78, 0.64), "fog_density": 0.0012,
+			"sky_fog": 0.08, "vfog": Color(0.96, 0.9, 0.78), "exposure": 0.95}},
+]
+
+
+static func use_map(i: int) -> void:
+	map = i
+	var m: Dictionary = MAPS[i]
+	MAP_NAME = m["name"]
+	FLAGS = m["flags"]
+	BUILDINGS = m["buildings"]
+	ROADS = m["roads"]
+	PROPS = m["props"]
+	LAND = m["land"]
+	LOOK = m["look"]
 
 static var MOVE := {"walk": 4.6, "sprint": 7.3, "crouch": 2.5, "ads": 0.6, "jump": 6.2}
 

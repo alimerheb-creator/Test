@@ -1,6 +1,7 @@
 extends RefCounted
-## KARSA VALLEY's ground: rolling hills, a shallow valley down the middle, mountains round the edge, level ground
-## at the flags and headquarters, dirt roads, and woods, bushes and rocks. Built in code when the battle loads.
+## The battlefield's ground: rolling hills, a shallow valley down the middle, mountains round the edge, level ground
+## at the flags and headquarters, dirt roads, and woods, bushes and rocks; on DUST RIDGE sand, dry scrub and palms
+## round the oasis. Shaped by the map's LAND settings (data.gd) and built in code when the battle loads.
 
 const D := preload("res://scripts/data.gd")
 static var n1: FastNoiseLite
@@ -8,19 +9,40 @@ static var n2: FastNoiseLite
 static var n3: FastNoiseLite
 static var flats := []
 static var segs := []
+## Half the footprint (x, z) of each kind of hand-placed cover, to keep plants and soldiers out of it.
+const PROP_HALF := {"block": Vector2(5.0, 0.3), "container": Vector2(3.05, 1.25), "barrier": Vector2(1.5, 0.3),
+	"sandbags": Vector2(2.0, 2.0), "crate": Vector2(0.8, 0.8), "wreck": Vector2(2.2, 1.0), "ruin": Vector2(3.0, 0.25),
+	"dome": Vector2(6.0, 6.0)}
+static var hills := 1.0
+static var bumps := 1.0
+static var mountains := 1.0
+static var valley := 1.0
+static var desert := false
+static var has_oasis := false
+static var oasis := Vector2.ZERO
 
 
 static func setup() -> void:
+	var L: Dictionary = D.LAND
+	hills = L["hills"]
+	bumps = L["bumps"]
+	mountains = L["mountains"]
+	valley = L["valley"]
+	desert = L["desert"]
+	has_oasis = not (L["oasis"] as Array).is_empty()
+	if has_oasis:
+		oasis = Vector2(L["oasis"][0], L["oasis"][1])
+	var sd: int = L["seed"]
 	n1 = FastNoiseLite.new()
-	n1.seed = 7
+	n1.seed = 7 + sd
 	n1.frequency = 1.0 / 170.0
 	n1.fractal_octaves = 3
 	n2 = FastNoiseLite.new()
-	n2.seed = 11
+	n2.seed = 11 + sd
 	n2.frequency = 1.0 / 35.0
 	n2.fractal_octaves = 2
 	n3 = FastNoiseLite.new()
-	n3.seed = 23
+	n3.seed = 23 + sd
 	n3.frequency = 1.0 / 90.0
 	flats.clear()
 	for f in D.FLAGS:
@@ -39,10 +61,10 @@ static func setup() -> void:
 
 
 static func _raw(x: float, z: float) -> float:
-	var h := n1.get_noise_2d(x, z) * 11.0 + n2.get_noise_2d(x, z) * 1.3
-	h -= exp(-(x * x) / (2.0 * 110.0 * 110.0)) * 3.0
+	var h := n1.get_noise_2d(x, z) * 11.0 * hills + n2.get_noise_2d(x, z) * 1.3 * bumps
+	h -= exp(-(x * x) / (2.0 * 110.0 * 110.0)) * 3.0 * valley
 	var d := maxf(absf(x), absf(z))
-	h += smoothstep(235.0, 520.0, d) * (55.0 + 45.0 * n1.get_noise_2d(x * 2.3 + 500.0, z * 2.3))
+	h += smoothstep(235.0, 520.0, d) * (55.0 + 45.0 * n1.get_noise_2d(x * 2.3 + 500.0, z * 2.3)) * mountains
 	return h
 
 
@@ -68,6 +90,20 @@ static func near_road(x: float, z: float, r: float) -> bool:
 	return false
 
 
+## Whether (x, z) is at least pad metres clear of every building and every piece of hand-placed cover.
+static func clear(x: float, z: float, pad: float) -> bool:
+	for b in D.BUILDINGS:
+		if absf(x - b[0]) < b[2] * 1.6 + 0.3 + pad and absf(z - b[1]) < b[3] * 1.6 + 0.3 + pad:
+			return false
+	for p in D.PROPS:
+		var e: Vector2 = PROP_HALF[p[0]]
+		if p[3]:
+			e = Vector2(e.y, e.x)
+		if absf(x - p[1]) < e.x + pad and absf(z - p[2]) < e.y + pad:
+			return false
+	return true
+
+
 static func near_flat(x: float, z: float, pad: float) -> bool:
 	for f in flats:
 		if Vector2(x - f[0], z - f[1]).length() < f[2] * 0.7 + pad:
@@ -77,6 +113,19 @@ static func near_flat(x: float, z: float, pad: float) -> bool:
 
 static func _color(x: float, z: float, h: float, ny: float) -> Color:
 	var n := n2.get_noise_2d(x * 1.7, z * 1.7) * 0.5 + 0.5
+	if desert:
+		# sand, darker in the hollows between the dunes, greener round the oasis, sandstone on the steep faces and
+		# up the heights
+		var s := Color(0.72, 0.6, 0.42).lerp(Color(0.64, 0.52, 0.36), n)
+		s = s.lerp(Color(0.56, 0.45, 0.32), clampf(n3.get_noise_2d(x, z) * 1.5, 0.0, 1.0) * 0.5)
+		if has_oasis:
+			var od := Vector2(x, z).distance_to(oasis)
+			if od < 70.0:
+				var g := Color(0.36, 0.38, 0.2).lerp(Color(0.45, 0.44, 0.26), n)
+				s = s.lerp(g, (1.0 - smoothstep(25.0, 70.0, od)) * clampf(0.55 + n3.get_noise_2d(x * 2.0, z * 2.0), 0.0, 1.0))
+		var sr := Color(0.55, 0.46, 0.36).lerp(Color(0.66, 0.57, 0.45), n)
+		s = s.lerp(sr, smoothstep(0.16, 0.3, 1.0 - ny))
+		return s.lerp(sr, smoothstep(26.0, 45.0, h) * 0.7)
 	var c := Color(0.33, 0.37, 0.2).lerp(Color(0.46, 0.44, 0.27), n)
 	c = c.lerp(Color(0.47, 0.4, 0.3), clampf(n3.get_noise_2d(x, z) * 1.5, 0.0, 1.0) * 0.6)
 	var rock := Color(0.44, 0.42, 0.4).lerp(Color(0.56, 0.54, 0.5), n)
@@ -104,6 +153,7 @@ static func _mesh(x0: float, step: float, n: int, hts: PackedFloat32Array, hole:
 			c[k] = _color(x, z, h, nrm.y)
 	if roads:
 		# paint the dirt roads along each segment
+		var rc := Color(0.5, 0.42, 0.32) if desert else Color(0.4, 0.33, 0.25)
 		for s in segs:
 			var a: Vector2 = s[0]
 			var b: Vector2 = s[1]
@@ -120,7 +170,7 @@ static func _mesh(x0: float, step: float, n: int, hts: PackedFloat32Array, hole:
 							continue
 						var k := jj * n + ii
 						var d := Vector2(x0 + ii * step, x0 + jj * step).distance_to(p)
-						c[k] = c[k].lerp(Color(0.4, 0.33, 0.25), (1.0 - smoothstep(2.0, 4.5, d)) * 0.85)
+						c[k] = c[k].lerp(rc, (1.0 - smoothstep(2.0, 4.5, d)) * 0.85)
 	var idx := PackedInt32Array()
 	for j in n - 1:
 		for i in n - 1:
@@ -233,16 +283,38 @@ static func build(w: Node3D) -> void:
 	_vegetation(w)
 
 
+## A date palm: a trunk that leans out near the top and a crown of drooping fronds.
+static func _palm() -> Array:
+	var bark := Color(0.4, 0.32, 0.23)
+	var parts := [[_cyl(0.17, 0.22, 4.0, 7), _at(2.0), bark],
+		[_cyl(0.15, 0.17, 3.4, 7), Transform3D(Basis(Vector3.RIGHT, 0.12), Vector3(0, 5.69, 0.2)), bark.darkened(0.08)],
+		[_sphere(0.4, 6, 4), Transform3D(Basis(), Vector3(0, 7.3, 0.4)), Color(0.38, 0.27, 0.14)]]
+	var top := Vector3(0, 7.4, 0.41)
+	for i in 10:
+		var b := Basis(Vector3.UP, i * TAU / 10.0 + 0.3) * Basis(Vector3.RIGHT, [0.3, 0.55, 0.8, -0.35][i % 4])
+		parts.append([_sphere(1.0, 6, 3), Transform3D(b * Basis.from_scale(Vector3(0.34, 0.06, 1.6)), top + b * Vector3(0, 0, 1.45)),
+			Color(0.3, 0.37, 0.16).lightened(0.05 * (i % 3))])
+	return parts
+
+
 static func _vegetation(w: Node3D) -> void:
+	var L: Dictionary = D.LAND
+	var trees: float = L["trees"]
+	var bushes: float = L["bushes"]
+	var rocks: float = L["rocks"]
 	var leaf := Color(0.16, 0.24, 0.12)
 	var bark := Color(0.28, 0.21, 0.15)
+	# in the desert, dusty olive scrub and sandstone, as the web game paints them
+	var crown := [Color(0.42, 0.4, 0.24), Color(0.46, 0.43, 0.26)] if desert else [Color(0.24, 0.3, 0.14), Color(0.27, 0.33, 0.16)]
+	var shrub := Color(0.47, 0.42, 0.26) if desert else Color(0.25, 0.3, 0.15)
+	var stone := Color(0.6, 0.5, 0.39) if desert else Color(0.45, 0.43, 0.4)
 	var conifer := merge([[_cyl(0.12, 0.2, 3.0), _at(1.5), bark], [_cyl(0.0, 1.7, 3.2), _at(3.4), leaf],
 		[_cyl(0.0, 1.3, 2.6), _at(4.8), leaf.lightened(0.05)], [_cyl(0.0, 0.85, 2.0), _at(6.0), leaf.lightened(0.1)]])
-	var leafy := merge([[_cyl(0.14, 0.22, 3.4), _at(1.7), bark], [_sphere(1.9), _at(4.2, Vector3(1, 0.85, 1)), Color(0.24, 0.3, 0.14)],
-		[_sphere(1.3), _at(5.4, Vector3(1, 0.9, 1)), Color(0.27, 0.33, 0.16)]])
-	var bush := merge([[_sphere(0.8, 7, 4), _at(0.3, Vector3(1, 0.6, 1)), Color(0.25, 0.3, 0.15)]])
-	var rock := merge([[_sphere(1.0, 6, 4), _at(0.0, Vector3(1, 0.6, 1)), Color(0.45, 0.43, 0.4)]])
-	var sets := {"conifer": [], "leafy": [], "bush": [], "rock": []}
+	var leafy := merge([[_cyl(0.14, 0.22, 3.4), _at(1.7), bark], [_sphere(1.9), _at(4.2, Vector3(1, 0.85, 1)), crown[0]],
+		[_sphere(1.3), _at(5.4, Vector3(1, 0.9, 1)), crown[1]]])
+	var bush := merge([[_sphere(0.8, 7, 4), _at(0.3, Vector3(1, 0.6, 1)), shrub]])
+	var rock := merge([[_sphere(1.0, 6, 4), _at(0.0, Vector3(1, 0.6, 1)), stone]])
+	var sets := {"conifer": [], "leafy": [], "bush": [], "rock": [], "palm": []}
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 99
 	var tries := 3200 if w.mobile else 6000
@@ -252,17 +324,17 @@ static func _vegetation(w: Node3D) -> void:
 		var x := rng.randf_range(-600.0, 600.0)
 		var z := rng.randf_range(-600.0, 600.0)
 		var inside := absf(x) < 250.0 and absf(z) < 250.0
-		if near_flat(x, z, 8.0) or (inside and near_road(x, z, 6.0)):
+		if near_flat(x, z, 8.0) or (inside and (near_road(x, z, 6.0) or not clear(x, z, 1.5))):
 			continue
 		var forest := n3.get_noise_2d(x * 1.3, z * 1.3)
 		var y := height(x, z)
 		var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.35)), Vector3(x, y - 0.15, z))
 		var kind := ""
-		if forest > (0.12 if inside else -0.05):
-			kind = "conifer" if (forest > 0.3 or y > 20.0) else "leafy"
-		elif inside and rng.randf() < 0.25:
+		if forest > (0.12 if inside else -0.05) and (trees >= 1.0 or rng.randf() < trees):
+			kind = "leafy" if desert else ("conifer" if (forest > 0.3 or y > 20.0) else "leafy")
+		elif inside and rng.randf() < 0.25 * bushes:
 			kind = "bush"
-		elif rng.randf() < 0.06:
+		elif rng.randf() < 0.06 * rocks:
 			kind = "rock"
 			t = t.scaled_local(Vector3(rng.randf_range(0.6, 2.2), rng.randf_range(0.5, 1.6), rng.randf_range(0.6, 2.2)))
 		if kind == "":
@@ -276,14 +348,40 @@ static func _vegetation(w: Node3D) -> void:
 			c.shape = sh
 			c.position = Vector3(x, y + 3.0, z)
 			trunks.add_child(c)
+	# palms round the oasis, in among its compound (so not kept off its level ground like the rest)
+	var n := 0
+	for i in (600 if has_oasis else 0):
+		if n >= 36:
+			break
+		var a := rng.randf() * TAU
+		var r := rng.randf_range(9.0, 62.0)
+		var x := oasis.x + cos(a) * r
+		var z := oasis.y + sin(a) * r
+		if near_road(x, z, 5.0) or not clear(x, z, 2.0):
+			continue
+		var y := height(x, z)
+		sets["palm"].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.85, 1.2)), Vector3(x, y - 0.15, z)))
+		var c := CollisionShape3D.new()
+		var sh := CylinderShape3D.new()
+		sh.radius = 0.3
+		sh.height = 7.0
+		c.shape = sh
+		c.position = Vector3(x, y + 3.5, z)
+		trunks.add_child(c)
+		n += 1
 	var vmat := StandardMaterial3D.new()
 	vmat.vertex_color_use_as_albedo = true
 	vmat.vertex_color_is_srgb = true
 	vmat.roughness = 0.95
+	var meshes := {"conifer": conifer, "leafy": leafy, "bush": bush, "rock": rock}
+	if has_oasis:
+		meshes["palm"] = merge(_palm())
 	for kind in sets:
+		if sets[kind].is_empty():
+			continue
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = {"conifer": conifer, "leafy": leafy, "bush": bush, "rock": rock}[kind]
+		mm.mesh = meshes[kind]
 		var list: Array = sets[kind]
 		mm.instance_count = list.size()
 		for i in list.size():

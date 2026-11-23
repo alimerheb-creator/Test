@@ -3,6 +3,8 @@ extends Node3D
 ## the menus, deploying, both armies and the end.
 
 static var I: Node3D
+## The menu's choices, kept while the battle reloads (for another map, or to play again).
+static var keep := {}
 
 const D := preload("res://scripts/data.gd")
 const PlayerScript := preload("res://scripts/player.gd")
@@ -50,7 +52,8 @@ func _ready() -> void:
 	method = RenderingServer.get_current_rendering_method()
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
-	per_team = 8 if mobile else 12
+	per_team = keep.get("size", 8 if mobile else 12)
+	difficulty = keep.get("diff", difficulty)
 	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine", "rotor", "revive"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
 	for n in ["engine", "rotor"]:
@@ -81,7 +84,8 @@ func _ready() -> void:
 	add_child(ml)
 	menu = MenuScript.new()
 	ml.add_child(menu)
-	set_quality(1 if mobile or not fplus else 2)
+	set_quality(keep.get("gfx", 1 if mobile or not fplus else 2))
+	menu.sel_class = keep.get("class", menu.sel_class)
 	menu.show_main()
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--shot="):
@@ -230,6 +234,18 @@ func _shots(prefix: String) -> void:
 	get_tree().quit()
 
 
+## Reloads the battle (on map i: KARSA VALLEY 0, DUST RIDGE 1), keeping the menu's choices.
+func reload(i: int) -> void:
+	keep = {"size": per_team, "diff": difficulty, "gfx": quality, "class": menu.sel_class}
+	if i != D.map:
+		D.use_map(i)
+		menu.loading()
+		# let the menu show it's loading before the new map is built
+		await get_tree().process_frame
+		await get_tree().process_frame
+	get_tree().reload_current_scene()
+
+
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo and e.physical_keycode == KEY_F2:
 		set_quality((quality + 1) % 4)
@@ -243,17 +259,18 @@ func mat(n: String) -> Material:
 
 func _make_environment() -> void:
 	sun = DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-23, -38, 0)
-	sun.light_color = Color(1.0, 0.85, 0.68)
-	sun.light_energy = 2.6
+	var L: Dictionary = D.LOOK
+	sun.rotation_degrees = L["sun"]
+	sun.light_color = L["sun_color"]
+	sun.light_energy = L["sun_energy"]
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = 130.0
 	sun.directional_shadow_blend_splits = true
 	add_child(sun)
 	var sky_mat := PhysicalSkyMaterial.new()
-	sky_mat.turbidity = 5.0
-	sky_mat.mie_coefficient = 0.005
-	sky_mat.ground_color = Color(0.32, 0.27, 0.21)
+	sky_mat.turbidity = L["turbidity"]
+	sky_mat.mie_coefficient = L["mie"]
+	sky_mat.ground_color = L["ground"]
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
 	env = Environment.new()
@@ -263,20 +280,21 @@ func _make_environment() -> void:
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_white = 6.0
+	env.tonemap_exposure = L["exposure"]
 	env.glow_intensity = 0.45
 	env.glow_bloom = 0.03
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.74, 0.68, 0.6)
-	env.fog_density = 0.0016
+	env.fog_light_color = L["fog"]
+	env.fog_density = L["fog_density"]
 	env.fog_sun_scatter = 0.3
 	env.fog_aerial_perspective = 0.5
-	env.fog_sky_affect = 0.25
+	env.fog_sky_affect = L.get("sky_fog", 0.25)
 	env.adjustment_enabled = true
 	env.adjustment_contrast = 1.06
 	env.adjustment_saturation = 1.1
 	env.volumetric_fog_density = 0.005
-	env.volumetric_fog_albedo = Color(0.92, 0.86, 0.78)
+	env.volumetric_fog_albedo = L["vfog"]
 	env.volumetric_fog_anisotropy = 0.55
 	env.volumetric_fog_length = 80.0
 	env.volumetric_fog_sky_affect = 0.0
@@ -411,6 +429,8 @@ func _make_materials() -> void:
 	mats["plaster2"] = _noise_mat([Color(0.48, 0.44, 0.4), Color(0.6, 0.57, 0.52), Color(0.54, 0.5, 0.45)], 0.02, 2.5, 0.92, 3.0)
 	mats["sandbag"] = _noise_mat([Color(0.42, 0.38, 0.28), Color(0.56, 0.5, 0.38)], 0.1, 6.0, 1.0, 1.0)
 	mats["blocks"] = _pattern_mat("blocks", Color(0.62, 0.6, 0.56), 0.9, 1.6)
+	mats["adobe"] = _noise_mat([Color(0.6, 0.5, 0.36), Color(0.72, 0.62, 0.46), Color(0.66, 0.56, 0.41)], 0.02, 2.5, 0.95, 3.0)
+	mats["dome"] = _noise_mat([Color(0.8, 0.8, 0.78), Color(0.9, 0.9, 0.88)], 0.05, 0.5, 0.55, 4.0)
 	mats["wood"] = _pattern_mat("planks", Color(0.56, 0.41, 0.26), 0.8, 1.2)
 	var corr := _pattern_mat("corrugated", Color(1, 1, 1), 0.55, 2.4, 0.5)
 	for c in [["red", Color(0.5, 0.16, 0.1)], ["blue", Color(0.12, 0.24, 0.42)], ["green", Color(0.2, 0.33, 0.2)], ["orange", Color(0.7, 0.38, 0.12)], ["grey", Color(0.45, 0.46, 0.46)]]:

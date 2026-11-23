@@ -245,9 +245,12 @@ func _pick_goal() -> void:
 			goal_flag = i
 			break
 	var f: Dictionary = cq.flags[goal_flag]
-	var a := randf() * TAU
-	var d: float = randf() * f["radius"] * 0.7
-	goal = f["pos"] + Vector3(cos(a) * d, 0, sin(a) * d)
+	for i in 6:
+		var a := randf() * TAU
+		var d: float = randf() * f["radius"] * 0.7
+		goal = f["pos"] + Vector3(cos(a) * d, 0, sin(a) * d)
+		if T.clear(goal.x, goal.z, 0.6):
+			break
 	_hold = randf_range(8.0, 20.0)
 
 

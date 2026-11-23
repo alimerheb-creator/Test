@@ -164,10 +164,16 @@ func spawn_points(team: int) -> Array:
 func spawn_at(team: int, point: Array) -> Transform3D:
 	var c: Vector3 = point[1]
 	var r := 10.0 if point[0] == "HQ" else 6.0
-	var a := randf() * TAU
-	var d := randf_range(1.5, r)
-	var x := c.x + cos(a) * d
-	var z := c.z + sin(a) * d
+	var x := c.x
+	var z := c.z
+	# a spot clear of buildings and cover
+	for i in 8:
+		var a := randf() * TAU
+		var d := randf_range(1.5, r)
+		x = c.x + cos(a) * d
+		z = c.z + sin(a) * d
+		if T.clear(x, z, 0.8):
+			break
 	var enemy: Dictionary = D.HQS[1 - team]
 	var yaw := atan2(-(enemy["x"] - x), -(enemy["z"] - z))
 	return Transform3D(Basis(Vector3.UP, yaw), Vector3(x, T.height(x, z) + 0.3, z))

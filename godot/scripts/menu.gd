@@ -1,5 +1,5 @@
 extends Control
-## The menus: the main menu (class, bot skill, battle size, graphics), the deploy screen after you fall (class and
+## The menus: the main menu (map, class, bot skill, battle size, graphics), the deploy screen after you fall (class and
 ## spawn point) and the end of the match.
 
 const D := preload("res://scripts/data.gd")
@@ -82,6 +82,10 @@ func _pick(kind: String, v) -> void:
 			w.set_quality(v)
 		"spawn":
 			sel_spawn = v
+		"map":
+			if v != D.map:
+				w.reload(v)
+				return
 	if mode == "main":
 		show_main()
 	else:
@@ -100,7 +104,12 @@ func show_main() -> void:
 	visible = true
 	_clear()
 	_label("SIXTH FRONT", 60, Color(1, 0.86, 0.58))
-	_label("CONQUEST  ·  %s  ·  GODOT EDITION" % D.MAP_NAME, 18, Color(1, 1, 1, 0.75))
+	_label("CONQUEST  ·  GODOT EDITION", 18, Color(1, 1, 1, 0.75))
+	_label("MAP", 15, Color(1, 1, 1, 0.55))
+	var maps := []
+	for i in D.MAPS.size():
+		maps.append([D.MAPS[i]["name"], i])
+	_row("map", maps, D.map)
 	_label("CLASS", 15, Color(1, 1, 1, 0.55))
 	_row("class", _classes(), sel_class)
 	_label(D.CLASSES[sel_class]["blurb"], 15, Color(1, 1, 1, 0.75))
@@ -147,4 +156,11 @@ func show_end(win: int) -> void:
 		var s = all[i]
 		_label("%d.  %s  (%s)   %d kills   %d deaths   %d points" % [i + 1, s.tag, D.TEAMS[s.team]["short"], s.kills, s.deaths, s.score], 17,
 			Color(1, 0.9, 0.5) if s == p else Color(1, 1, 1, 0.85))
-	_big("PLAY AGAIN", get_tree().reload_current_scene)
+	_big("PLAY AGAIN", func(): w.reload(D.map))
+
+
+## While another map is built.
+func loading() -> void:
+	mode = "loading"
+	_clear()
+	_label("LOADING  %s" % D.MAP_NAME, 34, Color(1, 0.86, 0.58))
