@@ -6,13 +6,20 @@ extends CharacterBody3D
 ## rockets, and guided missiles that fly to wherever you keep the sight. Get in at its pad, out once it's down; land
 ## back on the pad to rearm and patch up. Bots take one left empty at their base and hunt tanks first, then whatever
 ## else they see. Bullets chip at it; rockets, missiles, shells and RPGs bring it down, and a new one comes to the pad.
-## A transport (S has "seats": the UH-60 and the Mi-8) carries no weapons but a squad: bots climb aboard on its pad,
-## and its bot pilot sets them down near a flag their side doesn't hold, then comes back for more. You can fly it
-## (the soldiers aboard get out where you land) or ride in it, and get out once it's down.
+## A transport (S has "seats": the UH-60 and the Mi-8) carries a squad: bots climb aboard on its pad, and its bot
+## pilot sets them down near a flag their side doesn't hold, then comes back for more. You can fly it (the soldiers
+## aboard get out where you land) or ride in it, and get out once it's down. Its weapons are a machine gun in each
+## door: the first two soldiers aboard man them and stay on as its crew; riding, you take one (see the door guns below).
 
 const D := preload("res://scripts/data.gd")
 const T := preload("res://scripts/terrain.gd")
 const Proj := preload("res://scripts/proj.gd")
+const Trooper := preload("res://scripts/trooper.gd")
+const DG_CD := 0.085  # (about 700 rounds a minute)
+const DG_DMG := 24.0
+const DG_RANGE := 300.0
+const DG_AZ := Vector2(0.3, 2.6)  # how far round a door gun turns, from near straight ahead to well back (radians)
+const DG_EL := Vector2(-1.15, 0.35)
 
 var air := true
 var transport := false
@@ -79,7 +86,10 @@ var _lz := Vector3.ZERO
 var _dropped := false
 var _down_t := 0.0
 var _ride_t := 0.0
+var guns: Array = []
+var _dg_fire := false
 static var _wreck_mat: StandardMaterial3D
+static var _opened := {}
 
 
 func setup(world: Node, t: int, xf: Transform3D, spec: Dictionary) -> void:
@@ -110,8 +120,12 @@ func setup(world: Node, t: int, xf: Transform3D, spec: Dictionary) -> void:
 	for n in model.get_children():
 		if String(n.name).begins_with("atgm"):
 			_stores.append(n)
+	if S.has("guns"):
+		_build_guns()
 	for mi in model.find_children("*", "GeometryInstance3D", true, false):
 		_meshes.append(mi)
+	if S.has("guns"):
+		_crew_guns()
 	# the blur of the blades going round
 	var disc := CylinderMesh.new()
 	disc.top_radius = float(model.get_meta("r"))
@@ -162,6 +176,7 @@ func _respawn() -> void:
 	_empty = 0.0
 	_rtb = false
 	_paint(null)
+	_rest_guns()
 
 
 func _rearm() -> void:
@@ -178,12 +193,16 @@ func _paint(m: Material) -> void:
 
 func next_weapon() -> void:
 	if transport:
+		if riders.has(w.player):
+			_switch_seat((_seat_of(w.player) + 1) % (guns.size() + 1))
 		return
 	weapon = (weapon + 1) % 3
 
 
 func pick_weapon(i: int) -> void:
 	if transport:
+		if riders.has(w.player):
+			_switch_seat(clampi(i, 0, guns.size()))
 		return
 	weapon = clampi(i, 0, 2)
 
@@ -246,6 +265,8 @@ func _physics_process(dt: float) -> void:
 		if _down_t > 1.5 and riders.any(func(r): return r != w.player):
 			_drop()
 			w.hud.toast("TROOPS OUT")
+	if not guns.is_empty():
+		_door_guns(dt)
 	if driver == w.player:
 		_camera(dt)
 	elif riders.has(w.player):
@@ -519,15 +540,19 @@ func _crash(dt: float) -> void:
 			w.flash(global_position + Vector3(randf_range(-2, 2), 1.0 + i, randf_range(-2, 2)), 3.5)
 
 
-## Whether there's a place for someone: the pilot's, or a seat in the back of a transport with a pilot.
+## Whether there's a place for someone: the pilot's, or a seat in the back of a transport with a pilot (or a door gun).
 func can_take(_s: Node) -> bool:
-	return not dead and (driver == null or (transport and riders.size() < int(S["seats"])))
+	return not dead and (driver == null or (transport and riders.size() < _places()))
+
+
+func _places() -> int:
+	return int(S["seats"]) + guns.size() if transport else 0
 
 
 func enter(s: Node) -> void:
 	if dead:
 		return
-	if driver and transport and riders.size() < int(S["seats"]):
+	if driver and transport and riders.size() < _places():
 		_board(s)
 		return
 	if driver:
@@ -548,7 +573,16 @@ func _board(s: Node) -> void:
 	s.vehicle = self
 	_take(s)
 	if s == w.player:
-		w.hud.toast("ABOARD THE %s" % S["name"])
+		# you take a door gun: a free one, or the right one from the bot on it
+		var i := 0
+		for k in guns.size():
+			if guns[k]["crew"] == null:
+				i = k
+				break
+		_switch_seat(i if not guns.is_empty() else 0, false)
+		w.hud.toast("ABOARD THE %s%s" % [S["name"], "" if guns.is_empty() else " · " + seat_name(s)])
+	else:
+		_man_guns()
 
 
 ## Someone gets in: you see from behind it; a bot is hidden away till he gets out.
@@ -585,6 +619,9 @@ func exit(force := false) -> void:
 		_empty = 0.0
 	else:
 		riders.erase(p)
+		_unman(p)
+		_man_guns()
+	cam.near = 0.1
 	p.vehicle = null
 	var spot := global_position + global_basis.x * float(S["exit"]) * (1.0 if pilot else -1.0)
 	spot.y = maxf(T.height(spot.x, spot.z), global_position.y - _rest) + 0.4
@@ -601,6 +638,7 @@ func _let_out(d: Node, side := 1.0) -> void:
 	if d == driver:
 		driver = null
 	riders.erase(d)
+	_unman(d)
 	d.vehicle = null
 	d.process_mode = Node.PROCESS_MODE_INHERIT
 	d.visible = true
@@ -798,27 +836,50 @@ func _find_crew() -> void:
 	if best:
 		enter(best)
 
-## Riding in the back: look round, and get out (E) once it's down.
+## Riding in the back: on a door gun you aim it (the mouse, or a drag), fire and zoom, seeing along it; in a seat you
+## look round. Switch (the weapon key) between the guns and a seat; get out (E) once it's down.
 func _ride(dt: float) -> void:
 	var hud = w.hud
 	var p = w.player
-	var look: Vector2 = (p._mouse * 0.0022 + hud.take_look() * 0.0055) * float(w.sens)
+	var mouse_ok: bool = not hud.touch_ui and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	var look: Vector2 = (p._mouse * 0.0022 + hud.take_look() * 0.0055) * float(w.sens) * lerpf(1.0, 0.4, zoom)
 	p._mouse = Vector2.ZERO
-	_cam_yaw -= look.x
-	_cam_pitch = clampf(_cam_pitch - look.y, -1.25, 0.5)
-	zoom = 0.0
+	if hud.take("switch"):
+		next_weapon()
 	if hud.take("use"):
 		exit()
 		if not riders.has(p):
 			return
-	_camera(dt)
+	var g := _gun_of(p)
+	if g.is_empty():
+		_dg_fire = false
+		_cam_yaw -= look.x
+		_cam_pitch = clampf(_cam_pitch - look.y, -1.25, 0.5)
+		zoom = 0.0
+		_camera(dt)
+		return
+	_aim_to(g, g["az"] + look.x, g["el"] - look.y, 10.0)
+	_turn_gun(g)
+	var want_zoom: bool = (mouse_ok and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)) or hud.ads_on
+	zoom = move_toward(zoom, 1.0 if want_zoom else 0.0, dt * 5.0)
+	_dg_fire = (mouse_ok and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)) or hud.fire
+	# the view: over the gun's sights, along it
+	var xf: Transform3D = (g["pitch"] as Node3D).global_transform
+	var eye := xf * Vector3(0, 0.19, 0.15)
+	_shake = move_toward(_shake, 0.0, dt * 1.5)
+	if _shake > 0.0:
+		eye += Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * _shake * 0.04
+	cam.near = 0.05
+	cam.global_transform = Transform3D(xf.basis.orthonormalized(), eye)
+	cam.fov = lerpf(w.fov, 38.0, zoom)
+	aim = eye - xf.basis.z * DG_RANGE
 
 
-## The soldiers aboard get out (both sides) and make for a flag.
+## The soldiers aboard get out (both sides) and make for a flag; the door gunners stay on.
 func _drop() -> void:
 	var i := 0
 	for r in riders.duplicate():
-		if r == w.player:
+		if r == w.player or not _gun_of(r).is_empty():
 			continue
 		_let_out(r, -1.0 if i % 2 == 0 else 1.0)
 		r._pick_goal()
@@ -827,7 +888,7 @@ func _drop() -> void:
 
 ## Bots climb aboard a transport with a pilot, waiting on its pad: those nearby, and some just deployed (into it).
 func _find_riders() -> void:
-	var room: int = int(S["seats"]) - riders.size()
+	var room: int = _places() - riders.size()
 	if room <= 0 or driver == null or dead or _flat(home.origin) > 16.0 or not _landed():
 		return
 	for s in w.soldiers:
@@ -861,7 +922,7 @@ func _fly_transport(dt: float) -> Array:
 		"wait":
 			if not _landed() or _flat(home.origin) > 16.0:
 				_go("back")
-			elif riders.size() >= int(S["seats"]) or (riders.size() >= 3 and _state_t > 10.0) or (riders.has(w.player) and _state_t > 4.0) or (not riders.is_empty() and _state_t > 25.0):
+			elif squad() >= int(S["seats"]) or (squad() >= 3 and _state_t > 10.0) or (riders.has(w.player) and _state_t > 4.0) or (squad() > 0 and _state_t > 25.0):
 				_lz = _pick_lz()
 				_go("go")
 		"go", "back":
@@ -916,3 +977,406 @@ func _pick_lz() -> Vector3:
 			return Vector3(c.x, T.height(c.x, c.z), c.z)
 	return fp + back * 45.0
 
+
+
+# ---- The door guns --------------------------------------------------------------------------------------------------
+
+## Each door's gun on its post, built in code (an M240H or a PKT alike: receiver, feed cover and rear sight, spade
+## grips and trigger bar, barrel with its jacket, gas tube, front sight and flash hider, the ammo can and its chute,
+## the cradle), turned by yaw then pitch, its muzzle at the end of the barrel.
+func _build_guns() -> void:
+	var dark := Color(0.1, 0.1, 0.11)
+	var steel := Color(0.17, 0.17, 0.18)
+	var olive := Color(0.24, 0.26, 0.18)
+	var parts := []
+	for b in [[0.075, 0.1, 0.42, 0.0, 0.05, 0.02, dark], [0.068, 0.024, 0.22, 0.0, 0.112, 0.06, steel],
+			[0.012, 0.035, 0.012, 0.0, 0.14, 0.15, dark], [0.024, 0.11, 0.03, 0.05, 0.02, 0.27, dark],
+			[0.024, 0.11, 0.03, -0.05, 0.02, 0.27, dark], [0.12, 0.018, 0.02, 0.0, 0.07, 0.255, steel],
+			[0.01, 0.045, 0.01, 0.0, 0.09, -0.74, dark], [0.09, 0.13, 0.2, -0.1, -0.01, 0.04, olive],
+			[0.04, 0.03, 0.08, -0.055, 0.075, 0.04, olive], [0.05, 0.06, 0.14, 0.0, -0.03, 0.0, steel]]:
+		var bm := BoxMesh.new()
+		bm.size = Vector3(b[0], b[1], b[2])
+		parts.append([bm, Transform3D(Basis(), Vector3(b[3], b[4], b[5])), b[6]])
+	for c in [[0.014, 0.62, 0.0, 0.055, -0.5, steel], [0.022, 0.18, 0.0, 0.055, -0.27, dark],
+			[0.011, 0.4, 0.0, 0.022, -0.4, dark], [0.022, 0.1, 0.0, 0.055, -0.85, dark]]:
+		var cm := CylinderMesh.new()
+		cm.top_radius = c[0]
+		cm.bottom_radius = c[0]
+		cm.height = c[1]
+		cm.radial_segments = 10
+		cm.rings = 1
+		parts.append([cm, Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(c[2], c[3], c[4])), c[5]])
+	var gun_mesh: ArrayMesh = T.merge(parts)
+	gun_mesh.surface_set_material(0, w.soldier_mat())
+	var pc := CylinderMesh.new()
+	pc.top_radius = 0.022
+	pc.bottom_radius = 0.03
+	pc.height = 0.34
+	pc.radial_segments = 8
+	pc.rings = 1
+	var post_mesh: ArrayMesh = T.merge([[pc, Transform3D(Basis(), Vector3(0, -0.27, 0)), dark]])
+	post_mesh.surface_set_material(0, w.soldier_mat())
+	for at in S["guns"]:
+		var mount := Node3D.new()
+		mount.position = at
+		model.add_child(mount)
+		var post := MeshInstance3D.new()
+		post.mesh = post_mesh
+		mount.add_child(post)
+		var yn := Node3D.new()
+		mount.add_child(yn)
+		var pn := Node3D.new()
+		yn.add_child(pn)
+		var gm := MeshInstance3D.new()
+		gm.mesh = gun_mesh
+		pn.add_child(gm)
+		var mz := Node3D.new()
+		mz.position = Vector3(0, 0.055, -0.9)
+		pn.add_child(mz)
+		guns.append({"side": signf(at.x), "mount": mount, "yaw": yn, "pitch": pn, "muzzle": mz, "az": 0.0, "el": 0.0,
+			"crew": null, "rig": null, "cd": 0.0, "target": null, "think": 0.0, "burst": 0.0, "err": Vector3.ZERO, "n": 0})
+
+
+## The gunners (seen while a bot mans a gun: a soldier seated behind it), and for the Mi-8 its doors cut open with a
+## dark cabin behind them.
+func _crew_guns() -> void:
+	for g in guns:
+		var r: Node3D = Trooper.new()
+		model.add_child(r)
+		r.setup(w, team, "assault")
+		r.get_child(0).get_node("far").visible = false
+		r.skel.get_node("body").visibility_range_end = 0.0
+		r.visible = false
+		g["rig"] = r
+	if S.has("door"):
+		var body: MeshInstance3D = model.get_node("body")
+		if not _opened.has(S["model"]):
+			_opened[S["model"]] = _cut_doors(body.mesh, S["door"])
+		body.mesh = _opened[S["model"]]
+		var cab := MeshInstance3D.new()
+		cab.mesh = _cabin(S["cabin"], S["door"])
+		cab.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		model.add_child(cab)
+
+
+## The guns pointing straight out and a little down, nobody on them.
+func _rest_guns() -> void:
+	for g in guns:
+		g["crew"] = null
+		g["target"] = null
+		g["az"] = g["side"] * PI / 2.0
+		g["el"] = -0.25
+		_turn_gun(g)
+		if g["rig"]:
+			g["rig"].visible = false
+
+
+## A hull with a door cut out of each side (where |x| > 0.8, between heights d[0], d[1] and lengths d[2], d[3]): each
+## triangle there is clipped against the door's four edges and the pieces outside it kept.
+static func _cut_doors(src: ArrayMesh, d: Array) -> ArrayMesh:
+	var out := ArrayMesh.new()
+	var edges := [[1, d[0], -1.0], [1, d[1], 1.0], [2, d[2], -1.0], [2, d[3], 1.0]]
+	for si in src.get_surface_count():
+		var a := src.surface_get_arrays(si)
+		var A := {"v": Array(a[Mesh.ARRAY_VERTEX])}
+		for k in [[Mesh.ARRAY_NORMAL, "n"], [Mesh.ARRAY_TEX_UV, "uv"]]:
+			if a[k[0]] != null:
+				A[k[1]] = Array(a[k[0]])
+		var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+		var V: Array = A["v"]
+		var keep := PackedInt32Array()
+		for t in range(0, idx.size(), 3):
+			var tri := [idx[t], idx[t + 1], idx[t + 2]]
+			var p0: Vector3 = V[tri[0]]
+			var p1: Vector3 = V[tri[1]]
+			var p2: Vector3 = V[tri[2]]
+			var lo := p0.min(p1).min(p2)
+			var hi := p0.max(p1).max(p2)
+			if absf((p0.x + p1.x + p2.x) / 3.0) < 0.8 or hi.y <= d[0] or lo.y >= d[1] or hi.z <= d[2] or lo.z >= d[3]:
+				keep.append_array(PackedInt32Array(tri))
+				continue
+			var poly := tri
+			for e in edges:
+				var beyond := _clip(poly, e, true, A)
+				for k in range(1, beyond.size() - 1):
+					keep.append_array(PackedInt32Array([beyond[0], beyond[k], beyond[k + 1]]))
+				poly = _clip(poly, e, false, A)
+				if poly.size() < 3:
+					break
+		var b := []
+		b.resize(Mesh.ARRAY_MAX)
+		b[Mesh.ARRAY_VERTEX] = PackedVector3Array(A["v"])
+		if A.has("n"):
+			b[Mesh.ARRAY_NORMAL] = PackedVector3Array(A["n"])
+		if A.has("uv"):
+			b[Mesh.ARRAY_TEX_UV] = PackedVector2Array(A["uv"])
+		b[Mesh.ARRAY_INDEX] = keep
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, b)
+		out.surface_set_material(si, src.surface_get_material(si))
+	return out
+
+
+## The part of a polygon (its corners' indices) beyond one of the door's edges (e: axis, where, which way is out), or
+## the part on this side of it; new corners where it crosses are added to the arrays in A.
+static func _clip(poly: Array, e: Array, beyond: bool, A: Dictionary) -> Array:
+	var V: Array = A["v"]
+	var ax: int = e[0]
+	var sg: float = float(e[2]) * (1.0 if beyond else -1.0)
+	var res := []
+	for k in poly.size():
+		var i: int = poly[k]
+		var j: int = poly[(k + 1) % poly.size()]
+		var fi: float = ((V[i] as Vector3)[ax] - float(e[1])) * sg
+		var fj: float = ((V[j] as Vector3)[ax] - float(e[1])) * sg
+		if fi >= 0.0:
+			res.append(i)
+		if (fi >= 0.0) != (fj >= 0.0):
+			var t := fi / (fi - fj)
+			for key in A:
+				var arr: Array = A[key]
+				arr.append(arr[i].lerp(arr[j], t))
+			if A.has("n"):
+				A["n"][-1] = (A["n"][-1] as Vector3).normalized()
+			res.append(V.size() - 1)
+	return res
+
+
+## A dark inside for a cabin seen through its doors: floor, roof, the two ends, and each side round its door.
+static func _cabin(c: Array, d: Array) -> ArrayMesh:
+	var hw: float = c[0]
+	var fl: float = c[1]
+	var rf: float = c[2]
+	var fr: float = c[3]
+	var bk: float = c[4]
+	var quads := [
+		[Vector3(-hw, fl, fr), Vector3(hw, fl, fr), Vector3(hw, fl, bk), Vector3(-hw, fl, bk)],
+		[Vector3(-hw, rf, fr), Vector3(hw, rf, fr), Vector3(hw, rf, bk), Vector3(-hw, rf, bk)],
+		[Vector3(-hw, fl, fr), Vector3(hw, fl, fr), Vector3(hw, rf, fr), Vector3(-hw, rf, fr)],
+		[Vector3(-hw, fl, bk), Vector3(hw, fl, bk), Vector3(hw, rf, bk), Vector3(-hw, rf, bk)]]
+	for x in [-hw, hw]:
+		for r in [[fl, d[0], fr, bk], [d[1], rf, fr, bk], [d[0], d[1], fr, d[2]], [d[0], d[1], d[3], bk]]:
+			quads.append([Vector3(x, r[0], r[2]), Vector3(x, r[1], r[2]), Vector3(x, r[1], r[3]), Vector3(x, r[0], r[3])])
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for q in quads:
+		for k in [0, 1, 2, 0, 2, 3]:
+			st.add_vertex(q[k])
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.05, 0.055, 0.05)
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	st.set_material(m)
+	return st.commit()
+
+
+## Each frame: a bot on a gun looks for something to shoot and fires bursts at it; yours fires while you hold fire (see
+## _ride); each gunner (but you) is seen sitting behind his gun.
+func _door_guns(dt: float) -> void:
+	for g in guns:
+		g["cd"] -= dt
+		var c: Node = g["crew"]
+		var r: Node3D = g["rig"]
+		r.visible = c != null and c != w.player
+		if c == null:
+			continue
+		var fire := _dg_fire if c == w.player else _gunner(g, dt)
+		_turn_gun(g)
+		if r.visible:
+			_seat(g)
+		if fire and g["cd"] <= 0.0 and not w.conquest.over:
+			_dg_shot(g, c)
+
+
+## A bot on a door gun: every so often he picks the nearest enemy soldier he can see on his side, swings onto him (as
+## fast as his skill lets him) and fires bursts at him, each a little off as his aim goes.
+func _gunner(g: Dictionary, dt: float) -> bool:
+	var c: Node = g["crew"]
+	g["think"] -= dt
+	if g["think"] <= 0.0:
+		g["think"] = randf_range(0.3, 0.5)
+		var nt := _dg_target(g)
+		if nt != g["target"]:
+			g["target"] = nt
+			g["burst"] = -randf_range(c.diff["reaction"][0], c.diff["reaction"][1])
+	var t: Node3D = g["target"]
+	if t == null or not is_instance_valid(t) or t.dead:
+		g["target"] = null
+		_aim_to(g, g["side"] * PI / 2.0, -0.25, dt * 0.8)
+		return false
+	var at := t.global_position + Vector3(0, 1.1, 0)
+	var dist: float = (g["muzzle"] as Node3D).global_position.distance_to(at)
+	at += (g["err"] as Vector3) * dist * float(c.diff["aim"]) * 0.15
+	var a := _dg_angles(g, at)
+	_aim_to(g, a.x, a.y, dt * float(c.diff["turn"]) * 0.5)
+	var on: bool = g["burst"] > 0.0
+	if on:
+		g["burst"] -= dt
+		if g["burst"] <= 0.0:
+			g["burst"] = -randf_range(0.35, 0.8)
+	else:
+		g["burst"] += dt
+		if g["burst"] >= 0.0:
+			g["burst"] = randf_range(0.5, 1.2)
+			g["err"] = Vector3(randf_range(-1, 1), randf_range(-0.5, 0.5), randf_range(-1, 1))
+	return on and absf(a.x - g["az"]) < 0.06 and absf(a.y - g["el"]) < 0.06
+
+
+## The nearest enemy soldier on foot a door gun can see in its arc. (A bot gunner keeps to troops on the ground, as
+## door gunners do: duelling the other side's helicopters only got both shot down before they'd landed anyone.)
+func _dg_target(g: Dictionary) -> Node3D:
+	var mz: Vector3 = (g["muzzle"] as Node3D).global_position
+	var best: Node3D = null
+	var bd := DG_RANGE
+	for s in w.soldiers:
+		if s.dead or s.team == team or s.get("vehicle"):
+			continue
+		var p: Vector3 = s.global_position + Vector3(0, 1.1, 0)
+		var d := mz.distance_to(p)
+		if d < bd and _dg_in_arc(g, p) and _clear(mz, p, null):
+			best = s
+			bd = d
+	return best
+
+
+## Where a point is from a door gun's post, in the helicopter's frame: round from straight ahead (+ to the right) and up.
+func _dg_angles(g: Dictionary, p: Vector3) -> Vector2:
+	var l: Vector3 = (g["mount"] as Node3D).global_transform.affine_inverse() * p
+	return Vector2(atan2(l.x, -l.z), atan2(l.y, Vector2(l.x, l.z).length()))
+
+
+func _dg_in_arc(g: Dictionary, p: Vector3) -> bool:
+	var a := _dg_angles(g, p)
+	var s: float = g["side"]
+	return a.x * s > DG_AZ.x and a.x * s < DG_AZ.y and a.y > DG_EL.x and a.y < DG_EL.y
+
+
+## A door gun swings toward a bearing (round, up), by at most `step`, kept to its own side.
+func _aim_to(g: Dictionary, az: float, el: float, step: float) -> void:
+	var s: float = g["side"]
+	g["az"] = move_toward(g["az"], s * clampf(az * s, DG_AZ.x, DG_AZ.y), step)
+	g["el"] = move_toward(g["el"], clampf(el, DG_EL.x, DG_EL.y), step)
+
+
+func _turn_gun(g: Dictionary) -> void:
+	(g["yaw"] as Node3D).rotation.y = -float(g["az"])
+	(g["pitch"] as Node3D).rotation.x = float(g["el"])
+
+
+## The gunner sits behind his gun, turned part of the way with it, his chest following it up and down.
+func _seat(g: Dictionary) -> void:
+	var r: Node3D = g["rig"]
+	var s: float = g["side"]
+	var b: float = s * PI / 2.0 + (float(g["az"]) - s * PI / 2.0) * 0.6
+	var at: Vector3 = (g["mount"] as Node3D).position
+	r.position = Vector3(at.x - sin(b) * 0.62, float(S["dg_floor"]), at.z + cos(b) * 0.62)
+	r.rotation = Vector3(0, -b, 0)
+	r.sit(g["el"])
+
+
+## A round from a door gun, along its barrel (spread as its gunner's skill goes): it hits the first thing on its way.
+func _dg_shot(g: Dictionary, c: Node) -> void:
+	g["cd"] = DG_CD
+	g["n"] += 1
+	var me: bool = c == w.player
+	var from: Vector3 = (g["muzzle"] as Node3D).global_position
+	var spread := 0.005 if me else 0.006 + float(c.diff["aim"]) * 0.25
+	var dir := (-(g["pitch"] as Node3D).global_basis.z + Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * spread).normalized()
+	var end := from + dir * DG_RANGE * 1.6
+	var r := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(from, end, 7, [get_rid()]))
+	if not r.is_empty():
+		end = r.position
+		var hit: Object = r.collider
+		var dmg: float = DG_DMG * float(D.RULES["bullet"]) * (1.0 if me else float(c.diff["dmg"]))
+		if hit.has_method("damage") and hit.get("S") == null:
+			var killed: bool = hit.damage(dmg, from, c, false, S["dg"])
+			if me:
+				w.hud.hitmark(killed, false)
+			w.impact(r.position, r.normal, true)
+		else:
+			if hit.get("air") != null:
+				hit.damage(dmg, from, c, false, S["dg"])
+			w.impact(r.position, r.normal)
+	w.tracer(from, end)
+	if g["n"] % 2 == 0:
+		w.sound3d("lmg", from, 1.0)
+	if me:
+		_shake = maxf(_shake, 0.05)
+
+
+func _gun_of(s: Node) -> Dictionary:
+	for g in guns:
+		if g["crew"] == s:
+			return g
+	return {}
+
+
+## Which place someone has aboard: a door gun's number, or the number after them (a seat in the back).
+func _seat_of(s: Node) -> int:
+	for i in guns.size():
+		if guns[i]["crew"] == s:
+			return i
+	return guns.size()
+
+
+## What your place aboard is called ("" for a seat in the back).
+func seat_name(s: Node) -> String:
+	var i := _seat_of(s)
+	if i >= guns.size():
+		return ""
+	return "%s · %s DOOR" % [S["dg"], "RIGHT" if guns[i]["side"] > 0.0 else "LEFT"]
+
+
+## The soldiers aboard who'd get out where it lands (not the gunners).
+func squad() -> int:
+	var n := 0
+	for r in riders:
+		if _gun_of(r).is_empty():
+			n += 1
+	return n
+
+
+## You move to a door gun (the bot on it moves over: to the gun you left, or a seat) or to a seat in the back.
+func _switch_seat(i: int, say := true) -> void:
+	var p = w.player
+	if guns.is_empty() or i == _seat_of(p):
+		return
+	_unman(p)
+	if i < guns.size():
+		var was: Node = guns[i]["crew"]
+		guns[i]["crew"] = p
+		if was:
+			_unman_rig(guns[i])
+	else:
+		_cam_yaw = yaw
+		_cam_pitch = -0.15
+	zoom = 0.0
+	_man_guns()
+	if say:
+		var n := seat_name(p)
+		w.hud.toast(n if n != "" else "A SEAT IN THE BACK")
+
+
+## Free door guns go to soldiers aboard who aren't on one (never you: you take one when you get in or switch).
+func _man_guns() -> void:
+	for g in guns:
+		if g["crew"] != null:
+			continue
+		for r in riders:
+			if r != w.player and _gun_of(r).is_empty():
+				g["crew"] = r
+				break
+
+
+## Someone leaves the gun he was on.
+func _unman(s: Node) -> void:
+	for g in guns:
+		if g["crew"] == s:
+			g["crew"] = null
+			_unman_rig(g)
+
+
+func _unman_rig(g: Dictionary) -> void:
+	g["target"] = null
+	g["burst"] = 0.0
+	if g["rig"]:
+		g["rig"].visible = false

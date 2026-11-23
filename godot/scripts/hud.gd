@@ -83,7 +83,14 @@ func _buttons() -> Dictionary:
 			"switch": [Vector2(s.x - 185, s.y - 340), 40.0], "use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
 		if p.vehicle.get("air"):
 			if p.vehicle.driver != p:
-				return {"use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
+				# riding: on a door gun, fire and zoom with it; change places (a gun, the other, a seat)
+				var rb := {"use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
+				if p.vehicle.transport and not p.vehicle.guns.is_empty():
+					rb["switch"] = vb["switch"]
+					if p.vehicle.seat_name(p) != "":
+						rb["fire"] = vb["fire"]
+						rb["ads"] = vb["ads"]
+				return rb
 			if p.vehicle.transport:
 				for k in ["fire", "ads", "switch"]:
 					vb.erase(k)
@@ -312,7 +319,11 @@ func _draw() -> void:
 	var gname: String = D.GADGETS[D.CLASSES[p.cls]["gadget"]]["name"]
 	if not touch_ui:
 		if p.vehicle and p.vehicle.get("air") and p.vehicle.driver != p and not w.has_meta("shot"):
-			_text(Vector2(0, s.y - 16), "Mouse look · E get out (on the ground)", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+			var gunning: bool = p.vehicle.transport and p.vehicle.seat_name(p) != ""
+			var tip := "Mouse aim · Left mouse fire · Right mouse zoom · " if gunning else "Mouse look · "
+			if p.vehicle.transport and not p.vehicle.guns.is_empty():
+				tip += "Wheel or 1 2 3 change place · "
+			_text(Vector2(0, s.y - 16), tip + "E get out (on the ground)", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		elif p.vehicle and p.vehicle.get("air") and not w.has_meta("shot"):
 			_text(Vector2(0, s.y - 16), "W S A D fly · Space / Shift up · C / Ctrl down · Mouse look · Left mouse fire · Right mouse zoom · 1 2 3 weapons · E get out (on the ground)", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
@@ -329,7 +340,7 @@ func _draw() -> void:
 		draw_arc(Vector2(150, s.y - 170), 70.0, 0, TAU, 48, Color(1, 1, 1, 0.18), 2.0, true)
 		_text(Vector2(80, s.y - 165), "MOVE", 14, Color(1, 1, 1, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 140)
 	var bs := _buttons()
-	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else (["ROCKETS", "MISSILE", "GUN"][p.vehicle.weapon] if p.vehicle.get("air") else ("MG" if p.vehicle.weapon == 0 else "CANNON")), "up": "UP", "down": "DOWN", "use": "EXIT" if p.vehicle else ("REVIVE" if p.near_downed else "ENTER"), "grenade": "GRENADE",
+	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else ("SEAT" if p.vehicle.get("air") and p.vehicle.driver != p else ["ROCKETS", "MISSILE", "GUN"][p.vehicle.weapon] if p.vehicle.get("air") else ("MG" if p.vehicle.weapon == 0 else "CANNON")), "up": "UP", "down": "DOWN", "use": "EXIT" if p.vehicle else ("REVIVE" if p.near_downed else "ENTER"), "grenade": "GRENADE",
 		"gadget": "DETONATE" if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty() else gname.split(" ")[0], "knife": "KNIFE", "gfx": "GFX"}
 	for kk in bs:
 		var on: bool = (kk == "fire" and fire) or (kk == "ads" and ads_on) or (kk == "crouch" and p.crouch) or held(kk)
@@ -423,9 +434,11 @@ func _heli_hud(v, s: Vector2, c: Vector2) -> void:
 	var ax := s.x - 30.0 - (470.0 if touch_ui else 0.0)
 	var ay := s.y - 30.0 if not touch_ui else s.y - 20.0
 	if v.transport:
-		var line := "TROOPS %d / %d" % [v.riders.size(), int(v.S["seats"])]
+		var line := "TROOPS %d / %d" % [v.squad(), int(v.S["seats"])]
 		if v.driver != w.player:
-			line = "RIDING IN THE BACK" if not touch_ui else "RIDING · EXIT ON THE GROUND"
+			line = v.seat_name(w.player)
+			if line == "":
+				line = "RIDING IN THE BACK" if not touch_ui else "RIDING · EXIT ON THE GROUND"
 		_text(Vector2(ax - 500, ay), line, 24, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 500)
 		return
 	var n: int = v.ammo[v.weapon]

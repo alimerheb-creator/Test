@@ -190,14 +190,20 @@ static var HELIS := [
 		"hit": [[0, -0.15, -1.7, 0.95, 1.7, 4.7], [0, 0.9, 7.3, 0.35, 1.0, 4.0], [0, -0.5, 1.0, 3.4, 0.4, 1.1]]},
 ]
 ## The transport helicopters (one a side): Vanguard's UH-60M Black Hawk (from the web game), Onyx's Mi-8AMTSh ("Mil
-## Mi-8AMTSh" by 42manako, CC BY 4.0). A pilot and `seats` soldiers, no weapons.
+## Mi-8AMTSh" by 42manako, CC BY 4.0). A pilot, `seats` soldiers in the back and a gunner at each door's machine gun
+## (`dg`): `guns` where the guns' posts stand (right door, left door), `dg_floor` the floor the gunners sit on. The
+## Mi-8's `door`s are cut open (between heights y0, y1 and lengths z0, z1, both sides), with a dark `cabin` behind them
+## (its half width, floor, roof, front and back).
 static var TRANSPORTS := [
 	{"model": "uh60", "name": "UH-60M BLACK HAWK", "health": 720.0, "speed": 38.0, "back": 10.0, "side": 13.0, "accel": 8.0,
 		"climb": 8.0, "yaw_rate": 0.95, "ceiling": 120.0, "cruise": 28.0, "cam": 22.0, "exit": 2.6, "respawn": 45.0, "seats": 6,
-		"hit": [[0, -0.18, -1.6, 1.32, 1.37, 4.1], [0, 0.9, 6.5, 0.38, 0.6, 4.0], [0, 2.0, 10.0, 0.15, 1.1, 0.9]]},
+		"hit": [[0, -0.18, -1.6, 1.32, 1.37, 4.1], [0, 0.9, 6.5, 0.38, 0.6, 4.0], [0, 2.0, 10.0, 0.15, 1.1, 0.9]],
+		"dg": "M240H", "guns": [Vector3(1.22, 0.12, -2.85), Vector3(-1.22, 0.12, -2.85)], "dg_floor": -0.83},
 	{"model": "mi8", "name": "MI-8AMTSH", "health": 780.0, "speed": 36.0, "back": 9.0, "side": 12.0, "accel": 7.5,
 		"climb": 7.5, "yaw_rate": 0.9, "ceiling": 120.0, "cruise": 28.0, "cam": 24.0, "exit": 2.4, "respawn": 45.0, "seats": 8,
-		"hit": [[0, 0.3, -2.0, 1.3, 1.9, 4.6], [0, 1.6, 7.4, 0.45, 0.6, 4.6], [0, -0.85, -0.6, 3.2, 0.3, 0.9]]},
+		"hit": [[0, 0.3, -2.0, 1.3, 1.9, 4.6], [0, 1.6, 7.4, 0.45, 0.6, 4.6], [0, -0.85, -0.6, 3.2, 0.3, 0.9]],
+		"dg": "PKT", "guns": [Vector3(1.08, 0.3, -2.52), Vector3(-1.08, 0.3, -2.52)], "dg_floor": -0.6,
+		"door": [-0.55, 0.8, -2.95, -2.1], "cabin": [0.98, -0.6, 0.88, -3.05, 1.4]},
 ]
 ## What an explosion does to a tank or helicopter in its blast (by the weapon's name); bullets do nothing to a tank.
 static var VEHICLE_DMG := {"RPG-7V": 340.0, "C-4": 560.0, "120MM CANNON": 360.0, "125MM CANNON": 360.0,

@@ -148,6 +148,29 @@ func pose(dt: float, vel: Vector3, pitch: float, fighting: bool) -> void:
 	gun.quaternion = (A["gun_quat"] as Quaternion).slerp(L["gun_quat"], k)
 
 
+## Seated behind a door gun (each frame): thighs out level, shins down, the hips dropped to a seat, his hands up on
+## the gun as if aiming, the chest turned up or down with it, his rifle stowed.
+func sit(pitch: float) -> void:
+	if _dead:
+		return
+	gun.visible = false
+	var thigh: float = skel.get_bone_rest(_b["shinL"]).origin.length()
+	skel.set_bone_pose_position(_b["hips"], _hips0 - Vector3(0, thigh * 0.88, 0))
+	_rot("hips", Vector3.ZERO)
+	_rot("thighL", Vector3(1.45, 0, -0.1))
+	_rot("thighR", Vector3(1.45, 0, 0.1))
+	_rot("shinL", Vector3(-1.45, 0, 0))
+	_rot("shinR", Vector3(-1.45, 0, 0))
+	_rot("footL", Vector3.ZERO)
+	_rot("footR", Vector3.ZERO)
+	var A: Dictionary = _carry["aim"]
+	_rot("spine", Vector3(pitch * 0.4 - 0.1, A["twist"] * 0.4, 0))
+	_rot("chest", Vector3(pitch * 0.4, A["twist"] * 0.6, 0))
+	for i in 6:
+		skel.set_bone_pose_rotation(_b[ARMS[i]], A["arms"][i])
+	skel.set_bone_pose_rotation(_b["head"], A["head"])
+
+
 ## Kneeling over a downed teammate (each frame), both hands on his chest and pressing: the right knee down, the left
 ## foot forward, the back bent over him, the rifle slung (hidden). He goes down into it over a fifth of a second.
 func kneel(dt: float) -> void:
