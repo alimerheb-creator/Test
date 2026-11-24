@@ -84,6 +84,9 @@ func _pick(kind: String, v) -> void:
 			sel_spawn = v
 		"map":
 			if v != D.map:
+				var cf := ConfigFile.new()
+				cf.set_value("game", "map", v)
+				cf.save("user://settings.cfg")
 				w.reload(v)
 				return
 	if mode == "main":

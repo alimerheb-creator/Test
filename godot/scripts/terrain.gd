@@ -12,7 +12,7 @@ static var segs := []
 ## Half the footprint (x, z) of each kind of hand-placed cover, to keep plants and soldiers out of it.
 const PROP_HALF := {"block": Vector2(5.0, 0.3), "container": Vector2(3.05, 1.25), "barrier": Vector2(1.5, 0.3),
 	"sandbags": Vector2(2.0, 2.0), "crate": Vector2(0.8, 0.8), "wreck": Vector2(2.2, 1.0), "ruin": Vector2(3.0, 0.25),
-	"dome": Vector2(6.0, 6.0)}
+	"dome": Vector2(6.0, 6.0), "wagon": Vector2(7.0, 1.45)}
 static var hills := 1.0
 static var bumps := 1.0
 static var mountains := 1.0
@@ -96,6 +96,8 @@ static func clear(x: float, z: float, pad: float) -> bool:
 		if absf(x - b[0]) < b[2] * 1.6 + 0.3 + pad and absf(z - b[1]) < b[3] * 1.6 + 0.3 + pad:
 			return false
 	for p in D.PROPS:
+		if p[0] == "track":
+			continue  # you can stand on the rails
 		var e: Vector2 = PROP_HALF[p[0]]
 		if p[3]:
 			e = Vector2(e.y, e.x)
@@ -152,8 +154,10 @@ static func _mesh(x0: float, step: float, n: int, hts: PackedFloat32Array, hole:
 			nm[k] = nrm
 			c[k] = _color(x, z, h, nrm.y)
 	if roads:
-		# paint the dirt roads along each segment
+		# paint the roads along each segment: dirt, or a town's asphalt
 		var rc := Color(0.5, 0.42, 0.32) if desert else Color(0.4, 0.33, 0.25)
+		if D.LAND.get("paved", false):
+			rc = Color(0.25, 0.25, 0.26)
 		for s in segs:
 			var a: Vector2 = s[0]
 			var b: Vector2 = s[1]

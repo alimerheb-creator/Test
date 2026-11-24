@@ -49,6 +49,13 @@ var _soldier_mat: StandardMaterial3D
 func _ready() -> void:
 	I = self
 	randomize()
+	if keep.is_empty():
+		# the map chosen last time (the menu saves it)
+		var cf := ConfigFile.new()
+		if cf.load("user://settings.cfg") == OK:
+			var i: int = cf.get_value("game", "map", 0)
+			if i != D.map and i >= 0 and i < D.MAPS.size():
+				D.use_map(i)
 	method = RenderingServer.get_current_rendering_method()
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
@@ -234,7 +241,7 @@ func _shots(prefix: String) -> void:
 	get_tree().quit()
 
 
-## Reloads the battle (on map i: KARSA VALLEY 0, DUST RIDGE 1), keeping the menu's choices.
+## Reloads the battle (on map i: KARSA VALLEY 0, DUST RIDGE 1, OLD TOWN 2), keeping the menu's choices.
 func reload(i: int) -> void:
 	keep = {"size": per_team, "diff": difficulty, "gfx": quality, "class": menu.sel_class}
 	if i != D.map:
@@ -433,7 +440,7 @@ func _make_materials() -> void:
 	mats["dome"] = _noise_mat([Color(0.8, 0.8, 0.78), Color(0.9, 0.9, 0.88)], 0.05, 0.5, 0.55, 4.0)
 	mats["wood"] = _pattern_mat("planks", Color(0.56, 0.41, 0.26), 0.8, 1.2)
 	var corr := _pattern_mat("corrugated", Color(1, 1, 1), 0.55, 2.4, 0.5)
-	for c in [["red", Color(0.5, 0.16, 0.1)], ["blue", Color(0.12, 0.24, 0.42)], ["green", Color(0.2, 0.33, 0.2)], ["orange", Color(0.7, 0.38, 0.12)], ["grey", Color(0.45, 0.46, 0.46)]]:
+	for c in [["red", Color(0.5, 0.16, 0.1)], ["blue", Color(0.12, 0.24, 0.42)], ["green", Color(0.2, 0.33, 0.2)], ["orange", Color(0.7, 0.38, 0.12)], ["grey", Color(0.45, 0.46, 0.46)], ["brown", Color(0.3, 0.22, 0.15)]]:
 		var m: StandardMaterial3D = corr.duplicate()
 		m.albedo_color = c[1]
 		mats["container_" + c[0]] = m

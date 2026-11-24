@@ -11,6 +11,22 @@ static var _bag: CapsuleMesh
 
 
 static func box(pos: Vector3, size: Vector3, m: String, rot_y := 0.0, collide := true) -> Node3D:
+	if _bb != null:
+		# part of a building: kept for its material's mesh, its shape on the building's body
+		var t := Transform3D(Basis(Vector3.UP, rot_y), pos)
+		var b := BoxMesh.new()
+		b.size = size
+		if not _bb.has(m):
+			_bb[m] = []
+		_bb[m].append([b, t, Color.WHITE])
+		if collide:
+			var s := BoxShape3D.new()
+			s.size = size
+			var c := CollisionShape3D.new()
+			c.shape = s
+			c.transform = t
+			_bbody.add_child(c)
+		return null
 	var root: Node3D = Node3D.new()
 	if collide:
 		root = StaticBody3D.new()
@@ -88,7 +104,16 @@ static func storey(c: Vector2, w: float, d: float, h: float, m: String, door: St
 		box(Vector3(c.x, y0 + h - 0.28, c.y), Vector3(0.5, 0.06, 0.5), "lamp", 0.0, false)
 
 
+## While a building goes up: its boxes by material, merged into one mesh each once it's up (a few draw calls a
+## building instead of a hundred or so, which a city of them needs on a phone), and the body holding their shapes.
+static var _bb = null
+static var _bbody: StaticBody3D
+
+
 static func building(b: Array, idx: int) -> void:
+	_bb = {}
+	_bbody = StaticBody3D.new()
+	W.add_child(_bbody)
 	var c := Vector2(b[0], b[1])
 	var w := float(b[2]) * 3.2
 	var d := float(b[3]) * 3.2
@@ -109,6 +134,12 @@ static func building(b: Array, idx: int) -> void:
 	box(Vector3(c.x, y0 + 0.012, c.y), Vector3(w, 0.02, d), "concrete", 0.0, false)
 	for k in floors:
 		storey(c, w, d, 3.2, m, door if k == 0 else "-", y0 + k * 3.2, k == floors - 1, k == 0 and idx % 5 == 0)
+	for mm in _bb:
+		var mi := MeshInstance3D.new()
+		mi.mesh = T.merge(_bb[mm])
+		mi.material_override = W.mat(mm)
+		W.add_child(mi)
+	_bb = null
 
 
 static func sandbags(c: Vector3, length: float, rot: float) -> void:
@@ -192,8 +223,9 @@ static func _bags(base: Vector3, length: float, yaw: float, rng: RandomNumberGen
 	_solid(sh, Transform3D(b, base + Vector3(0, 0.38, 0)))
 
 
-## DUST RIDGE's cover, built as the web game builds it: compound walls, sandbag nests, concrete barriers, crates,
-## shipping containers, broken walls, burnt-out cars and the radar dome, drawn in one mesh per material.
+## The maps' cover, built as the web game builds it: compound walls, sandbag nests, concrete barriers, crates,
+## shipping containers, broken walls, burnt-out cars, the radar dome, and goods wagons on the rail yard's tracks, drawn
+## in one mesh per material.
 static func props() -> void:
 	_parts = {}
 	_body = StaticBody3D.new()
@@ -247,6 +279,29 @@ static func props() -> void:
 				var h := 1.0 + rng.randf() * 1.4
 				_footed("blocks", x, z, L, h, 0.45, yaw)
 				_piece("blocks", Vector3(x, y + h + 0.3, z) + b * Vector3(L / 2.0 - 0.6, 0, 0), Vector3(1.2, 0.6, 0.45), yaw)
+			"wagon":
+				# a goods wagon on two bogies: the body with a sliding door each side, the underframe and buffer beams,
+				# the wheels on the rails (whose tops are 0.36 m up)
+				var r := y + 0.36
+				var body: String = "container_" + p[4]
+				_piece(body, Vector3(x, r + 1.98, z), Vector3(13.6, 2.3, 2.9), yaw)
+				_piece("gunmetal", Vector3(x, r + 0.72, z), Vector3(14.0, 0.24, 2.5), yaw)
+				for s in [-1.0, 1.0]:
+					_piece(body, Vector3(x, r + 1.9, z) + b * Vector3(0, 0, s * 1.49), Vector3(3.2, 2.0, 0.08), yaw, false)
+					_piece("gunmetal", Vector3(x, r + 0.9, z) + b * Vector3(s * 7.05, 0, 0), Vector3(0.3, 0.32, 2.6), yaw, false)
+				for bx in [-4.6, 4.6]:
+					_piece("gunmetal", Vector3(x, r + 0.42, z) + b * Vector3(bx, 0, 0), Vector3(2.7, 0.3, 1.9), yaw, false)
+					for ax in [-0.9, 0.9]:
+						for wz in [-0.72, 0.72]:
+							_add("gunmetal", T._cyl(0.42, 0.42, 0.12, 12), Transform3D(b * Basis(Vector3.RIGHT, PI / 2.0), Vector3(x, r + 0.42, z) + b * Vector3(bx + ax, 0, wz)))
+			"track":
+				# a stretch of track p[4] long: the ballast, the sleepers and the two rails
+				var L: float = p[4]
+				_piece("concrete", Vector3(x, y + 0.04, z), Vector3(L, 0.14, 3.2), yaw, false)
+				for i in int(L / 0.75):
+					_piece("wood", Vector3(x, y + 0.17, z) + b * Vector3(-L / 2.0 + 0.375 + i * 0.75, 0, 0), Vector3(0.24, 0.12, 2.6), yaw, false)
+				for s in [-0.72, 0.72]:
+					_piece("gunmetal", Vector3(x, y + 0.295, z) + b * Vector3(0, 0, s), Vector3(L, 0.13, 0.08), yaw, false)
 			"dome":
 				# the radar dome: a white ball on a concrete drum
 				var lo := _low(x, z, 5.4, 5.4, 0.0) - 0.3

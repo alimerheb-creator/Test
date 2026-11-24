@@ -963,8 +963,8 @@ func _pick_lz() -> Vector3:
 	var fp: Vector3 = best["pos"]
 	var back := Vector3(home.origin.x - fp.x, 0.0, home.origin.z - fp.z).normalized()
 	var space := get_world_3d().direct_space_state
-	for i in 10:
-		var c := fp + back.rotated(Vector3.UP, randf_range(-1.0, 1.0)) * randf_range(28.0, 45.0)
+	for i in 30:
+		var c := fp + back.rotated(Vector3.UP, randf_range(-1.0, 1.0)) * randf_range(28.0, 45.0 + i)
 		var clear := true
 		for o in [Vector3.ZERO, Vector3(8, 0, 0), Vector3(-8, 0, 0), Vector3(0, 0, 8), Vector3(0, 0, -8)]:
 			var q: Vector3 = c + o
