@@ -4,6 +4,7 @@ extends RefCounted
 
 const D := preload("res://scripts/data.gd")
 const T := preload("res://scripts/terrain.gd")
+const Jet := preload("res://scripts/jet.gd")
 static var W: Node3D
 static var _parts := {}
 static var _body: StaticBody3D
@@ -325,6 +326,10 @@ static func props() -> void:
 
 static func build(w: Node3D) -> void:
 	W = w
+	if D.battle == "air":
+		for t in 2:
+			airbase(t)
+		return
 	for i in D.BUILDINGS.size():
 		building(D.BUILDINGS[i], i)
 	if not D.PROPS.is_empty():
@@ -341,3 +346,49 @@ static func build(w: Node3D) -> void:
 			var x: float = hq["x"] + 12.0 + k * 1.2
 			var z: float = hq["z"] + s * 4.0
 			box(Vector3(x, T.height(x, z) + 0.5, z), Vector3(1.0, 1.0, 1.0), "wood", randf() * 0.3)
+
+
+## An airbase at its side's end of an Aviation map: a runway pointing at the enemy's (with its markings), a taxiway
+## to the apron, jets parked there, hangars and a control tower.
+static func airbase(t: int) -> void:
+	var b: Array = D.BASES[t]
+	var x: float = b[0] - 70.0
+	var z: float = b[1]
+	var y := T.height(x, z)
+	var s := 1.0 if t == 0 else -1.0
+	_bb = {}
+	_bbody = StaticBody3D.new()
+	W.add_child(_bbody)
+	box(Vector3(x, y + 0.1, z), Vector3(46, 0.3, 900), "road")
+	for i in 22:
+		box(Vector3(x, y + 0.27, z - 420.0 + i * 40.0), Vector3(1.0, 0.02, 18.0), "paint", 0.0, false)
+	for k in [-1.0, 1.0]:
+		for i in 8:
+			box(Vector3(x - 17.5 + i * 5.0, y + 0.27, z + k * 425.0), Vector3(2.2, 0.02, 30.0), "paint", 0.0, false)
+	box(Vector3(x + 60.0, y + 0.08, z - s * 150.0), Vector3(75, 0.2, 22), "concrete")
+	box(Vector3(x + 60.0, y + 0.08, z + s * 150.0), Vector3(75, 0.2, 22), "concrete")
+	box(Vector3(x + 130.0, y + 0.1, z), Vector3(70, 0.24, 340), "concrete")
+	for i in 4:
+		var hz := z - 120.0 + i * 80.0
+		box(Vector3(x + 182.0, y + 8.0, hz), Vector3(32, 16, 62), "metal")
+		box(Vector3(x + 165.8, y + 6.5, hz), Vector3(0.6, 13, 50), "gunmetal", 0.0, false)
+		box(Vector3(x + 182.0, y + 16.5, hz), Vector3(34, 1, 64), "concrete", 0.0, false)
+	var tz := z + s * 220.0
+	box(Vector3(x + 120.0, y + 12.0, tz), Vector3(7, 24, 7), "concrete")
+	box(Vector3(x + 120.0, y + 26.0, tz), Vector3(12, 4, 12), "glass")
+	box(Vector3(x + 120.0, y + 28.5, tz), Vector3(13, 1, 13), "metal", 0.0, false)
+	for mm in _bb:
+		var mi := MeshInstance3D.new()
+		mi.mesh = T.merge(_bb[mm])
+		mi.material_override = W.mat(mm)
+		W.add_child(mi)
+	_bb = null
+	# a few jets parked on the apron, noses toward the runway
+	for i in 3:
+		var j := Jet.build_model(D.JETS[t], t)
+		W.add_child(j)
+		j.position = Vector3(x + 135.0, y + 1.6, z - 60.0 + i * 60.0)
+		j.rotation.y = PI / 2.0
+		for n in j.get_children():
+			if String(n.name).begins_with("ab"):
+				n.visible = false

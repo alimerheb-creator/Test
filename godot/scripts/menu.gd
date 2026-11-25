@@ -1,6 +1,6 @@
 extends Control
-## The menus: the main menu (map, class, bot skill, battle size, graphics), the deploy screen after you fall (class and
-## spawn point) and the end of the match.
+## The menus: the main menu (battle, map, class, bot skill, battle size, graphics), the deploy screen after you fall
+## (class and spawn point) and the end of the match.
 
 const D := preload("res://scripts/data.gd")
 
@@ -83,16 +83,30 @@ func _pick(kind: String, v) -> void:
 		"spawn":
 			sel_spawn = v
 		"map":
-			if v != D.map:
+			var air := D.battle == "air"
+			if v != (D.air_map if air else D.map):
+				_save("air_map" if air else "map", v)
+				w.reload(v, air)
+				return
+		"battle":
+			if v != D.battle:
+				_save("battle", v)
 				var cf := ConfigFile.new()
-				cf.set_value("game", "map", v)
-				cf.save("user://settings.cfg")
-				w.reload(v)
+				cf.load("user://settings.cfg")
+				w.reload(cf.get_value("game", "air_map", 0) if v == "air" else D.map, v == "air")
 				return
 	if mode == "main":
 		show_main()
 	else:
 		show_deploy()
+
+
+## Keeps a choice for next time (the battle and the maps are opened on).
+func _save(key: String, v) -> void:
+	var cf := ConfigFile.new()
+	cf.load("user://settings.cfg")
+	cf.set_value("game", key, v)
+	cf.save("user://settings.cfg")
 
 
 func _classes() -> Array:
@@ -106,23 +120,31 @@ func show_main() -> void:
 	mode = "main"
 	visible = true
 	_clear()
+	var air := D.battle == "air"
 	_label("SIXTH FRONT", 60, Color(1, 0.86, 0.58))
-	_label("CONQUEST  ·  GODOT EDITION", 18, Color(1, 1, 1, 0.75))
-	_label("MAP", 15, Color(1, 1, 1, 0.55))
+	# the battle, then its maps (no headings: the screen's full)
+	_row("battle", [["CONQUEST", "infantry"], ["AVIATION", "air"]], D.battle)
+	var list: Array = D.AIR_MAPS if air else D.MAPS
 	var maps := []
-	for i in D.MAPS.size():
-		maps.append([D.MAPS[i]["name"], i])
-	_row("map", maps, D.map)
-	_label("CLASS", 15, Color(1, 1, 1, 0.55))
-	_row("class", _classes(), sel_class)
-	_label(D.CLASSES[sel_class]["blurb"], 15, Color(1, 1, 1, 0.75))
+	for i in list.size():
+		maps.append([list[i]["name"], i])
+	_row("map", maps, D.air_map if air else D.map)
+	if air:
+		_label("You fly the %s against %s's %ss. Shoot down their jets: each one lost costs its side a ticket." % [D.JETS[0]["name"], D.TEAMS[1]["name"], D.JETS[1]["name"]], 15, Color(1, 1, 1, 0.75))
+	else:
+		_label("CLASS", 15, Color(1, 1, 1, 0.55))
+		_row("class", _classes(), sel_class)
+		_label(D.CLASSES[sel_class]["blurb"], 15, Color(1, 1, 1, 0.75))
 	_label("BOTS", 15, Color(1, 1, 1, 0.55))
 	_row("diff", [["RECRUIT", "easy"], ["REGULAR", "normal"], ["VETERAN", "hard"]], w.difficulty)
-	_row("size", [["8 A SIDE", 8], ["12 A SIDE", 12], ["16 A SIDE", 16]], w.per_team)
+	if air:
+		_row("size", [["4 A SIDE", 4], ["6 A SIDE", 6], ["8 A SIDE", 8]], w.per_team)
+	else:
+		_row("size", [["8 A SIDE", 8], ["12 A SIDE", 12], ["16 A SIDE", 16]], w.per_team)
 	_label("GRAPHICS", 15, Color(1, 1, 1, 0.55))
 	_row("gfx", [["LOW", 0], ["MEDIUM", 1], ["HIGH", 2], ["ULTRA", 3]], w.quality)
-	_big("DEPLOY", func(): w.start_match(sel_class))
-	_label("Models: \"Combat Knife\" by Overlord (Sketchfab), CC BY 4.0 · M1 Abrams by Felipe · \"T-90 with moving turret and barrel\" by kuyongcreates (Printables), CC BY-NC 4.0 · \"Apache AH-64D\" by SalamSadeq (CGTrader) · \"Mi-24\" by Chris Kuhn (BlendSwap), CC BY 3.0 · \"Mil Mi-8AMTSh\" by 42manako (Sketchfab), CC BY 4.0 · \"UH-60 Blackhawk\" from done3d.com · the soldiers: \"A soldier mercenary with helmet and yellow visor\" by ShaderMussolini (Sloyd), CC BY 4.0", 12, Color(1, 1, 1, 0.4))
+	_big("TAKE OFF" if air else "DEPLOY", func(): w.start_match(sel_class))
+	_label("GODOT EDITION · Models: \"Combat Knife\" by Overlord (Sketchfab), CC BY 4.0 · M1 Abrams by Felipe · \"T-90 with moving turret and barrel\" by kuyongcreates (Printables), CC BY-NC 4.0 · \"Apache AH-64D\" by SalamSadeq (CGTrader) · \"Mi-24\" by Chris Kuhn (BlendSwap), CC BY 3.0 · \"Mil Mi-8AMTSh\" by 42manako (Sketchfab), CC BY 4.0 · \"UH-60 Blackhawk\" from done3d.com · the soldiers: \"A soldier mercenary with helmet and yellow visor\" by ShaderMussolini (Sloyd), CC BY 4.0", 12, Color(1, 1, 1, 0.4))
 
 
 func show_deploy() -> void:
@@ -153,13 +175,13 @@ func show_end(win: int) -> void:
 	var p = w.player
 	_label("VICTORY" if win == p.team else "DEFEAT", 64, Color(0.5, 0.85, 1.0) if win == p.team else Color(1, 0.4, 0.3))
 	_label("%s WIN THE BATTLE FOR %s" % [D.TEAMS[win]["name"], D.MAP_NAME], 20)
-	var all: Array = w.soldiers.duplicate()
+	var all: Array = w.pilots() if D.battle == "air" else w.soldiers.duplicate()
 	all.sort_custom(func(a, b): return a.score > b.score)
 	for i in mini(all.size(), 6):
 		var s = all[i]
 		_label("%d.  %s  (%s)   %d kills   %d deaths   %d points" % [i + 1, s.tag, D.TEAMS[s.team]["short"], s.kills, s.deaths, s.score], 17,
 			Color(1, 0.9, 0.5) if s == p else Color(1, 1, 1, 0.85))
-	_big("PLAY AGAIN", func(): w.reload(D.map))
+	_big("PLAY AGAIN", func(): w.reload(D.air_map if D.battle == "air" else D.map))
 
 
 ## While another map is built.

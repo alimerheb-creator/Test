@@ -52,3 +52,34 @@ for i in range(R * 2):
     rotor.append(thump * 3.0 + 0.05 * math.sin(2 * math.pi * 1350 * i / R) + 0.03 * math.sin(2 * math.pi * 2700 * i / R)
                  + 0.2 * math.sin(2 * math.pi * 30 * i / R) + 0.12 * math.sin(2 * math.pi * 45 * i / R))
 write('rotor', rotor)
+
+# Aviation. The start of a loop is blended into its end (from extra made past it), so it loops without a seam.
+def seamless(s, f=R // 10):
+    n = len(s) - f
+    return [s[i] * (i / f) + s[n + i] * (1 - i / f) if i < f else s[i] for i in range(n)]
+# a jet's roar: a low rumble and a hiss over the turbine's whine (2 s)
+n = R * 2 + R // 10
+lo = lp([random.uniform(-1, 1) for _ in range(n)], 0.03)
+hi = lp([random.uniform(-1, 1) for _ in range(n)], 0.3)
+write('jet', seamless([lo[i] * 3.0 + hi[i] * 0.5 + 0.06 * math.sin(2 * math.pi * 900 * i / R) + 0.04 * math.sin(2 * math.pi * 1800 * i / R) for i in range(n)]))
+# a jet's cannon: 50 rounds a second in a half-second loop
+per = R // 50
+cannon = []
+for k in range(25):
+    b = lp([random.uniform(-1, 1) for _ in range(per)], 0.45)
+    amp = random.uniform(0.8, 1.0)
+    for j in range(per):
+        t = j / R
+        cannon.append(amp * (b[j] * math.exp(-t / 0.004) * 1.4 + math.sin(2 * math.pi * 110 * t) * math.exp(-t / 0.01)))
+write('cannon', lp(cannon, 0.6))
+# a missile off the rail
+n = int(R * 1.6)
+wh = lp([random.uniform(-1, 1) for _ in range(n)], 0.25)
+write('missile', [wh[i] * min(1, i / (R * 0.03)) * math.exp(-i / (R * 0.7)) for i in range(n)])
+# the seeker's tones: a warble while it locks on, steady once locked (1 s loops); the missile warning's beeps (0.5 s)
+write('seek', [math.sin(2 * math.pi * 1000 * i / R) * (0.6 + 0.4 * math.sin(2 * math.pi * 8 * i / R)) for i in range(R)])
+write('lock', [math.sin(2 * math.pi * 1500 * i / R) + 0.2 * math.sin(2 * math.pi * 3000 * i / R) for i in range(R)])
+def beep(i):
+    t = (i % (R // 4)) / R
+    return math.sin(2 * math.pi * 1100 * i / R) * (min(1, t / 0.005, (0.1 - t) / 0.005) if t < 0.1 else 0.0)
+write('warn', [beep(i) for i in range(R // 2)])

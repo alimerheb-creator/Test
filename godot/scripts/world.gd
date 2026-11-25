@@ -11,6 +11,8 @@ const PlayerScript := preload("res://scripts/player.gd")
 const SoldierScript := preload("res://scripts/soldier.gd")
 const TankScript := preload("res://scripts/tank.gd")
 const HeliScript := preload("res://scripts/heli.gd")
+const JetScript := preload("res://scripts/jet.gd")
+const ProjScript := preload("res://scripts/proj.gd")
 const HudScript := preload("res://scripts/hud.gd")
 const MenuScript := preload("res://scripts/menu.gd")
 const MapScript := preload("res://scripts/map.gd")
@@ -50,20 +52,25 @@ func _ready() -> void:
 	I = self
 	randomize()
 	if keep.is_empty():
-		# the map chosen last time (the menu saves it)
+		# the battle and map chosen last time (the menu saves them)
 		var cf := ConfigFile.new()
 		if cf.load("user://settings.cfg") == OK:
 			var i: int = cf.get_value("game", "map", 0)
-			if i != D.map and i >= 0 and i < D.MAPS.size():
+			if cf.get_value("game", "battle", "infantry") == "air":
+				D.use_air_map(clampi(cf.get_value("game", "air_map", 0), 0, D.AIR_MAPS.size() - 1))
+			elif i != D.map and i >= 0 and i < D.MAPS.size():
 				D.use_map(i)
+	var air := D.battle == "air"
+	ProjScript.aams.clear()
 	method = RenderingServer.get_current_rendering_method()
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
-	per_team = keep.get("size", 8 if mobile else 12)
+	per_team = keep.get("size", (4 if mobile else 6) if air else (8 if mobile else 12))
 	difficulty = keep.get("diff", difficulty)
-	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine", "rotor", "revive"]:
+	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine", "rotor", "revive",
+			"jet", "cannon", "missile", "seek", "lock", "warn"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
-	for n in ["engine", "rotor"]:
+	for n in ["engine", "rotor", "jet", "cannon", "seek", "lock", "warn"]:
 		var eng: AudioStreamWAV = sounds[n]
 		eng.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		eng.loop_end = int(eng.get_length() * eng.mix_rate)
@@ -73,11 +80,15 @@ func _ready() -> void:
 	MapScript.build(self)
 	conquest = ConquestScript.new()
 	add_child(conquest)
-	conquest.setup(self, D.RULES["tickets"])
+	conquest.setup(self, D.AIR["tickets"] * per_team if air else D.RULES["tickets"])
 	overview = Camera3D.new()
 	add_child(overview)
 	overview.position = Vector3(-70, 60, 250)
 	overview.look_at(Vector3(0, 5, 0))
+	if air:
+		overview.far = 14000.0
+		overview.position = Vector3(-1500, 700, 1900)
+		overview.look_at(Vector3(0, 150, 0))
 	overview.current = true
 	player = PlayerScript.new()
 	add_child(player)
@@ -241,11 +252,17 @@ func _shots(prefix: String) -> void:
 	get_tree().quit()
 
 
-## Reloads the battle (on map i: KARSA VALLEY 0, DUST RIDGE 1, OLD TOWN 2), keeping the menu's choices.
-func reload(i: int) -> void:
+## Reloads the battle on map i (KARSA VALLEY 0, DUST RIDGE 1, OLD TOWN 2; or with air, the Aviation maps: HIGHLANDS
+## 0), keeping the menu's choices.
+func reload(i: int, air := D.battle == "air") -> void:
 	keep = {"size": per_team, "diff": difficulty, "gfx": quality, "class": menu.sel_class}
-	if i != D.map:
-		D.use_map(i)
+	if air != (D.battle == "air"):
+		keep.erase("size")
+	if air != (D.battle == "air") or i != (D.air_map if air else D.map):
+		if air:
+			D.use_air_map(i)
+		else:
+			D.use_map(i)
 		menu.loading()
 		# let the menu show it's loading before the new map is built
 		await get_tree().process_frame
@@ -456,6 +473,7 @@ func _make_materials() -> void:
 	mats["barrel_red"] = _plain(Color(0.45, 0.1, 0.07), 0.5, 0.6)
 	mats["barrel_blue"] = _plain(Color(0.1, 0.2, 0.4), 0.5, 0.6)
 	mats["lamp"] = glow_mat(Color(1.0, 0.8, 0.55), 3.0)
+	mats["paint"] = _plain(Color(0.86, 0.86, 0.82), 0.8)
 	_hole_tex = GradientTexture2D.new()
 	_hole_tex.fill = GradientTexture2D.FILL_RADIAL
 	_hole_tex.fill_from = Vector2(0.5, 0.5)
@@ -620,6 +638,9 @@ func sound(n: String, db := 0.0) -> void:
 
 
 func start_match(cls: String) -> void:
+	if D.battle == "air":
+		_start_air()
+		return
 	var names: Array = D.BOT_NAMES.duplicate()
 	names.shuffle()
 	var k := 0
@@ -658,6 +679,41 @@ func start_match(cls: String) -> void:
 		tr.setup(self, t, Transform3D(Basis(Vector3.UP, 0.0 if t == 0 else PI), Vector3(px, _helipad(px, pz), pz)), D.TRANSPORTS[t])
 		vehicles.append(tr)
 	deploy_player(cls, 0)
+
+
+## Air Superiority: per_team jets a side over their airbases, yours among Vanguard's.
+func _start_air() -> void:
+	var tk := float(D.AIR["tickets"] * per_team)
+	conquest.tickets = [tk, tk]
+	var names: Array = D.BOT_NAMES.duplicate()
+	names.shuffle()
+	var k := 0
+	soldiers.append(player)
+	for t in 2:
+		for i in per_team:
+			var j: CharacterBody3D = JetScript.new()
+			add_child(j)
+			var mine: bool = t == player.team and i == 0
+			j.setup(self, t, D.JETS[t], player.tag if mine else names[k % names.size()])
+			if not mine:
+				k += 1
+			vehicles.append(j)
+			if mine:
+				j.take(player)
+	menu.visible = false
+	menu_open = false
+	hud.reset_touch()
+	if not hud.touch_ui:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+## Everyone flying in an Aviation battle (for the scores at the end): you, and each bot pilot (his jet).
+func pilots() -> Array:
+	var all := [player]
+	for v in vehicles:
+		if v.get("jet") and v.driver == null:
+			all.append(v)
+	return all
 
 
 ## A level concrete helicopter pad at x, z, its top just over the highest ground under it, with a white H; returns

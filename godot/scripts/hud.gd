@@ -3,6 +3,7 @@ extends Control
 ## and the touch controls for phones and tablets.
 
 const D := preload("res://scripts/data.gd")
+const T := preload("res://scripts/terrain.gd")
 
 var w: Node
 var move := Vector2.ZERO
@@ -78,6 +79,10 @@ func _buttons() -> Dictionary:
 	var p = w.player
 	if p and p.dead:
 		return {"use": [Vector2(s.x * 0.5, s.y - 110), 54.0]} if p.downed else {}
+	if p and p.vehicle and p.vehicle.get("jet"):
+		return {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "aam": [Vector2(s.x - 330, s.y - 120), 50.0],
+			"flare": [Vector2(s.x - 310, s.y - 285), 42.0], "up": [Vector2(s.x - 60, s.y - 305), 42.0],
+			"down": [Vector2(s.x - 60, s.y - 72), 40.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
 	if p and p.vehicle:
 		var vb := {"fire": [Vector2(s.x - 165, s.y - 175), 72.0], "ads": [Vector2(s.x - 310, s.y - 95), 46.0],
 			"switch": [Vector2(s.x - 185, s.y - 340), 40.0], "use": [Vector2(s.x - 70, s.y - 300), 42.0], "gfx": [Vector2(s.x - 50, 150), 28.0]}
@@ -186,6 +191,10 @@ func _draw() -> void:
 	var cq = w.conquest
 	var s := size
 	var c := s / 2.0
+	if D.battle == "air":
+		if p.vehicle:
+			_air_hud(p, p.vehicle, s, c, cq)
+		return
 	var cam: Camera3D = p.vehicle.cam if p.vehicle else p.camera
 	# sniper scope
 	var g: Dictionary = p.gun()
@@ -282,15 +291,7 @@ func _draw() -> void:
 		if v.length() < mr - 3.0:
 			draw_circle(mc + v, 3.0, D.TEAMS[o.team]["color"])
 	draw_colored_polygon(PackedVector2Array([mc + Vector2(0, -7), mc + Vector2(5, 5), mc + Vector2(-5, 5)]), Color.WHITE)
-	# kill feed
-	var y := 200.0 if touch_ui else 70.0
-	for e in cq.feed:
-		var a := clampf(e[5], 0.0, 1.0)
-		if e[0] == "" and e[2] == "":
-			_text(Vector2(s.x - 520, y), e[1], 15, Color(_team_col(e[3]), a), HORIZONTAL_ALIGNMENT_RIGHT, 500)
-		else:
-			_text(Vector2(s.x - 520, y), "%s   [%s]   %s" % [e[0], e[1], e[2]], 15, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_RIGHT, 500)
-		y += 22.0
+	_feed(s, cq)
 	if p.dead:
 		if p.downed:
 			_downed_hud(p, s, c)
@@ -331,17 +332,35 @@ func _draw() -> void:
 			_text(Vector2(0, c.y - 15), "CLICK TO PLAY", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 			_text(Vector2(0, c.y + 25), "WASD move · Shift sprint · Space jump · C crouch · Right mouse aim · R reload · 1 2 guns · G grenade · F gadget · V knife · E vehicle or revive · F2 graphics · Esc mouse", 15, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		return
-	# touch controls
+	_touch(p, s)
+
+func _feed(s: Vector2, cq) -> void:
+	var y := 200.0 if touch_ui else 70.0
+	for e in cq.feed:
+		var a := clampf(e[5], 0.0, 1.0)
+		if e[0] == "" and e[2] == "":
+			_text(Vector2(s.x - 520, y), e[1], 15, Color(_team_col(e[3]), a), HORIZONTAL_ALIGNMENT_RIGHT, 500)
+		else:
+			_text(Vector2(s.x - 520, y), "%s   [%s]   %s" % [e[0], e[1], e[2]], 15, Color(1, 1, 1, a), HORIZONTAL_ALIGNMENT_RIGHT, 500)
+		y += 22.0
+
+
+## The phone controls: the stick (or where it goes) and the buttons.
+func _touch(p, s: Vector2) -> void:
+	var flying: bool = p.vehicle != null and p.vehicle.get("jet") != null
+	var gname: String = D.GADGETS[D.CLASSES[p.cls]["gadget"]]["name"]
 	if _stick_id >= 0:
 		draw_circle(_stick_o, 70.0, Color(1, 1, 1, 0.12))
 		draw_arc(_stick_o, 70.0, 0, TAU, 48, Color(1, 1, 1, 0.35), 2.0, true)
 		draw_circle(_stick_o + (_stick_p - _stick_o).limit_length(70.0), 30.0, Color(1, 1, 1, 0.4))
 	else:
 		draw_arc(Vector2(150, s.y - 170), 70.0, 0, TAU, 48, Color(1, 1, 1, 0.18), 2.0, true)
-		_text(Vector2(80, s.y - 165), "MOVE", 14, Color(1, 1, 1, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 140)
+		_text(Vector2(80, s.y - 165), "THROTTLE · ROLL" if flying else "MOVE", 14, Color(1, 1, 1, 0.4), HORIZONTAL_ALIGNMENT_CENTER, 140)
 	var bs := _buttons()
 	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else ("SEAT" if p.vehicle.get("air") and p.vehicle.driver != p else ["ROCKETS", "MISSILE", "GUN"][p.vehicle.weapon] if p.vehicle.get("air") else ("MG" if p.vehicle.weapon == 0 else "CANNON")), "up": "UP", "down": "DOWN", "use": "EXIT" if p.vehicle else ("REVIVE" if p.near_downed else "ENTER"), "grenade": "GRENADE",
 		"gadget": "DETONATE" if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty() else gname.split(" ")[0], "knife": "KNIFE", "gfx": "GFX"}
+	if flying:
+		names.merge({"fire": "GUN", "aam": "MISSILE", "flare": "FLARES", "up": "THR +", "down": "THR -"}, true)
 	for kk in bs:
 		var on: bool = (kk == "fire" and fire) or (kk == "ads" and ads_on) or (kk == "crouch" and p.crouch) or held(kk)
 		draw_circle(bs[kk][0], bs[kk][1], Color(1, 0.55, 0.3, 0.35) if on else Color(0, 0, 0, 0.28))
@@ -457,3 +476,131 @@ func _heli_hud(v, s: Vector2, c: Vector2) -> void:
 			gp = gr.position
 		if not v.cam.is_position_behind(gp):
 			draw_arc(v.cam.unproject_position(gp), 11.0, 0, TAU, 24, Color(1, 0.85, 0.4, 0.9), 2.0, true)
+
+
+## Flying a jet: the other jets (a red diamond on each enemy with how far off it is, a blue mark on each friend), the
+## seeker's box (yellow while it locks on, red once locked), the circle you steer by and the cross where the nose and
+## gun point, speed, height and throttle, the missile and ground warnings, the radar, the gun, missiles and flares.
+func _air_hud(p, v, s: Vector2, c: Vector2, cq) -> void:
+	var cam: Camera3D = v.cam
+	if _hurt_t > 0.0 or v.health < 40.0:
+		var a := maxf(_hurt_t * 0.45, (40.0 - v.health) / 40.0 * 0.35)
+		for i in 6:
+			var m := 18.0 * i
+			draw_rect(Rect2(m, m, s.x - 2 * m, s.y - 2 * m), Color(0.6, 0.0, 0.0, a * (1.0 - i / 6.0)), false, 18.0)
+	var cx := c.x
+	_text(Vector2(cx - 260, 36), "%s  %d" % [D.TEAMS[p.team]["short"], ceili(cq.tickets[p.team])], 22, D.TEAMS[p.team]["color"], HORIZONTAL_ALIGNMENT_RIGHT, 150)
+	_text(Vector2(cx + 110, 36), "%d  %s" % [ceili(cq.tickets[1 - p.team]), D.TEAMS[1 - p.team]["short"]], 22, D.TEAMS[1 - p.team]["color"], HORIZONTAL_ALIGNMENT_LEFT, 150)
+	_text(Vector2(cx - 100, 36), "AIR SUPERIORITY", 13, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER, 200)
+	for o in w.vehicles:
+		if o == v or o.dead:
+			continue
+		var op: Vector3 = o.global_position
+		if cam.is_position_behind(op):
+			continue
+		var sp := cam.unproject_position(op)
+		if not Rect2(Vector2.ZERO, s).has_point(sp):
+			continue
+		var col: Color = D.TEAMS[o.team]["color"]
+		if o.team != p.team:
+			var d: float = v.global_position.distance_to(op)
+			var k := 9.0
+			draw_polyline(PackedVector2Array([sp + Vector2(0, -k), sp + Vector2(k, 0), sp + Vector2(0, k), sp + Vector2(-k, 0), sp + Vector2(0, -k)]), col, 2.0, true)
+			_text(sp + Vector2(-40, 26), "%.1f KM" % (d / 1000.0) if d >= 1000.0 else "%d M" % int(d), 12, Color(col, 0.9), HORIZONTAL_ALIGNMENT_CENTER, 80)
+		else:
+			draw_colored_polygon(PackedVector2Array([sp + Vector2(-6, -14), sp + Vector2(6, -14), sp + Vector2(0, -6)]), col)
+	if v.dead:
+		_text(Vector2(0, c.y - 40), "SHOT DOWN", 44, Color(1, 0.3, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		var by := "YOU CRASHED" if v.killer == null else "BY %s  ·  %s" % [v.killer.tag, v.cause]
+		_text(Vector2(0, c.y - 85), by, 18, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		if not cq.over:
+			_text(Vector2(0, c.y + 10), "BACK IN THE AIR IN %d" % maxi(1, ceili(v._wreck_t)), 20, Color(1, 1, 1, 0.85), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		_feed(s, cq)
+		return
+	# the seeker on a jet: a box round it, blinking yellow as it locks, red once locked
+	if v.seek and is_instance_valid(v.seek) and not cam.is_position_behind(v.seek.global_position):
+		var bp := cam.unproject_position(v.seek.global_position)
+		var locked: bool = v.lock == v.seek
+		if locked or fmod(Time.get_ticks_msec() / 1000.0, 0.3) < 0.2:
+			var col := Color(1, 0.2, 0.15) if locked else Color(1, 0.9, 0.3)
+			draw_rect(Rect2(bp - Vector2(20, 20), Vector2(40, 40)), col, false, 2.0)
+			if locked:
+				_text(bp + Vector2(-40, -28), "LOCK", 14, col, HORIZONTAL_ALIGNMENT_CENTER, 80)
+	# where you steer, and where the nose points
+	var ap: Vector3 = v.global_position + v.look * 1500.0
+	if not cam.is_position_behind(ap):
+		draw_arc(cam.unproject_position(ap), 14.0, 0, TAU, 32, Color(1, 1, 1, 0.75), 1.5, true)
+	var np: Vector3 = v.global_position - v.global_basis.z * 1000.0
+	if not cam.is_position_behind(np):
+		var q := cam.unproject_position(np)
+		for d in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
+			draw_line(q + d * 4.0, q + d * 12.0, Color(0.6, 1.0, 0.6, 0.9), 2.0)
+	if _hit_t > 0.0:
+		var col := Color(1, 0.25, 0.2) if _hit_kill else Color(1, 1, 1)
+		for d in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+			draw_line(c + d * 7.0, c + d * 15.0, col, 2.5)
+	# warnings
+	var blink := fmod(Time.get_ticks_msec() / 1000.0, 0.5) < 0.3
+	if v.warn > 0.0 and blink:
+		_text(Vector2(0, 110), "MISSILE", 34, Color(1, 0.25, 0.2), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	if v.danger > 0.0 and blink:
+		_text(Vector2(0, c.y + 70), "PULL UP", 30, Color(1, 0.35, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	elif v.speed < float(v.S["stall"]) * 1.1 and blink:
+		_text(Vector2(0, c.y + 70), "STALL", 30, Color(1, 0.6, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	if _toast_t > 0.0:
+		_text(Vector2(0, c.y + 110), _toast, 22, Color(1, 0.9, 0.6, clampf(_toast_t, 0.0, 1.0)), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	# speed, height, throttle
+	var hx := 28.0 if not touch_ui else 230.0
+	var hp: float = maxf(v.health, 0.0) / float(v.S["health"])
+	draw_rect(Rect2(hx, s.y - 46, 220, 12), Color(0, 0, 0, 0.45))
+	draw_rect(Rect2(hx, s.y - 46, 220 * hp, 12), Color(0.85, 0.9, 0.85, 0.9) if hp > 0.35 else Color(0.9, 0.25, 0.2, 0.95))
+	_text(Vector2(hx, s.y - 56), "%s   %d%%" % [v.S["name"], roundi(hp * 100.0)], 15)
+	var gp: Vector3 = v.global_position
+	var agl: float = gp.y - T.height(gp.x, gp.z)
+	_text(Vector2(hx, s.y - 82), "%d KM/H   ALT %d M" % [roundi(v.speed * 3.6), roundi(agl)], 15, Color(1, 1, 1, 0.85))
+	draw_rect(Rect2(hx, s.y - 112, 220, 8), Color(0, 0, 0, 0.45))
+	draw_rect(Rect2(hx, s.y - 112, 220 * v.throttle, 8), Color(1, 0.6, 0.3, 0.9) if v.throttle > 0.98 else Color(1, 1, 1, 0.7))
+	_text(Vector2(hx, s.y - 118), "THROTTLE %d%%%s" % [roundi(v.throttle * 100.0), "  AFTERBURNER" if v.throttle > 0.98 else ""], 13, Color(1, 1, 1, 0.75))
+	# weapons
+	var ax := s.x - 30.0 - (470.0 if touch_ui else 0.0)
+	var ay := s.y - 30.0 if not touch_ui else s.y - 20.0
+	_text(Vector2(ax - 400, ay), "%d" % v.ammo[0] if v.ammo[0] > 0 else "EMPTY", 30, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 400)
+	_text(Vector2(ax - 400, ay - 40), String(v.S["gun"]), 17, Color(1, 0.9, 0.7, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 400)
+	_text(Vector2(ax - 400, ay - 66), "%s  x%d     FLARES  x%d" % [v.S["aam"], v.ammo[1], v.flares], 15, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_RIGHT, 400)
+	_radar(p, v)
+	_feed(s, cq)
+	if not touch_ui:
+		if not w.has_meta("shot"):
+			_text(Vector2(0, s.y - 16), "Mouse steer · W S throttle (full: afterburner) · A D roll · Left mouse gun · Right mouse missile (lock on first) · Space flares · F2 graphics · Esc mouse", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
+			draw_rect(Rect2(0, c.y - 70, s.x, 120), Color(0, 0, 0, 0.5))
+			_text(Vector2(0, c.y - 15), "CLICK TO FLY", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+		return
+	_touch(p, s)
+
+
+## The radar: the jets within 4 km round you, turned so that ahead is up (red: enemies, blue: friends), and the two
+## airbases.
+func _radar(p, v) -> void:
+	var mc := Vector2(100, 125)
+	var mr := 80.0
+	draw_circle(mc, mr, Color(0, 0, 0, 0.4))
+	draw_arc(mc, mr, 0, TAU, 48, Color(1, 1, 1, 0.3), 1.5, true)
+	draw_arc(mc, mr * 0.5, 0, TAU, 40, Color(1, 1, 1, 0.12), 1.0, true)
+	var k := mr / 4000.0
+	var pp: Vector3 = v.global_position
+	var f: Vector3 = -v.global_basis.z
+	var rot := atan2(f.x, -f.z)
+	for t in 2:
+		var b: Array = D.BASES[t]
+		var bv := Vector2(b[0] - pp.x, b[1] - pp.z).rotated(-rot) * k
+		if bv.length() < mr - 6.0:
+			draw_rect(Rect2(mc + bv - Vector2(4, 4), Vector2(8, 8)), Color(D.TEAMS[t]["color"], 0.8), false, 1.5)
+	for o in w.vehicles:
+		if o == v or o.dead:
+			continue
+		var d: Vector3 = o.global_position - pp
+		var q := Vector2(d.x, d.z).rotated(-rot) * k
+		if q.length() < mr - 3.0:
+			draw_circle(mc + q, 3.0, D.TEAMS[o.team]["color"])
+	draw_colored_polygon(PackedVector2Array([mc + Vector2(0, -7), mc + Vector2(5, 5), mc + Vector2(-5, 5)]), Color.WHITE)

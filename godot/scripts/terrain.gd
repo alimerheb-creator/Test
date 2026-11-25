@@ -1,7 +1,8 @@
 extends RefCounted
 ## The battlefield's ground: rolling hills, a shallow valley down the middle, mountains round the edge, level ground
 ## at the flags and headquarters, dirt roads, and woods, bushes and rocks; on DUST RIDGE sand, dry scrub and palms
-## round the oasis. Shaped by the map's LAND settings (data.gd) and built in code when the battle loads.
+## round the oasis. Shaped by the map's LAND settings (data.gd) and built in code when the battle loads. An Aviation
+## map is five times bigger: valleys and ridges, crags and snow up high, pine woods, and mountains all round.
 
 const D := preload("res://scripts/data.gd")
 static var n1: FastNoiseLite
@@ -20,6 +21,7 @@ static var valley := 1.0
 static var desert := false
 static var has_oasis := false
 static var oasis := Vector2.ZERO
+static var air := false
 
 
 static func setup() -> void:
@@ -33,6 +35,7 @@ static func setup() -> void:
 	if has_oasis:
 		oasis = Vector2(L["oasis"][0], L["oasis"][1])
 	var sd: int = L["seed"]
+	air = D.battle == "air"
 	n1 = FastNoiseLite.new()
 	n1.seed = 7 + sd
 	n1.frequency = 1.0 / 170.0
@@ -45,6 +48,20 @@ static func setup() -> void:
 	n3.seed = 23 + sd
 	n3.frequency = 1.0 / 90.0
 	flats.clear()
+	segs.clear()
+	if air:
+		n1.frequency = 1.0 / 1100.0
+		n1.fractal_octaves = 4
+		n2.frequency = 1.0 / 170.0
+		n2.fractal_octaves = 3
+		n3.frequency = 1.0 / 750.0
+		n3.fractal_octaves = 2
+		# each airbase's ground levelled along its runway, all at the height of its middle
+		for b in D.BASES:
+			var y := _raw(b[0], b[1])
+			for k in [-300.0, 0.0, 300.0]:
+				flats.append([b[0] - 20.0, b[1] + k, 380.0, y])
+		return
 	for f in D.FLAGS:
 		flats.append([f["x"], f["z"], f["flat"], _raw(f["x"], f["z"])])
 	for h in D.HQS:
@@ -61,6 +78,16 @@ static func setup() -> void:
 
 
 static func _raw(x: float, z: float) -> float:
+	if air:
+		# broad green hills and valleys, ranges of sharp ridges across parts of it (where the third noise crosses
+		# zero), a wide valley down the middle and a ring of high mountains round it all
+		var a := n1.get_noise_2d(x, z) * 110.0 * hills + n2.get_noise_2d(x, z) * 12.0 * bumps
+		var m := smoothstep(-0.15, 0.25, n1.get_noise_2d(x * 0.6 + 2000.0, z * 0.6 - 700.0))
+		var r := 1.0 - absf(n3.get_noise_2d(x, z))
+		a += r * r * r * 400.0 * m * mountains
+		a -= exp(-(x * x) / (2.0 * 420.0 * 420.0)) * 70.0 * valley
+		var e := maxf(absf(x), absf(z))
+		return a + smoothstep(1500.0, 2700.0, e) * (480.0 + 300.0 * n1.get_noise_2d(x * 1.7 + 900.0, z * 1.7)) * mountains
 	var h := n1.get_noise_2d(x, z) * 11.0 * hills + n2.get_noise_2d(x, z) * 1.3 * bumps
 	h -= exp(-(x * x) / (2.0 * 110.0 * 110.0)) * 3.0 * valley
 	var d := maxf(absf(x), absf(z))
@@ -115,6 +142,14 @@ static func near_flat(x: float, z: float, pad: float) -> bool:
 
 static func _color(x: float, z: float, h: float, ny: float) -> Color:
 	var n := n2.get_noise_2d(x * 1.7, z * 1.7) * 0.5 + 0.5
+	if air:
+		# meadows in the valleys, dark pine woods (where _forest plants them), bare crags on the steep faces and up
+		# high, and snow on the tops
+		var g := Color(0.3, 0.38, 0.18).lerp(Color(0.42, 0.44, 0.24), n)
+		g = g.lerp(Color(0.13, 0.2, 0.1), woods(x, z) * (1.0 - smoothstep(280.0, 340.0, h)))
+		var cr := Color(0.3, 0.29, 0.26).lerp(Color(0.4, 0.38, 0.34), n)
+		g = g.lerp(cr, maxf(smoothstep(0.3, 0.5, 1.0 - ny), smoothstep(330.0, 420.0, h)))
+		return g.lerp(Color(0.88, 0.9, 0.93), smoothstep(520.0, 580.0, h + n * 40.0) * smoothstep(0.35, 0.15, 1.0 - ny))
 	if desert:
 		# sand, darker in the hollows between the dunes, greener round the oasis, sandstone on the steep faces and
 		# up the heights
@@ -247,8 +282,16 @@ static func _at(y: float, s := Vector3.ONE) -> Transform3D:
 	return Transform3D(Basis.from_scale(s), Vector3(0, y, 0))
 
 
+## How thick the pine woods grow at (x, z) on an Aviation map, from 0 to 1.
+static func woods(x: float, z: float) -> float:
+	return smoothstep(0.02, 0.22, n2.get_noise_2d(x * 0.45 + 300.0, z * 0.45))
+
+
 static func build(w: Node3D) -> void:
 	setup()
+	if air:
+		_build_air(w)
+		return
 	var mat: StandardMaterial3D = w.detail_mat()
 	# the battlefield: 600 m across at 3 m spacing, with collision
 	var N := 201
@@ -394,3 +437,93 @@ static func _vegetation(w: Node3D) -> void:
 		mi.multimesh = mm
 		mi.material_override = vmat
 		w.add_child(mi)
+
+
+## An Aviation map: 4 km across at 16 m spacing (with collision, for bullets and missiles), the mountains round it out
+## to 6.4 km at 80 m, and the pine woods.
+static func _build_air(w: Node3D) -> void:
+	var mat: StandardMaterial3D = w.detail_mat()
+	var N := 257
+	var hts := PackedFloat32Array()
+	hts.resize(N * N)
+	for j in N:
+		for i in N:
+			hts[j * N + i] = height(-2048.0 + i * 16.0, -2048.0 + j * 16.0)
+	var inner := MeshInstance3D.new()
+	inner.mesh = _mesh(-2048.0, 16.0, N, hts, 0.0, false)
+	inner.material_override = mat
+	w.add_child(inner)
+	var sb := StaticBody3D.new()
+	var cs := CollisionShape3D.new()
+	var hs := HeightMapShape3D.new()
+	hs.map_width = N
+	hs.map_depth = N
+	hs.map_data = hts
+	cs.shape = hs
+	cs.scale = Vector3(16, 1, 16)
+	sb.add_child(cs)
+	w.add_child(sb)
+	var M := 161
+	var ho := PackedFloat32Array()
+	ho.resize(M * M)
+	for j in M:
+		for i in M:
+			var x := -6400.0 + i * 80.0
+			var z := -6400.0 + j * 80.0
+			ho[j * M + i] = height(x, z) - (6.0 if maxf(absf(x), absf(z)) < 2060.0 else 0.0)
+	var outer := MeshInstance3D.new()
+	outer.mesh = _mesh(-6400.0, 80.0, M, ho, 2040.0, false)
+	outer.material_override = mat
+	w.add_child(outer)
+	_forest(w)
+
+
+## Pines in the woods' patches, off the crags and below the tree line, kept off the airbases; seen out to 2.5 km.
+static func _forest(w: Node3D) -> void:
+	var bark := Color(0.26, 0.2, 0.15)
+	var leaf := Color(0.12, 0.19, 0.1)
+	var pine := merge([[_cyl(0.25, 0.4, 4.0, 5), _at(2.0), bark], [_cyl(0.0, 3.0, 7.0, 6), _at(6.5), leaf],
+		[_cyl(0.0, 2.2, 5.0, 6), _at(9.6), leaf.lightened(0.06)]])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 99
+	var want := 2500 if w.mobile else 6000
+	var list := []
+	for i in want * 6:
+		if list.size() >= want:
+			break
+		var x := rng.randf_range(-2000.0, 2000.0)
+		var z := rng.randf_range(-2000.0, 2000.0)
+		if rng.randf() > woods(x, z):
+			continue
+		var y := height(x, z)
+		if y > 320.0 or near_flat(x, z, 30.0) or absf(height(x + 6.0, z) - height(x - 6.0, z)) > 7.0:
+			continue
+		list.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.9, 1.6)), Vector3(x, y - 0.3, z)))
+	var vmat := StandardMaterial3D.new()
+	vmat.vertex_color_use_as_albedo = true
+	vmat.vertex_color_is_srgb = true
+	vmat.roughness = 0.95
+	# in 500 m squares, each drawn (and left out beyond its range or out of sight) on its own
+	var cells := {}
+	for t in list:
+		var k := Vector2i(floori((t.origin.x + 2000.0) / 500.0), floori((t.origin.z + 2000.0) / 500.0))
+		if not cells.has(k):
+			cells[k] = []
+		cells[k].append(t)
+	for k in cells:
+		var at := Vector3(-1750.0 + k.x * 500.0, 0.0, -1750.0 + k.y * 500.0)
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = pine
+		mm.instance_count = cells[k].size()
+		for i in cells[k].size():
+			var t: Transform3D = cells[k][i]
+			mm.set_instance_transform(i, Transform3D(t.basis, t.origin - at))
+		var mi := MultiMeshInstance3D.new()
+		mi.multimesh = mm
+		mi.material_override = vmat
+		mi.visibility_range_end = 1600.0 if w.mobile else 2600.0
+		mi.visibility_range_end_margin = 200.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		w.add_child(mi)
+		mi.position = at

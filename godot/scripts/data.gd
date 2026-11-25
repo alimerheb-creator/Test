@@ -190,8 +190,55 @@ static var MAPS := [
 			"vfog": Color(0.96, 0.84, 0.7), "exposure": 1.12}},
 ]
 
+## The kind of battle: "infantry" (Conquest on MAPS) or "air" (Aviation: jets over AIR_MAPS).
+static var battle := "infantry"
+## AVIATION, after the web game's Aviation mod: an air war over a map about 3 km across (mountains round the edge),
+## with an airbase at each end (BASES: Vanguard's, Onyx's). HIGHLANDS: green valleys, pine woods, crags and snowy tops
+## under a high afternoon sun.
+static var air_map := 0
+static var BASES := []
+static var AIR_MAPS := [
+	{"name": "HIGHLANDS", "bases": [[0.0, 1250.0], [0.0, -1250.0]],
+		"land": {"seed": 5, "hills": 1.0, "bumps": 1.0, "mountains": 1.0, "valley": 1.0, "trees": 1.0, "bushes": 0.0,
+			"rocks": 0.0, "desert": false, "oasis": []},
+		"look": {"sun": Vector3(-42, -35, 0), "sun_color": Color(1.0, 0.93, 0.82), "sun_energy": 2.4, "turbidity": 3.5,
+			"mie": 0.004, "ground": Color(0.3, 0.33, 0.25), "fog": Color(0.7, 0.78, 0.88), "fog_density": 0.00016,
+			"vfog": Color(0.9, 0.93, 0.97), "exposure": 1.0, "sky_fog": 0.1}},
+]
+## Air Superiority's rules: tickets a side for each jet in it (a jet lost costs one), seconds before a lost jet is
+## back, the height it comes back at, and how far out the map's fighting goes (bots turn back beyond it).
+static var AIR := {"tickets": 7, "respawn": 6.0, "alt": 750.0, "edge": 1650.0}
+## The jets (one a side): Vanguard's F-16C Viper, Onyx's MiG-29 Fulcrum. Speeds in m/s (stall, corner: where it turns
+## best, top speed on full throttle and with the afterburner), accel at full throttle, turn rates in rad/s; gun: rounds,
+## seconds between them, damage a hit; aams: heat-seeking missiles; lock: range, cone (rad) and seconds to lock on.
+static var JETS := [
+	{"name": "F-16C VIPER", "kind": "f16", "health": 100.0, "stall": 62.0, "corner": 210.0, "top": 300.0, "ab": 400.0,
+		"accel": 30.0, "pitch": 1.05, "roll": 3.6, "yaw": 0.35, "size": 5.5, "gun": "M61A1 VULCAN", "gun_ammo": 510,
+		"gun_cd": 0.03, "gun_dmg": 4.0, "aam": "AIM-9X SIDEWINDER", "aams": 4, "flares": 30, "lock": [2400.0, 0.2, 1.1]},
+	{"name": "MIG-29 FULCRUM", "kind": "mig29", "health": 100.0, "stall": 64.0, "corner": 205.0, "top": 295.0, "ab": 395.0,
+		"accel": 31.0, "pitch": 1.08, "roll": 3.4, "yaw": 0.35, "size": 5.5, "gun": "GSH-30-1", "gun_ammo": 250,
+		"gun_cd": 0.06, "gun_dmg": 8.0, "aam": "R-73 ARCHER", "aams": 4, "flares": 30, "lock": [2400.0, 0.22, 1.1]},
+]
+
+
+## Puts air map i's data in place of the current map's (no flags, buildings, roads or cover: the airbases are built
+## from BASES).
+static func use_air_map(i: int) -> void:
+	battle = "air"
+	air_map = i
+	var m: Dictionary = AIR_MAPS[i]
+	MAP_NAME = m["name"]
+	FLAGS = []
+	BUILDINGS = []
+	ROADS = []
+	PROPS = []
+	LAND = m["land"]
+	LOOK = m["look"]
+	BASES = m["bases"]
+
 
 static func use_map(i: int) -> void:
+	battle = "infantry"
 	map = i
 	var m: Dictionary = MAPS[i]
 	MAP_NAME = m["name"]
@@ -238,6 +285,11 @@ static var PROJECTILES := {
 	"shell": {"speed": 240.0, "gravity": 4.0, "radius": 5.0, "dmg": 130.0, "fuse": 6.0},
 	"hydra": {"speed": 150.0, "gravity": 2.5, "radius": 5.0, "dmg": 115.0, "fuse": 5.0},
 	"atgm": {"speed": 70.0, "max": 150.0, "gravity": 0.0, "radius": 4.0, "dmg": 140.0, "fuse": 9.0},
+	# a jet's heat seeker: launched at the jet's speed, it speeds up to max, turns at most `turn` rad/s, goes off within
+	# `radius` of its target (dmg close in, less at the edge); a flare pulls it off with chance `decoy`
+	"aam": {"speed": 0.0, "max": 520.0, "accel": 240.0, "turn": 1.0, "gravity": 0.0, "radius": 11.0, "dmg": 110.0,
+		"fuse": 9.0, "decoy": 0.4},
+	"flare": {"speed": 0.0, "gravity": 5.0, "fuse": 3.2},
 	"c4": {"speed": 11.0, "gravity": 20.0, "radius": 7.5, "dmg": 220.0, "sticky": true},
 	"crate": {"speed": 9.0, "gravity": 20.0, "bounce": 0.2},
 }
