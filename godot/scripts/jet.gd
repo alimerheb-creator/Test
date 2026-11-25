@@ -1,6 +1,6 @@
 extends CharacterBody3D
-## A fighter jet (Aviation), after the web game's Jets mod: Vanguard's F-16C Viper and Onyx's MiG-29 Fulcrum, built in
-## code from simple shapes. You fly it where you look: the mouse (or a drag on a phone) swings your view round and the
+## A fighter jet (Aviation), after the web game's Jets mod: Vanguard's F-16C Viper and Onyx's Su-35S Flanker-E, the
+## web game's real 3D models (their control surfaces move with the stick). You fly it where you look: the mouse (or a drag on a phone) swings your view round and the
 ## jet banks and pulls to follow it (the circle is where you're steering, the small cross where its nose and gun
 ## point). W/S or Shift/Ctrl (THR + and THR - on a phone, or the left stick) set the throttle, and full throttle lights
 ## the afterburner; A/D roll. Left mouse (GUN) fires the cannon; right mouse (MISSILE) a heat seeker, which chases a
@@ -66,6 +66,8 @@ var _by_t := 0.0
 var _shake := 0.0
 var _abs: Array = []
 var _stores: Array = []
+var _cs: Array = []  # each control surface: [its hinge, how it rests, kind, side, which way is down, how far it's turned]
+var _skins: Array = []
 var _muzzle := Vector3.ZERO
 var _sound: AudioStreamPlayer3D
 var _gun_sound: AudioStreamPlayer3D
@@ -79,10 +81,9 @@ var _err := Vector3.ZERO
 var _skill := 1.0
 var _agile := 1.0  # how hard it can pull: you fully, a bot by its skill (and harder chasing a jet ahead of it)
 var _goal := Vector3.ZERO
-static var _mat: StandardMaterial3D
+static var _scenes := {}
 static var _wreck: StandardMaterial3D
 static var _flame: StandardMaterial3D
-static var _white: StandardMaterial3D
 
 
 func setup(world: Node, t: int, spec: Dictionary, who: String) -> void:
@@ -97,10 +98,16 @@ func setup(world: Node, t: int, spec: Dictionary, who: String) -> void:
 	model = build_model(S, team)
 	add_child(model)
 	for n in model.get_children():
-		if String(n.name).begins_with("ab"):
+		var nm := String(n.name)
+		if nm.begins_with("ab"):
 			_abs.append(n)
-		elif String(n.name).begins_with("aam"):
+		elif nm.begins_with("aam"):
 			_stores.append(n)
+		elif nm.begins_with("cs_"):
+			_cs.append([n, (n as Node3D).basis, n.get_meta("kind"), n.get_meta("side"), float(n.get_meta("sgn")), 0.0])
+	for m in model.find_children("*", "MeshInstance3D", true, false):
+		if m.name != "flame":
+			_skins.append(m)
 	_muzzle = model.get_meta("muzzle")
 	cam = Camera3D.new()
 	cam.top_level = true
@@ -180,8 +187,10 @@ func respawn() -> void:
 	_sound.play()
 
 
+## All of it one material (burnt out), or (null) each part its own again.
 func _paint(m: Material) -> void:
-	(model.get_node("body") as MeshInstance3D).material_override = m if m else _mat
+	for s in _skins:
+		(s as MeshInstance3D).material_override = m
 
 
 func _physics_process(dt: float) -> void:
@@ -229,6 +238,7 @@ func _physics_process(dt: float) -> void:
 	for a in _abs:
 		a.visible = throttle > 0.55
 		a.scale = Vector3.ONE * (0.4 + throttle * 0.6) * (1.35 if ab else 0.6)
+	_surfaces(dt)
 	_sound.pitch_scale = 0.75 + speed / float(S["ab"]) * 0.5
 	if me:
 		var ahead := global_position + velocity * 3.0
@@ -690,198 +700,58 @@ func pick_weapon(_i: int) -> void:
 	pass
 
 
+## The control surfaces follow the stick: the ailerons (and a little of the tailplanes) roll it, the tailplanes pitch
+## it, the rudders yaw it, and the leading-edge flaps droop as it pulls.
+func _surfaces(dt: float) -> void:
+	for c in _cs:
+		var side := -1.0 if c[3] == "R" else 1.0
+		var want := 0.0
+		match String(c[2]):
+			"ail":
+				want = _ctl.y * 0.4 * side
+			"stab":
+				want = -_ctl.x * 0.3 + _ctl.y * 0.12 * side
+			"rud":
+				want = _ctl.z * 0.45
+			_:
+				want = clampf(_ctl.x, 0.0, 1.0) * 0.35
+		c[5] = move_toward(float(c[5]), want, 2.5 * dt)
+		(c[0] as Node3D).basis = (c[1] as Basis) * Basis(Vector3.RIGHT, float(c[4]) * float(c[5]))
+
+
 # ---------------------------------------------------------------- the model
 
-## The jet's model, from cylinders, boxes and flat plates (wings, tails), in its side's colours: one mesh ("body"),
-## plus the afterburner flames (ab*) and the missiles under the wings (aam*). Its meta "muzzle": where the gun fires
-## from. Also parked at the airbases.
-static func build_model(spec: Dictionary, t: int) -> Node3D:
-	if not _mat:
-		_mat = StandardMaterial3D.new()
-		_mat.vertex_color_use_as_albedo = true
-		_mat.vertex_color_is_srgb = true
-		_mat.roughness = 0.5
-		_mat.metallic = 0.3
+## The jet's model: the web game's (Vanguard's F-16C, Onyx's Su-35S), made into a scene by tools/build_jets.gd: the
+## hull with its pilot (body; far, a lighter one for far off), the control surfaces on their hinges (cs_*), the landing
+## gear (gear, hidden), the missiles (aam*), and the afterburner flames, put in its nozzles here (ab*). Its meta
+## "muzzle": where the gun fires from; "gear_h": how high it stands on its wheels. Also parked at the airbases.
+static func build_model(spec: Dictionary, _t: int) -> Node3D:
+	if not _flame:
 		_flame = StandardMaterial3D.new()
 		_flame.albedo_color = Color.BLACK
 		_flame.emission_enabled = true
 		_flame.emission = Color(1.0, 0.55, 0.25)
 		_flame.emission_energy_multiplier = 7.0
-		_white = StandardMaterial3D.new()
-		_white.albedo_color = Color(0.85, 0.86, 0.84)
-		_white.roughness = 0.6
-	var f16: bool = spec["kind"] == "f16"
-	var body := Color(0.55, 0.58, 0.61) if f16 else Color(0.38, 0.43, 0.47)
-	var dark := Color(0.1, 0.1, 0.11)
-	var glass := Color(0.09, 0.12, 0.15)
-	var mark: Color = D.TEAMS[t]["color"]
-	var Z := Basis(Vector3.RIGHT, PI / 2.0)  # a cylinder lying along z, its top toward the tail
-	var NZ := Basis(Vector3.RIGHT, -PI / 2.0)  # its top toward the nose
-	var flat := Vector3(1.0, 0.88, 1.0)
-	var parts := []
-	var nozzles := []
-	var rails := []
-	var muzzle := Vector3.ZERO
-	if f16:
-		parts.append_array([[T._cyl(0.78, 0.78, 10.0, 14), Transform3D(Z.scaled(flat), Vector3(0, 0, 0.5)), body],
-			[T._cyl(0.05, 0.78, 4.2, 14), Transform3D(NZ.scaled(flat), Vector3(0, 0, -6.6)), body],
-			[_box(Vector3(1.0, 0.55, 6.5)), Transform3D(Basis(), Vector3(0, 0.5, 1.8)), body],
-			[_box(Vector3(1.4, 1.0, 3.4)), Transform3D(Basis(), Vector3(0, -0.8, -1.4)), body],
-			[_box(Vector3(1.15, 0.8, 0.12)), Transform3D(Basis(), Vector3(0, -0.8, -3.12)), dark],
-			[T._sphere(1.0, 14, 8), Transform3D(Basis.from_scale(Vector3(0.5, 0.46, 1.75)), Vector3(0, 0.66, -4.3)), glass],
-			[T._cyl(0.62, 0.52, 1.3, 14), Transform3D(Z, Vector3(0, 0, 6.1)), dark]])
-		_pair(parts, [Vector2(0.7, -1.4), Vector2(4.9, 2.3), Vector2(4.9, 3.3), Vector2(0.7, 3.6)], 0.14, -0.1, body)
-		_pair(parts, [Vector2(0.5, -4.6), Vector2(1.0, -1.2), Vector2(0.5, -1.2)], 0.12, -0.02, body)
-		_pair(parts, [Vector2(0.7, 4.3), Vector2(3.2, 5.9), Vector2(3.2, 6.6), Vector2(0.7, 6.7)], 0.1, -0.15, body)
-		_fin(parts, [Vector2(0.5, 2.6), Vector2(4.3, 5.3), Vector2(4.3, 6.1), Vector2(0.5, 6.3)], Vector3(0, 0.3, 0), 0.0, body, mark)
-		nozzles = [Vector3(0, 0, 6.75)]
-		rails = [Vector3(4.95, -0.1, 2.7), Vector3(-4.95, -0.1, 2.7), Vector3(3.3, -0.42, 1.8), Vector3(-3.3, -0.42, 1.8)]
-		muzzle = Vector3(-0.8, 0.5, -3.5)
-	else:
-		parts.append_array([[T._cyl(0.72, 0.72, 6.0, 14), Transform3D(Z.scaled(flat), Vector3(0, 0.1, -3.4)), body],
-			[T._cyl(0.05, 0.72, 3.6, 14), Transform3D(NZ.scaled(flat), Vector3(0, 0.1, -8.2)), body],
-			[_box(Vector3(2.3, 0.5, 7.5)), Transform3D(Basis(), Vector3(0, 0.1, 2.4)), body],
-			[T._sphere(1.0, 14, 8), Transform3D(Basis.from_scale(Vector3(0.48, 0.5, 1.6)), Vector3(0, 0.75, -4.6)), glass]])
-		for s in [-1.0, 1.0]:
-			parts.append_array([[T._cyl(0.62, 0.62, 8.6, 14), Transform3D(Z, Vector3(s * 1.05, -0.2, 2.9)), body],
-				[_box(Vector3(0.95, 0.95, 2.4)), Transform3D(Basis(), Vector3(s * 1.1, -0.6, -2.3)), body],
-				[_box(Vector3(0.8, 0.8, 0.12)), Transform3D(Basis(), Vector3(s * 1.1, -0.6, -3.52)), dark],
-				[T._cyl(0.6, 0.5, 1.2, 14), Transform3D(Z, Vector3(s * 1.05, -0.2, 7.6)), dark]])
-			_fin(parts, [Vector2(0.4, 3.0), Vector2(3.7, 5.6), Vector2(3.7, 6.3), Vector2(0.4, 6.6)], Vector3(s * 1.25, 0.35, 0), -s * 0.15, body, mark)
-		_pair(parts, [Vector2(0.6, -6.6), Vector2(2.2, -0.6), Vector2(0.6, -0.6)], 0.12, 0.15, body)
-		_pair(parts, [Vector2(1.9, -0.6), Vector2(5.8, 3.4), Vector2(5.8, 4.3), Vector2(1.9, 4.6)], 0.14, 0.05, body)
-		_pair(parts, [Vector2(1.9, 5.2), Vector2(4.3, 6.8), Vector2(4.3, 7.5), Vector2(1.9, 7.4)], 0.1, -0.1, body)
-		nozzles = [Vector3(1.05, -0.2, 8.2), Vector3(-1.05, -0.2, 8.2)]
-		rails = [Vector3(5.0, -0.25, 2.9), Vector3(-5.0, -0.25, 2.9), Vector3(3.6, -0.35, 2.2), Vector3(-3.6, -0.35, 2.2)]
-		muzzle = Vector3(-1.5, 0.35, -2.8)
-	var mi := MeshInstance3D.new()
-	mi.name = "body"
-	mi.mesh = _merge(parts)
-	mi.material_override = _mat
-	var root := Node3D.new()
-	root.add_child(mi)
-	for i in nozzles.size():
-		var a := MeshInstance3D.new()
-		a.name = "ab%d" % i
-		a.mesh = T._cyl(0.0, 0.46, 3.0, 10)
-		a.material_override = _flame
-		a.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var kind: String = spec["kind"]
+	if not _scenes.has(kind):
+		_scenes[kind] = load("res://models/%s.scn" % kind)
+	var root: Node3D = (_scenes[kind] as PackedScene).instantiate()
+	# (on layer 2 too, for the light thrown up off the land)
+	for m in root.find_children("*", "MeshInstance3D", true, false):
+		(m as MeshInstance3D).layers = 3
+	var noz: Array = root.get_meta("nozzles")
+	for i in noz.size():
+		var n: Array = noz[i]
 		var holder := Node3D.new()
 		holder.name = "ab%d" % i
+		holder.position = Vector3(n[0], n[1], n[2])
+		var a := MeshInstance3D.new()
 		a.name = "flame"
-		a.transform = Transform3D(Z, Vector3(0, 0, 1.5))
+		a.mesh = T._cyl(0.0, float(n[3]), 3.0, 10)
+		a.material_override = _flame
+		a.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		# (a cone lying along z, its point toward the tail)
+		a.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0, 0, 1.5))
 		holder.add_child(a)
-		holder.position = nozzles[i]
 		root.add_child(holder)
-	for i in rails.size():
-		var m := MeshInstance3D.new()
-		m.name = "aam%d" % i
-		m.mesh = T._cyl(0.07, 0.07, 2.9, 6)
-		m.material_override = _white
-		m.transform = Transform3D(Z, rails[i])
-		root.add_child(m)
-	root.set_meta("muzzle", muzzle)
 	return root
-
-
-static func _box(size: Vector3) -> BoxMesh:
-	var b := BoxMesh.new()
-	b.size = size
-	return b
-
-
-## A wing or tail plane each side: the right one's outline (x out from the middle, z back), at height y.
-static func _pair(parts: Array, pts: Array, th: float, y: float, col: Color) -> void:
-	parts.append([_plate(pts, th), Transform3D(Basis(), Vector3(0, y, 0)), col])
-	var left := []
-	for p in pts:
-		left.append(Vector2(-p.x, p.y))
-	parts.append([_plate(left, th), Transform3D(Basis(), Vector3(0, y, 0)), col])
-
-
-## A fin standing up from at (its outline: x up, z back), leaning out by lean, its tip in the side's colour.
-static func _fin(parts: Array, pts: Array, at: Vector3, lean: float, col: Color, mark: Color) -> void:
-	var b := Basis(Vector3.BACK, PI / 2.0 + lean)
-	parts.append([_plate(pts, 0.12), Transform3D(b, at), col])
-	var top: float = pts[1].x
-	var tip := [Vector2(top - 0.7, lerpf(pts[0].y, pts[1].y, (top - 0.7 - pts[0].x) / (pts[1].x - pts[0].x))), pts[1], pts[2],
-		Vector2(top - 0.7, lerpf(pts[3].y, pts[2].y, (top - 0.7 - pts[3].x) / (pts[2].x - pts[3].x)))]
-	parts.append([_plate(tip, 0.14), Transform3D(b, at), mark])
-
-
-## A flat plate with this outline (x, z) and thickness: its top, its bottom and its edges, as mesh arrays.
-static func _plate(pts: Array, th: float) -> Array:
-	var poly := PackedVector2Array(pts)
-	var tri := Geometry2D.triangulate_polygon(poly)
-	var v := PackedVector3Array()
-	var nm := PackedVector3Array()
-	var idx := PackedInt32Array()
-	var n := poly.size()
-	for side in [1.0, -1.0]:
-		var base := v.size()
-		for p in poly:
-			v.append(Vector3(p.x, th * 0.5 * side, p.y))
-			nm.append(Vector3(0, side, 0))
-		for i in range(0, tri.size(), 3):
-			_tri(idx, v, base + tri[i], base + tri[i + 1], base + tri[i + 2], Vector3(0, side, 0))
-	var c := Vector2.ZERO
-	for p in poly:
-		c += p / n
-	for i in n:
-		var a := poly[i]
-		var b := poly[(i + 1) % n]
-		var e := b - a
-		var out := Vector2(e.y, -e.x).normalized()
-		if out.dot((a + b) * 0.5 - c) < 0.0:
-			out = -out
-		var o := Vector3(out.x, 0, out.y)
-		var base := v.size()
-		for q in [Vector3(a.x, th * 0.5, a.y), Vector3(b.x, th * 0.5, b.y), Vector3(b.x, -th * 0.5, b.y), Vector3(a.x, -th * 0.5, a.y)]:
-			v.append(q)
-			nm.append(o)
-		_tri(idx, v, base, base + 1, base + 2, o)
-		_tri(idx, v, base, base + 2, base + 3, o)
-	var arr := []
-	arr.resize(Mesh.ARRAY_MAX)
-	arr[Mesh.ARRAY_VERTEX] = v
-	arr[Mesh.ARRAY_NORMAL] = nm
-	arr[Mesh.ARRAY_INDEX] = idx
-	return arr
-
-
-## A triangle facing the way of n (Godot's front faces wind clockwise).
-static func _tri(idx: PackedInt32Array, v: PackedVector3Array, a: int, b: int, c: int, n: Vector3) -> void:
-	if (v[b] - v[a]).cross(v[c] - v[a]).dot(n) > 0.0:
-		idx.append_array([a, c, b])
-	else:
-		idx.append_array([a, b, c])
-
-
-## Parts [mesh (or mesh arrays), transform, colour] as one mesh, coloured by vertex.
-static func _merge(parts: Array) -> ArrayMesh:
-	var v := PackedVector3Array()
-	var nm := PackedVector3Array()
-	var c := PackedColorArray()
-	var idx := PackedInt32Array()
-	for p in parts:
-		var a: Array = p[0].get_mesh_arrays() if p[0] is PrimitiveMesh else p[0]
-		var t: Transform3D = p[1]
-		var nb := t.basis.inverse().transposed()
-		var base := v.size()
-		var pv: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
-		var pn: PackedVector3Array = a[Mesh.ARRAY_NORMAL]
-		for i in pv.size():
-			v.append(t * pv[i])
-			nm.append((nb * pn[i]).normalized())
-			c.append(p[2])
-		for i in (a[Mesh.ARRAY_INDEX] as PackedInt32Array):
-			idx.append(base + i)
-	var arr := []
-	arr.resize(Mesh.ARRAY_MAX)
-	arr[Mesh.ARRAY_VERTEX] = v
-	arr[Mesh.ARRAY_NORMAL] = nm
-	arr[Mesh.ARRAY_COLOR] = c
-	arr[Mesh.ARRAY_INDEX] = idx
-	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	return m

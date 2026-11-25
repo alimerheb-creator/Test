@@ -144,7 +144,7 @@ func show_main() -> void:
 	_label("GRAPHICS", 15, Color(1, 1, 1, 0.55))
 	_row("gfx", [["LOW", 0], ["MEDIUM", 1], ["HIGH", 2], ["ULTRA", 3]], w.quality)
 	_big("TAKE OFF" if air else "DEPLOY", func(): w.start_match(sel_class))
-	_label("GODOT EDITION · Models: \"Combat Knife\" by Overlord (Sketchfab), CC BY 4.0 · M1 Abrams by Felipe · \"T-90 with moving turret and barrel\" by kuyongcreates (Printables), CC BY-NC 4.0 · \"Apache AH-64D\" by SalamSadeq (CGTrader) · \"Mi-24\" by Chris Kuhn (BlendSwap), CC BY 3.0 · \"Mil Mi-8AMTSh\" by 42manako (Sketchfab), CC BY 4.0 · \"UH-60 Blackhawk\" from done3d.com · the soldiers: \"A soldier mercenary with helmet and yellow visor\" by ShaderMussolini (Sloyd), CC BY 4.0", 12, Color(1, 1, 1, 0.4))
+	_label("GODOT EDITION · Models: \"Combat Knife\" by Overlord (Sketchfab), CC BY 4.0 · M1 Abrams by Felipe · \"T-90 with moving turret and barrel\" by kuyongcreates (Printables), CC BY-NC 4.0 · \"Apache AH-64D\" by SalamSadeq (CGTrader) · \"Mi-24\" by Chris Kuhn (BlendSwap), CC BY 3.0 · \"Mil Mi-8AMTSh\" by 42manako (Sketchfab), CC BY 4.0 · \"UH-60 Blackhawk\" from done3d.com · the soldiers: \"A soldier mercenary with helmet and yellow visor\" by ShaderMussolini (Sloyd), CC BY 4.0 · \"F16\" (CGTrader, uploaded by taylor-eudora) · \"SU35S\" by sa893537 (CGTrader)", 12, Color(1, 1, 1, 0.4))
 
 
 func show_deploy() -> void:

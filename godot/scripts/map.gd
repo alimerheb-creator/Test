@@ -383,12 +383,15 @@ static func airbase(t: int) -> void:
 		mi.material_override = W.mat(mm)
 		W.add_child(mi)
 	_bb = null
-	# a few jets parked on the apron, noses toward the runway
+	# a few jets parked on the apron on their wheels, noses toward the runway, nobody in them
 	for i in 3:
 		var j := Jet.build_model(D.JETS[t], t)
 		W.add_child(j)
-		j.position = Vector3(x + 135.0, y + 1.6, z - 60.0 + i * 60.0)
+		j.position = Vector3(x + 135.0, y + float(j.get_meta("gear_h")), z - 60.0 + i * 60.0)
 		j.rotation.y = PI / 2.0
+		(j.get_node("gear") as Node3D).visible = true
+		for n in ["body/helmet0", "body/pilot0"]:
+			(j.get_node(n) as Node3D).visible = false
 		for n in j.get_children():
 			if String(n.name).begins_with("ab"):
 				n.visible = false

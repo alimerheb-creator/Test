@@ -208,15 +208,15 @@ static var AIR_MAPS := [
 ## Air Superiority's rules: tickets a side for each jet in it (a jet lost costs one), seconds before a lost jet is
 ## back, the height it comes back at, and how far out the map's fighting goes (bots turn back beyond it).
 static var AIR := {"tickets": 7, "respawn": 6.0, "alt": 750.0, "edge": 1650.0}
-## The jets (one a side): Vanguard's F-16C Viper, Onyx's MiG-29 Fulcrum. Speeds in m/s (stall, corner: where it turns
+## The jets (one a side): Vanguard's F-16C Viper, Onyx's Su-35S Flanker-E. Speeds in m/s (stall, corner: where it turns
 ## best, top speed on full throttle and with the afterburner), accel at full throttle, turn rates in rad/s; gun: rounds,
 ## seconds between them, damage a hit; aams: heat-seeking missiles; lock: range, cone (rad) and seconds to lock on.
 static var JETS := [
 	{"name": "F-16C VIPER", "kind": "f16", "health": 100.0, "stall": 62.0, "corner": 210.0, "top": 300.0, "ab": 400.0,
 		"accel": 30.0, "pitch": 1.05, "roll": 3.6, "yaw": 0.35, "size": 5.5, "gun": "M61A1 VULCAN", "gun_ammo": 510,
 		"gun_cd": 0.03, "gun_dmg": 4.0, "aam": "AIM-9X SIDEWINDER", "aams": 4, "flares": 30, "lock": [2400.0, 0.2, 1.1]},
-	{"name": "MIG-29 FULCRUM", "kind": "mig29", "health": 100.0, "stall": 64.0, "corner": 205.0, "top": 295.0, "ab": 395.0,
-		"accel": 31.0, "pitch": 1.08, "roll": 3.4, "yaw": 0.35, "size": 5.5, "gun": "GSH-30-1", "gun_ammo": 250,
+	{"name": "SU-35S FLANKER-E", "kind": "su35", "health": 105.0, "stall": 60.0, "corner": 212.0, "top": 300.0, "ab": 400.0,
+		"accel": 30.0, "pitch": 1.1, "roll": 3.3, "yaw": 0.4, "size": 6.2, "gun": "GSH-30-1", "gun_ammo": 250,
 		"gun_cd": 0.06, "gun_dmg": 8.0, "aam": "R-73 ARCHER", "aams": 4, "flares": 30, "lock": [2400.0, 0.22, 1.1]},
 ]
 

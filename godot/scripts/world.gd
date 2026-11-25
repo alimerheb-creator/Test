@@ -291,6 +291,17 @@ func _make_environment() -> void:
 	sun.directional_shadow_max_distance = 130.0
 	sun.directional_shadow_blend_splits = true
 	add_child(sun)
+	if D.battle == "air":
+		# the light the land throws back up onto the jets (only they're on layer 2): from below and from the side away
+		# from the sun, so the shade under and beside a jet isn't black
+		var fill := DirectionalLight3D.new()
+		fill.light_cull_mask = 2
+		fill.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY
+		fill.light_color = Color(0.78, 0.82, 0.86)
+		fill.light_energy = 0.6
+		var s := sun.basis.z
+		fill.basis = Basis.looking_at(-Vector3(-s.x, -absf(s.y) * 0.8, -s.z).normalized(), Vector3.UP)
+		add_child(fill)
 	var sky_mat := PhysicalSkyMaterial.new()
 	sky_mat.turbidity = L["turbidity"]
 	sky_mat.mie_coefficient = L["mie"]
