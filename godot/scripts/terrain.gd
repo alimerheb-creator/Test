@@ -51,11 +51,14 @@ static func setup() -> void:
 	segs.clear()
 	if air:
 		n1.frequency = 1.0 / 1100.0
-		n1.fractal_octaves = 4
+		n1.fractal_octaves = 3
 		n2.frequency = 1.0 / 170.0
 		n2.fractal_octaves = 3
-		n3.frequency = 1.0 / 750.0
-		n3.fractal_octaves = 2
+		# (the mountains: ridged, the finer ridges riding on the bigger ones)
+		n3.frequency = 1.0 / 1000.0
+		n3.fractal_type = FastNoiseLite.FRACTAL_RIDGED
+		n3.fractal_octaves = 3
+		n3.fractal_weighted_strength = 0.6
 		# each airbase's ground levelled along its runway, all at the height of its middle
 		for b in D.BASES:
 			var y := _raw(b[0], b[1])
@@ -79,15 +82,17 @@ static func setup() -> void:
 
 static func _raw(x: float, z: float) -> float:
 	if air:
-		# broad green hills and valleys, ranges of sharp ridges across parts of it (where the third noise crosses
-		# zero), a wide valley down the middle and a ring of high mountains round it all
-		var a := n1.get_noise_2d(x, z) * 110.0 * hills + n2.get_noise_2d(x, z) * 12.0 * bumps
-		var m := smoothstep(-0.15, 0.25, n1.get_noise_2d(x * 0.6 + 2000.0, z * 0.6 - 700.0))
-		var r := 1.0 - absf(n3.get_noise_2d(x, z))
-		a += r * r * r * 400.0 * m * mountains
-		a -= exp(-(x * x) / (2.0 * 420.0 * 420.0)) * 70.0 * valley
+		# rolling green hills and wide valleys; ranges of mountains across parts of it (ridged noise: crests with
+		# spurs running down from them), a wide valley down the middle, and more mountains all round the edge.
+		# Nothing finer than the outer ground's 80 m grid can show.
+		var a := n1.get_noise_2d(x, z) * 45.0 * hills + n2.get_noise_2d(x, z) * 4.0 * bumps
 		var e := maxf(absf(x), absf(z))
-		return a + smoothstep(1500.0, 2700.0, e) * (480.0 + 300.0 * n1.get_noise_2d(x * 1.7 + 900.0, z * 1.7)) * mountains
+		var m := smoothstep(-0.3, 0.2, n1.get_noise_2d(x * 0.5 + 2000.0, z * 0.5 - 700.0))
+		m = maxf(m, smoothstep(1400.0, 2400.0, e))
+		var r := n3.get_noise_2d(x, z) * 0.5 + 0.5
+		a += r * r * 300.0 * m * mountains
+		a -= exp(-(x * x) / (2.0 * 420.0 * 420.0)) * 50.0 * valley
+		return a + smoothstep(1500.0, 2800.0, e) * (150.0 + 90.0 * n1.get_noise_2d(x * 0.7 + 900.0, z * 0.7)) * mountains
 	var h := n1.get_noise_2d(x, z) * 11.0 * hills + n2.get_noise_2d(x, z) * 1.3 * bumps
 	h -= exp(-(x * x) / (2.0 * 110.0 * 110.0)) * 3.0 * valley
 	var d := maxf(absf(x), absf(z))
@@ -143,13 +148,14 @@ static func near_flat(x: float, z: float, pad: float) -> bool:
 static func _color(x: float, z: float, h: float, ny: float) -> Color:
 	var n := n2.get_noise_2d(x * 1.7, z * 1.7) * 0.5 + 0.5
 	if air:
-		# meadows in the valleys, dark pine woods (where _forest plants them), bare crags on the steep faces and up
-		# high, and snow on the tops
+		# meadows in the valleys, dark pine woods (where _forest plants them) up to the tree line, grassy slopes
+		# turning to bare rock on the steep faces and up high, and snow on the highest tops
 		var g := Color(0.3, 0.38, 0.18).lerp(Color(0.42, 0.44, 0.24), n)
-		g = g.lerp(Color(0.13, 0.2, 0.1), woods(x, z) * (1.0 - smoothstep(280.0, 340.0, h)))
-		var cr := Color(0.3, 0.29, 0.26).lerp(Color(0.4, 0.38, 0.34), n)
-		g = g.lerp(cr, maxf(smoothstep(0.3, 0.5, 1.0 - ny), smoothstep(330.0, 420.0, h)))
-		return g.lerp(Color(0.88, 0.9, 0.93), smoothstep(520.0, 580.0, h + n * 40.0) * smoothstep(0.35, 0.15, 1.0 - ny))
+		g = g.lerp(Color(0.13, 0.2, 0.1), woods(x, z) * (1.0 - smoothstep(200.0, 240.0, h)))
+		g = g.lerp(Color(0.36, 0.38, 0.24), smoothstep(150.0, 260.0, h) * 0.6)
+		var cr := Color(0.36, 0.34, 0.3).lerp(Color(0.46, 0.44, 0.4), n)
+		g = g.lerp(cr, maxf(smoothstep(0.35, 0.6, 1.0 - ny), smoothstep(260.0, 340.0, h + n * 30.0)))
+		return g.lerp(Color(0.84, 0.87, 0.9), smoothstep(370.0, 420.0, h + n * 40.0) * smoothstep(0.45, 0.25, 1.0 - ny))
 	if desert:
 		# sand, darker in the hollows between the dunes, greener round the oasis, sandstone on the steep faces and
 		# up the heights
@@ -496,7 +502,7 @@ static func _forest(w: Node3D) -> void:
 		if rng.randf() > woods(x, z):
 			continue
 		var y := height(x, z)
-		if y > 320.0 or near_flat(x, z, 30.0) or absf(height(x + 6.0, z) - height(x - 6.0, z)) > 7.0:
+		if y > 230.0 or near_flat(x, z, 30.0) or absf(height(x + 6.0, z) - height(x - 6.0, z)) > 7.0:
 			continue
 		list.append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.9, 1.6)), Vector3(x, y - 0.3, z)))
 	var vmat := StandardMaterial3D.new()

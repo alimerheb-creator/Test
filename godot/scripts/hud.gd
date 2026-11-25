@@ -24,6 +24,7 @@ var _hurt_t := 0.0
 var _toast := ""
 var _toast_t := 0.0
 var _font: Font
+var _vig: ImageTexture
 
 
 func _ready() -> void:
@@ -207,10 +208,7 @@ func _draw() -> void:
 		draw_line(Vector2(c.x, c.y - R), Vector2(c.x, c.y + R), Color(0, 0, 0, 0.9), 1.5)
 	# damage
 	if _hurt_t > 0.0 or p.health < 60.0:
-		var a := maxf(_hurt_t * 0.45, (60.0 - p.health) / 60.0 * 0.4)
-		for i in 6:
-			var m := 18.0 * i
-			draw_rect(Rect2(m, m, s.x - 2 * m, s.y - 2 * m), Color(0.6, 0.0, 0.0, a * (1.0 - i / 6.0)), false, 18.0)
+		_damage(s, maxf(_hurt_t * 0.45, (60.0 - p.health) / 60.0 * 0.4) * 1.3)
 	# flag markers and teammates
 	for f in cq.flags:
 		var fp: Vector3 = f["pos"] + Vector3(0, 7, 0)
@@ -481,13 +479,22 @@ func _heli_hud(v, s: Vector2, c: Vector2) -> void:
 ## Flying a jet: the other jets (a red diamond on each enemy with how far off it is, a blue mark on each friend), the
 ## seeker's box (yellow while it locks on, red once locked), the circle you steer by and the cross where the nose and
 ## gun point, speed, height and throttle, the missile and ground warnings, the radar, the gun, missiles and flares.
+## Red round the edges of the screen when you're hurt: a smooth fade, strongest in the corners.
+func _damage(s: Vector2, a: float) -> void:
+	if not _vig:
+		var img := Image.create(128, 128, false, Image.FORMAT_LA8)
+		for y in 128:
+			for x in 128:
+				var d := Vector2((x + 0.5) / 64.0 - 1.0, (y + 0.5) / 64.0 - 1.0).length()
+				img.set_pixel(x, y, Color(1, 1, 1, smoothstep(0.7, 1.4, d)))
+		_vig = ImageTexture.create_from_image(img)
+	draw_texture_rect(_vig, Rect2(Vector2.ZERO, s), false, Color(0.4, 0.0, 0.0, minf(a, 0.65)))
+
+
 func _air_hud(p, v, s: Vector2, c: Vector2, cq) -> void:
 	var cam: Camera3D = v.cam
 	if _hurt_t > 0.0 or v.health < 40.0:
-		var a := maxf(_hurt_t * 0.45, (40.0 - v.health) / 40.0 * 0.35)
-		for i in 6:
-			var m := 18.0 * i
-			draw_rect(Rect2(m, m, s.x - 2 * m, s.y - 2 * m), Color(0.6, 0.0, 0.0, a * (1.0 - i / 6.0)), false, 18.0)
+		_damage(s, maxf(_hurt_t * 0.45, (40.0 - v.health) / 40.0 * 0.35) * 1.3)
 	var cx := c.x
 	_text(Vector2(cx - 260, 36), "%s  %d" % [D.TEAMS[p.team]["short"], ceili(cq.tickets[p.team])], 22, D.TEAMS[p.team]["color"], HORIZONTAL_ALIGNMENT_RIGHT, 150)
 	_text(Vector2(cx + 110, 36), "%d  %s" % [ceili(cq.tickets[1 - p.team]), D.TEAMS[1 - p.team]["short"]], 22, D.TEAMS[1 - p.team]["color"], HORIZONTAL_ALIGNMENT_LEFT, 150)

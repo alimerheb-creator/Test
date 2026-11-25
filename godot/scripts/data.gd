@@ -202,7 +202,7 @@ static var AIR_MAPS := [
 		"land": {"seed": 5, "hills": 1.0, "bumps": 1.0, "mountains": 1.0, "valley": 1.0, "trees": 1.0, "bushes": 0.0,
 			"rocks": 0.0, "desert": false, "oasis": []},
 		"look": {"sun": Vector3(-42, -35, 0), "sun_color": Color(1.0, 0.93, 0.82), "sun_energy": 2.4, "turbidity": 3.5,
-			"mie": 0.004, "ground": Color(0.3, 0.33, 0.25), "fog": Color(0.7, 0.78, 0.88), "fog_density": 0.00016,
+			"mie": 0.004, "ground": Color(0.3, 0.33, 0.25), "fog": Color(0.7, 0.78, 0.88), "fog_density": 0.0002,
 			"vfog": Color(0.9, 0.93, 0.97), "exposure": 1.0, "sky_fog": 0.1}},
 ]
 ## Air Superiority's rules: tickets a side for each jet in it (a jet lost costs one), seconds before a lost jet is
