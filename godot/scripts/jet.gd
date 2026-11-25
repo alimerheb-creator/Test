@@ -68,6 +68,7 @@ var _abs: Array = []
 var _stores: Array = []
 var _cs: Array = []  # each control surface: [its hinge, how it rests, kind, side, which way is down, how far it's turned]
 var _skins: Array = []
+var _burn := 0.0
 var _muzzle := Vector3.ZERO
 var _sound: AudioStreamPlayer3D
 var _gun_sound: AudioStreamPlayer3D
@@ -83,7 +84,39 @@ var _agile := 1.0  # how hard it can pull: you fully, a bot by its skill (and ha
 var _goal := Vector3.ZERO
 static var _scenes := {}
 static var _wreck: StandardMaterial3D
-static var _flame: StandardMaterial3D
+static var _fire := {}  # the afterburner's materials (plume, core, glow) and its meshes for each nozzle size
+## The afterburner's plume and its core: see-through light added onto what's behind it, white-hot at the nozzle,
+## turning orange and fading out toward the tail, faint toward its edges, flickering; the core with shock diamonds.
+const FIRE := """shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform vec3 hot : source_color = vec3(1.0, 0.8, 0.55);
+uniform vec3 cool : source_color = vec3(1.0, 0.35, 0.08);
+uniform float bright = 2.4;
+uniform float diamonds = 0.0;
+uniform float half_h = 3.0;
+instance uniform float power = 1.0;
+varying float t;
+void vertex() {
+	t = clamp((VERTEX.y + half_h) / (2.0 * half_h), 0.0, 1.0);
+}
+void fragment() {
+	float edge = smoothstep(0.0, 0.55, abs(dot(normalize(NORMAL), normalize(VIEW))));
+	float fl = 0.86 + 0.14 * sin(TIME * 53.0 + t * 17.0) * sin(TIME * 29.0 + 1.3);
+	float d = diamonds * pow(max(0.0, cos(t * 21.99)), 10.0) * (1.0 - t);
+	vec3 c = mix(hot, cool, smoothstep(0.0, 0.75, t));
+	ALBEDO = c * bright * power * (pow(1.0 - t, 1.7) * fl + d) * edge;
+}
+"""
+## The glow in the nozzle, seen from behind.
+const GLOW := """shader_type spatial;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+uniform vec3 col : source_color = vec3(1.0, 0.72, 0.42);
+instance uniform float power = 1.0;
+void fragment() {
+	float a = pow(clamp(1.0 - length(UV - vec2(0.5)) * 2.0, 0.0, 1.0), 1.6);
+	ALBEDO = col * a * 2.2 * (0.35 + 0.65 * power);
+}
+"""
 
 
 func setup(world: Node, t: int, spec: Dictionary, who: String) -> void:
@@ -106,7 +139,7 @@ func setup(world: Node, t: int, spec: Dictionary, who: String) -> void:
 		elif nm.begins_with("cs_"):
 			_cs.append([n, (n as Node3D).basis, n.get_meta("kind"), n.get_meta("side"), float(n.get_meta("sgn")), 0.0])
 	for m in model.find_children("*", "MeshInstance3D", true, false):
-		if m.name != "flame":
+		if not String(m.name) in ["plume", "core", "glow"]:
 			_skins.append(m)
 	_muzzle = model.get_meta("muzzle")
 	cam = Camera3D.new()
@@ -234,10 +267,14 @@ func _physics_process(dt: float) -> void:
 	for m in Proj.aams:
 		if is_instance_valid(m) and m.target == self:
 			warn = 0.3
-	var ab := throttle > 0.98
+	# the afterburner lights (and goes out) over a moment; without it, only the glow in the nozzle and a faint heat
+	_burn = move_toward(_burn, 1.0 if throttle > 0.98 else 0.0, 2.5 * dt)
+	var k := lerpf(0.12 * throttle, 1.0, _burn)
 	for a in _abs:
-		a.visible = throttle > 0.55
-		a.scale = Vector3.ONE * (0.4 + throttle * 0.6) * (1.35 if ab else 0.6)
+		a.visible = throttle > 0.3
+		a.scale = Vector3(1.0, 1.0, lerpf(0.4, 1.0, _burn) * randf_range(0.95, 1.05))
+		for f in a.get_children():
+			(f as GeometryInstance3D).set_instance_shader_parameter("power", k)
 	_surfaces(dt)
 	_sound.pitch_scale = 0.75 + speed / float(S["ab"]) * 0.5
 	if me:
@@ -726,12 +763,20 @@ func _surfaces(dt: float) -> void:
 ## gear (gear, hidden), the missiles (aam*), and the afterburner flames, put in its nozzles here (ab*). Its meta
 ## "muzzle": where the gun fires from; "gear_h": how high it stands on its wheels. Also parked at the airbases.
 static func build_model(spec: Dictionary, _t: int) -> Node3D:
-	if not _flame:
-		_flame = StandardMaterial3D.new()
-		_flame.albedo_color = Color.BLACK
-		_flame.emission_enabled = true
-		_flame.emission = Color(1.0, 0.55, 0.25)
-		_flame.emission_energy_multiplier = 7.0
+	if _fire.is_empty():
+		var sh := Shader.new()
+		sh.code = FIRE
+		var plume := ShaderMaterial.new()
+		plume.shader = sh
+		var core := ShaderMaterial.new()
+		core.shader = sh
+		for kv in [["hot", Color(0.9, 0.92, 1.0)], ["cool", Color(1.0, 0.66, 0.32)], ["bright", 3.4], ["diamonds", 2.6], ["half_h", 1.4]]:
+			core.set_shader_parameter(kv[0], kv[1])
+		var gs := Shader.new()
+		gs.code = GLOW
+		var glow := ShaderMaterial.new()
+		glow.shader = gs
+		_fire = {"plume": plume, "core": core, "glow": glow}
 	var kind: String = spec["kind"]
 	if not _scenes.has(kind):
 		_scenes[kind] = load("res://models/%s.scn" % kind)
@@ -745,13 +790,39 @@ static func build_model(spec: Dictionary, _t: int) -> Node3D:
 		var holder := Node3D.new()
 		holder.name = "ab%d" % i
 		holder.position = Vector3(n[0], n[1], n[2])
-		var a := MeshInstance3D.new()
-		a.name = "flame"
-		a.mesh = T._cyl(0.0, float(n[3]), 3.0, 10)
-		a.material_override = _flame
-		a.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		# (a cone lying along z, its point toward the tail)
-		a.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0), Vector3(0, 0, 1.5))
-		holder.add_child(a)
+		var r := float(n[3])
+		if not _fire.has(r):
+			# (each a cone along z without its ends: the plume 6 m long, the core 2.8 m, the glow a disc facing aft)
+			var pm := CylinderMesh.new()
+			pm.top_radius = r * 0.45
+			pm.bottom_radius = r * 0.95
+			pm.height = 6.0
+			pm.radial_segments = 12
+			pm.rings = 6
+			pm.cap_top = false
+			pm.cap_bottom = false
+			pm.material = _fire["plume"]
+			var cm := CylinderMesh.new()
+			cm.top_radius = r * 0.12
+			cm.bottom_radius = r * 0.75
+			cm.height = 2.8
+			cm.radial_segments = 12
+			cm.rings = 8
+			cm.cap_top = false
+			cm.cap_bottom = false
+			cm.material = _fire["core"]
+			var gm := QuadMesh.new()
+			gm.size = Vector2(r * 2.6, r * 2.6)
+			gm.material = _fire["glow"]
+			_fire[r] = [pm, cm, gm]
+		var along := Basis(Vector3.RIGHT, PI / 2.0)
+		for part in [["plume", 0, Transform3D(along, Vector3(0, 0, 3.0))], ["core", 1, Transform3D(along, Vector3(0, 0, 1.4))],
+				["glow", 2, Transform3D(Basis(), Vector3(0, 0, 0.05))]]:
+			var f := MeshInstance3D.new()
+			f.name = part[0]
+			f.mesh = _fire[r][part[1]]
+			f.transform = part[2]
+			f.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			holder.add_child(f)
 		root.add_child(holder)
 	return root
