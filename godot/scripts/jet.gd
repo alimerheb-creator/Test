@@ -578,7 +578,8 @@ func _gun() -> void:
 			reach = t
 	if hit:
 		end = from + dir * reach
-		hit.hurt(float(S["gun_dmg"]) * (1.0 if me else float(diff["dmg"])), pilot(), S["gun"])
+		# (a bomber's big airframe soaks up shells better)
+		hit.hurt(float(S["gun_dmg"]) * (1.0 if me else float(diff["dmg"])) * (0.6 if hit.bomber else 1.0), pilot(), S["gun"])
 		if _gun_n % 3 == 0:
 			w.flash(end, 1.6)
 	elif not r.is_empty():
