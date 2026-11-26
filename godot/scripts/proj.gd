@@ -3,9 +3,12 @@ extends Node3D
 ## impact), C-4 (sticks where it lands until detonated) and the support's supply crate (refills ammo nearby); a
 ## helicopter's rockets (hydra) and guided missiles (atgm: they fly to wherever their launcher's sight is); a jet's
 ## heat-seeking missiles (aam: they chase the jet they were locked on to, or a flare that pulls them off it, and go off
-## as they pass close) and its flares.
+## as they pass close) and its flares; a bomber's bombs (they fall from its speed, losing it to the air as they go; a
+## guided one steers onto an installation near where it would fall) and its cruise missiles (they fly to the installation they
+## were locked on to). The airbases' C-RAM guns can shoot the bombs and missiles down.
 
 const D := preload("res://scripts/data.gd")
+const T := preload("res://scripts/terrain.gd")
 
 var w: Node
 var kind := "grenade"
@@ -22,6 +25,11 @@ var target = null  # (a jet or a flare)
 var dead := false
 ## The heat seekers in the air (a jet hears the warning when one is after it, and its flares can pull them off).
 static var aams: Array = []
+## What the C-RAM guns can shoot at: the heat seekers, bombs and cruise missiles in the air.
+static var ordnance: Array = []
+var team := -1
+var blast: Array = []  # a bomb's or cruise missile's [radius, damage, what it does to a building]
+var aim = null  # where a guided bomb steers to
 var _trail: CPUParticles3D
 var _gone := false
 static var _smoke_mat: StandardMaterial3D
@@ -34,6 +42,14 @@ func launch(world: Node, k: String, from: Vector3, dir: Vector3, by: Node) -> vo
 	p = D.PROJECTILES[k]
 	fuse = p.get("fuse", 99.0)
 	vel = dir * float(p["speed"])
+	if by and by.get("team") != null:
+		team = by.team
+	if kind in ["bomb", "cruise"]:
+		blast = p.get("blast", [])
+		_ordnance_looks()
+		w.add_child(self)
+		global_position = from
+		return
 	if kind == "aam" or kind == "flare":
 		_air_looks()
 		w.add_child(self)
@@ -100,6 +116,57 @@ func _air_looks() -> void:
 	add_child(fl)
 	_trail = trail(self, 2.4, 2.4, Color(0.88, 0.88, 0.86, 0.55))
 	aams.append(self)
+	ordnance.append(self)
+
+
+## A bomb (a dark green body, its nose and four fins), or a cruise missile (a long grey body, its motor burning, a trail
+## of smoke behind).
+func _ordnance_looks() -> void:
+	var body := MeshInstance3D.new()
+	var bm := CylinderMesh.new()
+	var cruise := kind == "cruise"
+	bm.top_radius = 0.3 if cruise else 0.24
+	bm.bottom_radius = bm.top_radius
+	bm.height = 4.2 if cruise else 2.3
+	bm.radial_segments = 8
+	bm.rings = 1
+	body.mesh = bm
+	body.rotation.x = PI / 2.0
+	body.material_override = w.mat("metal") if cruise else w.mat("olive")
+	add_child(body)
+	var nose := MeshInstance3D.new()
+	var nm := SphereMesh.new()
+	nm.radius = bm.top_radius
+	nm.height = bm.top_radius * 3.0
+	nm.radial_segments = 8
+	nm.rings = 4
+	nose.mesh = nm
+	nose.position.z = -bm.height / 2.0
+	nose.material_override = body.material_override
+	add_child(nose)
+	for i in 4:
+		var f := MeshInstance3D.new()
+		var fb := BoxMesh.new()
+		fb.size = Vector3(0.03, 0.9 if cruise else 0.7, 0.5)
+		f.mesh = fb
+		f.material_override = body.material_override
+		f.rotation.z = i * PI / 2.0 + (PI / 4.0 if cruise else 0.0)
+		f.position.z = bm.height / 2.0 - 0.3
+		add_child(f)
+	for c in get_children():
+		(c as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	if cruise:
+		var fl := MeshInstance3D.new()
+		var fm := SphereMesh.new()
+		fm.radius = 0.35
+		fm.height = 1.8
+		fl.mesh = fm
+		fl.material_override = w.glow_mat(Color(1.0, 0.65, 0.3), 10.0)
+		fl.rotation.x = PI / 2.0
+		fl.position.z = bm.height / 2.0 + 0.8
+		add_child(fl)
+		_trail = trail(self, 2.6, 2.8, Color(0.85, 0.85, 0.83, 0.55))
+	ordnance.append(self)
 
 
 ## A trail of smoke puffs left behind in the world by whatever it's added to.
@@ -183,6 +250,12 @@ func _physics_process(dt: float) -> void:
 	life += dt
 	if kind == "aam":
 		_aam(dt)
+		return
+	if kind == "bomb":
+		_bomb(dt)
+		return
+	if kind == "cruise":
+		_cruise(dt)
 		return
 	if kind == "flare":
 		fuse -= dt
@@ -296,9 +369,108 @@ func _air_boom() -> void:
 	_fade()
 
 
+## Where a bomb let go at `from` with velocity v would land (it falls ever faster, and loses its speed over the ground
+## to the air: the same sums as its fall).
+static func drop_point(from: Vector3, v: Vector3) -> Vector3:
+	var g: float = D.PROJECTILES["bomb"]["gravity"]
+	var k: float = D.PROJECTILES["bomb"]["drag"]
+	var h := T.height(from.x, from.z)
+	var p := from
+	for i in 3:
+		var t := (v.y + sqrt(maxf(0.0, v.y * v.y + 2.0 * g * maxf(from.y - h, 0.0)))) / g
+		var f := (1.0 - exp(-k * t)) / k
+		p = Vector3(from.x + v.x * f, 0.0, from.z + v.z * f)
+		h = T.height(p.x, p.z)
+	return Vector3(p.x, h, p.z)
+
+
+## A bomb falling: a guided one steers its fall onto where it was sent; it goes off on whatever it hits.
+func _bomb(dt: float) -> void:
+	fuse -= dt
+	var e := exp(-float(p["drag"]) * dt)
+	vel.x *= e
+	vel.z *= e
+	vel.y -= float(p["gravity"]) * dt
+	if aim != null and life > 0.4:
+		var land := drop_point(global_position, vel)
+		var g: float = p["gravity"]
+		var t := maxf(0.6, (vel.y + sqrt(maxf(0.0, vel.y * vel.y + 2.0 * g * maxf(global_position.y - land.y, 0.0)))) / g)
+		var fix := Vector2(aim.x - land.x, aim.z - land.z) / t
+		fix = fix.limit_length(25.0 * dt)
+		vel.x += fix.x
+		vel.z += fix.y
+	_fly_into(dt)
+
+
+## A cruise missile: speeding up, it turns toward the installation it was locked on to (harder close in) and goes off
+## on it; without one (or with it gone) it flies on till its fuel runs out.
+func _cruise(dt: float) -> void:
+	fuse -= dt
+	if fuse <= 0.0:
+		_ground_boom()
+		return
+	var spd := minf(vel.length() + float(p["accel"]) * dt, float(p["max"]))
+	var d := vel.normalized()
+	if target and is_instance_valid(target) and not target.dead:
+		var tp: Vector3 = target.global_position + Vector3(0, float(target.top) * 0.5, 0)
+		var rel := tp - global_position
+		var dist := rel.length()
+		if dist < 6.0:
+			_ground_boom()
+			return
+		var to := rel / dist
+		var ang := d.angle_to(to)
+		if ang > 0.0001:
+			d = d.slerp(to, minf(1.0, float(p["turn"]) * (1.0 + 400.0 / maxf(dist, 100.0)) * dt / ang))
+	vel = d * spd
+	_fly_into(dt)
+
+
+## Moves it on, going off on the ground or a building in its way (or on running out of time).
+func _fly_into(dt: float) -> void:
+	var nxt := global_position + vel * dt
+	var r := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(global_position, nxt, 1))
+	if not r.is_empty():
+		global_position = r.position
+		_ground_boom()
+		return
+	if nxt.y < T.height(nxt.x, nxt.z) or fuse <= 0.0:
+		global_position = Vector3(nxt.x, maxf(nxt.y, T.height(nxt.x, nxt.z)), nxt.z)
+		_ground_boom()
+		return
+	global_position = nxt
+	if vel.length() > 1.0:
+		look_at(global_position + vel, Vector3.UP if absf(vel.normalized().y) < 0.98 else Vector3.RIGHT)
+
+
+## A bomb or cruise missile goes off: a fireball, the blast for anyone near and for the installations in reach.
+func _ground_boom() -> void:
+	if _gone:
+		return
+	var at := global_position
+	var r: float = blast[0]
+	fireball(w, at + Vector3(0, 2.0, 0), r * 0.9)
+	fireball(w, at + Vector3(randf_range(-3, 3), 5.0, randf_range(-3, 3)), r * 0.6)
+	w.sound3d("boom", at, 12.0, 3000.0)
+	w.explode(at, r, float(blast[1]), owner_soldier, label)
+	if w.ground:
+		w.ground.blast(at, r, float(blast[2]), owner_soldier, label)
+	_fade()
+
+
+## Shot down in the air by a C-RAM: it bursts where it is.
+func intercept() -> void:
+	if _gone:
+		return
+	fireball(w, global_position, 4.0 if kind != "bomb" else 6.0)
+	w.sound3d("boom", global_position, 4.0, 2000.0)
+	_fade()
+
+
 ## Gone (burnt out or burst): its smoke stays behind a while.
 func _fade() -> void:
 	aams.erase(self)
+	ordnance.erase(self)
 	_gone = true
 	dead = true
 	for c in get_children():

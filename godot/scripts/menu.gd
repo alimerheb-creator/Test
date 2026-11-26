@@ -82,6 +82,12 @@ func _pick(kind: String, v) -> void:
 			w.set_quality(v)
 		"spawn":
 			sel_spawn = v
+		"mode":
+			D.air_mode = "air" if v == 0 else "strike"
+			if v > 0:
+				D.air_plane = v - 1
+			_save("air_mode", D.air_mode)
+			_save("air_plane", D.air_plane)
 		"map":
 			var air := D.battle == "air"
 			if v != (D.air_map if air else D.map):
@@ -130,7 +136,18 @@ func show_main() -> void:
 		maps.append([list[i]["name"], i])
 	_row("map", maps, D.air_map if air else D.map)
 	if air:
-		_label("You fly the %s against %s's %ss. Shoot down their jets: each one lost costs its side a ticket." % [D.JETS[0]["name"], D.TEAMS[1]["name"], D.JETS[1]["name"]], 15, Color(1, 1, 1, 0.75))
+		# the mode, and in a Ground Strike what you fly, in one row
+		var strike := D.air_mode == "strike"
+		var fname: String = String(D.JETS[0]["name"]).get_slice(" ", 0)
+		var bname: String = String(D.BOMBERS[0]["name"]).get_slice(" ", 0)
+		_row("mode", [["AIR SUPERIORITY", 0], ["GROUND STRIKE · " + fname, 1], ["GROUND STRIKE · " + bname, 2]], (2 if D.air_plane == 1 else 1) if strike else 0)
+		var them: String = D.TEAMS[1]["name"]
+		if not strike:
+			_label("Your %s against %s's %ss: each jet lost costs a ticket. C-RAM guns guard the airbases." % [fname, them, D.JETS[1]["name"]], 15, Color(1, 1, 1, 0.75))
+		elif D.air_plane == 1:
+			_label("Bomb %s's airbase, guard yours. Your %s: bombs land on the circle, cruise missiles on what you lock." % [them, bname], 15, Color(1, 1, 1, 0.75))
+		else:
+			_label("Bomb %s's airbase, guard yours. Your %s: guard your bombers, down theirs, strafe their C-RAM guns." % [them, fname], 15, Color(1, 1, 1, 0.75))
 	else:
 		_label("CLASS", 15, Color(1, 1, 1, 0.55))
 		_row("class", _classes(), sel_class)

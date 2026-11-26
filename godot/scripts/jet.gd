@@ -8,7 +8,14 @@ extends CharacterBody3D
 ## without a lock. Space (FLARES) throws flares, which can pull a missile off you. The gun's rounds, the missiles and
 ## the flares come back slowly. Bots fly the rest: they pick a fight, chase, shoot and lock on, throw flares and break
 ## hard when a missile comes, and keep clear of the ground and inside the map. A jet shot down (or flown into the
-## ground) comes back high over its own airbase a few seconds later, and costs its side a ticket.
+## ground) comes back high over its own airbase a few seconds later, and costs its side a ticket (half one in a Ground
+## Strike).
+## The bombers (Ground Strike) fly the same way, heavier: Vanguard's B-1B Lancer and Onyx's Tu-160 Blackjack, their
+## wings sweeping back as they speed up. Left mouse (BOMBS) lets bombs go from the bay (its doors open), held for a
+## stick: they land on the circle on the ground ahead (steering onto an installation near it); right mouse
+## (MISSILE) sends a cruise missile at the enemy installation the seeker has locked on to near the nose. Bomb by bomb
+## and missile by missile the bay fills up again. Their bots run in over the enemy's airbase at bombing height (cruise
+## missiles first, from a couple of kilometres off) and let a stick go when it would fall on their target.
 
 const D := preload("res://scripts/data.gd")
 const T := preload("res://scripts/terrain.gd")
@@ -82,6 +89,24 @@ var _err := Vector3.ZERO
 var _skill := 1.0
 var _agile := 1.0  # how hard it can pull: you fully, a bot by its skill (and harder chasing a jet ahead of it)
 var _goal := Vector3.ZERO
+var bomber := false
+var striker := false  # (a fighter bot that goes for the enemy's C-RAM guns when there's nobody to fight near it)
+var _swing: Array = []  # the swing wings: [node, side, how far back]
+var _doors: Array = []  # the bomb bay doors: [node, side]
+var _stabs: Array = []
+var _bcs: Array = []  # a bomber's flaps, ailerons and rudder: [node, the stick they follow, how far]
+var _bay: Array = []
+var _cruise_at: Array = []
+var _bay_i := 0
+var _door := 0.0
+var _door_t := 0.0
+var _drop_cd := 0.0
+var _drop_t := 0.0
+var _stick_n := 0
+var _run = null  # a bot bomber's (or striker's) target: an enemy installation
+var _egress := 0.0
+var _cam_d := 24.0
+var _cam_h := 5.0
 static var _scenes := {}
 static var _wreck: StandardMaterial3D
 static var _fire := {}  # the afterburner's materials (plume, core, glow) and its meshes for each nozzle size
@@ -126,6 +151,7 @@ func setup(world: Node, t: int, spec: Dictionary, who: String) -> void:
 	tag = who
 	diff = D.DIFFICULTY[w.difficulty]
 	_skill = 0.55 + 0.07 * float(diff["turn"])
+	bomber = S.get("bomber", false)
 	collision_layer = 0
 	collision_mask = 0
 	model = build_model(S, team)
@@ -138,10 +164,24 @@ func setup(world: Node, t: int, spec: Dictionary, who: String) -> void:
 			_stores.append(n)
 		elif nm.begins_with("cs_"):
 			_cs.append([n, (n as Node3D).basis, n.get_meta("kind"), n.get_meta("side"), float(n.get_meta("sgn")), 0.0])
+		elif nm.begins_with("swing"):
+			_swing.append([n, float(n.get_meta("side")), float(n.get_meta("max"))])
+		elif nm.begins_with("door"):
+			_doors.append([n, float(n.get_meta("side"))])
+		elif nm.begins_with("stab"):
+			_stabs.append(n)
+		elif nm.begins_with("cs"):
+			_bcs.append([n, String(n.get_meta("ch")), float(n.get_meta("k"))])
 	for m in model.find_children("*", "MeshInstance3D", true, false):
 		if not String(m.name) in ["plume", "core", "glow"]:
 			_skins.append(m)
-	_muzzle = model.get_meta("muzzle")
+	_muzzle = model.get_meta("muzzle", Vector3.ZERO)
+	_bay = model.get_meta("bombs", [])
+	_cruise_at = model.get_meta("cruise", [])
+	if bomber:
+		var cm: Array = model.get_meta("cam")
+		_cam_d = float(cm[0]) * 0.8
+		_cam_h = float(cm[1]) * 0.6
 	cam = Camera3D.new()
 	cam.top_level = true
 	cam.near = 0.5
@@ -197,8 +237,13 @@ func respawn() -> void:
 	speed = float(S["corner"]) + 20.0
 	throttle = 0.8
 	velocity = -global_basis.z * speed
-	ammo = [int(S["gun_ammo"]), int(S["aams"])]
+	ammo = [int(S["bombs"]), int(S["cruises"])] if bomber else [int(S["gun_ammo"]), int(S["aams"])]
 	flares = int(S["flares"])
+	_run = null
+	_egress = 0.0
+	_stick_n = 0
+	_door = 0.0
+	_door_t = 0.0
 	for st in _stores:
 		st.visible = true
 	_paint(null)
@@ -239,6 +284,8 @@ func _physics_process(dt: float) -> void:
 	_gun_cd -= dt
 	_mcd -= dt
 	_fcd -= dt
+	_drop_cd -= dt
+	_door_t -= dt
 	warn -= dt
 	_by_t -= dt
 	_resupply(dt)
@@ -258,12 +305,18 @@ func _physics_process(dt: float) -> void:
 	if dead:
 		return
 	_seeker(dt)
-	if _trig:
-		_gun()
-	elif _gun_sound.playing:
-		_gun_sound.stop()
-	if _shoot:
-		_missile()
+	if bomber:
+		if _trig:
+			_drop()
+		if _shoot:
+			_launch_cruise()
+	else:
+		if _trig:
+			_gun()
+		elif _gun_sound.playing:
+			_gun_sound.stop()
+		if _shoot:
+			_missile()
 	for m in Proj.aams:
 		if is_instance_valid(m) and m.target == self:
 			warn = 0.3
@@ -276,7 +329,7 @@ func _physics_process(dt: float) -> void:
 		for f in a.get_children():
 			(f as GeometryInstance3D).set_instance_shader_parameter("power", k)
 	_surfaces(dt)
-	_sound.pitch_scale = 0.75 + speed / float(S["ab"]) * 0.5
+	_sound.pitch_scale = (0.6 if bomber else 0.75) + speed / float(S["ab"]) * 0.5
 	if me:
 		var ahead := global_position + velocity * 3.0
 		danger = 1.0 if velocity.y < -8.0 and ahead.y < T.height(ahead.x, ahead.z) + 40.0 else 0.0
@@ -284,8 +337,29 @@ func _physics_process(dt: float) -> void:
 		_camera(dt)
 
 
-## The gun's rounds come back a while after it stops firing; a missile every 20 s, a flare salvo every 4 s.
+## The gun's rounds come back a while after it stops firing; a missile every 20 s, a flare salvo every 4 s. A bomber's
+## bay fills again a bomb every 8 s from 10 s after the last went, and a cruise missile every 30 s.
 func _resupply(dt: float) -> void:
+	if bomber:
+		_drop_t += dt
+		if _drop_t > 10.0 and ammo[0] < int(S["bombs"]):
+			_rounds += dt / 8.0
+			if _rounds >= 1.0:
+				_rounds -= 1.0
+				ammo[0] += 1
+		_aam_t += dt
+		if ammo[1] >= int(S["cruises"]):
+			_aam_t = 0.0
+		elif _aam_t > 30.0:
+			_aam_t = 0.0
+			ammo[1] += 1
+		_flare_t += dt
+		if flares >= int(S["flares"]):
+			_flare_t = 0.0
+		elif _flare_t > 4.0:
+			_flare_t = 0.0
+			flares += 1
+		return
 	_cool += dt
 	var n: int = S["gun_ammo"]
 	if _cool > 3.0 and ammo[0] < n:
@@ -407,7 +481,7 @@ func _fly_player(dt: float) -> void:
 ## Behind the jet, looking where you steer (it swings round as you look about), kept off the ground.
 func _camera(dt: float) -> void:
 	var d := look
-	var pos := global_position - d * (24.0 + speed * 0.012) + Vector3.UP * 5.0
+	var pos := global_position - d * (_cam_d + speed * 0.012) + Vector3.UP * _cam_h
 	pos.y = maxf(pos.y, T.height(pos.x, pos.z) + 3.0)
 	_shake = move_toward(_shake, 0.0, dt * 1.5)
 	if _shake > 0.0:
@@ -445,12 +519,13 @@ func _seeker(dt: float) -> void:
 	var L: Array = S["lock"]
 	var best = null
 	var bs := INF
-	for v in w.vehicles:
-		if v.dead or v.team == team or not v.get("jet"):
+	# (a bomber's: the enemy's installations)
+	for v in (w.ground.enemy_sites(team) if bomber and w.ground else w.vehicles):
+		if v.dead or v.team == team or not (bomber or v.get("jet")):
 			continue
 		var rel: Vector3 = v.global_position - global_position
 		var d := rel.length()
-		if d > float(L[0]) or d < 120.0:
+		if d > float(L[0]) or d < (300.0 if bomber else 120.0):
 			continue
 		var a := fwd.angle_to(rel / d)
 		if a > float(L[1]):
@@ -506,8 +581,13 @@ func _gun() -> void:
 		hit.hurt(float(S["gun_dmg"]) * (1.0 if me else float(diff["dmg"])), pilot(), S["gun"])
 		if _gun_n % 3 == 0:
 			w.flash(end, 1.6)
-	elif not r.is_empty() and _gun_n % 4 == 0:
-		w.impact(r.position, r.normal)
+	elif not r.is_empty():
+		# (an installation at an airbase: its shells wear it down)
+		var c: Object = r.collider
+		if c and c.has_method("hit"):
+			c.hit(float(S["gun_dmg"]) * float(c.K["gun"]) * (1.0 if me else float(diff["dmg"])), pilot(), S["gun"])
+		if _gun_n % 4 == 0:
+			w.impact(r.position, r.normal)
 	if _gun_n % 3 == 0:
 		w.tracer(from + velocity * 0.03, end)
 	if me:
@@ -532,17 +612,67 @@ func _missile() -> void:
 	w.sound3d("missile", st.global_position, 4.0)
 
 
-## Three flares fall away behind; each missile after this jet may go for one instead.
+## A bomb from the bay (the next of its places in turn), falling from the bomber's speed; a guided one is sent onto the
+## enemy installation nearest where it would fall, if there's one that close.
+func _drop() -> void:
+	if _drop_cd > 0.0 or ammo[0] <= 0:
+		return
+	_drop_cd = 0.25
+	_drop_t = 0.0
+	_door_t = maxf(_door_t, 2.0)
+	ammo[0] -= 1
+	var at: Vector3 = global_transform * (_bay[_bay_i % _bay.size()] if not _bay.is_empty() else Vector3(0, -1.5, 0))
+	_bay_i += 1
+	var pr := Proj.new()
+	pr.label = S["bomb"]
+	pr.launch(w, "bomb", at, Vector3.ZERO, pilot())
+	pr.vel = velocity + Vector3.DOWN * 4.0
+	pr.blast = S["blast"]
+	if float(S["guided"]) > 0.0 and w.ground:
+		var land := Proj.drop_point(at, pr.vel)
+		var bd := float(S["guided"])
+		for st in w.ground.enemy_sites(team):
+			var d := Vector2(st.global_position.x - land.x, st.global_position.z - land.z).length()
+			if d < bd:
+				bd = d
+				pr.aim = st.global_position
+	if driver == w.player:
+		w.sound("empty", -4.0)
+
+
+## Where the next bomb would land (the circle on the ground you aim with).
+func impact() -> Vector3:
+	var at: Vector3 = global_transform * (_bay[_bay_i % _bay.size()] if not _bay.is_empty() else Vector3(0, -1.5, 0))
+	return Proj.drop_point(at, velocity + Vector3.DOWN * 4.0)
+
+
+## A cruise missile out of the bay at the installation the seeker has locked on to (or straight on without a lock).
+func _launch_cruise() -> void:
+	if _mcd > 0.0 or ammo[1] <= 0:
+		return
+	_mcd = 1.5 if driver == w.player else randf_range(3.0, 5.0)
+	ammo[1] -= 1
+	_door_t = maxf(_door_t, 1.5)
+	var at: Vector3 = global_transform * (_cruise_at[ammo[1] % _cruise_at.size()] if not _cruise_at.is_empty() else Vector3(0, -1.6, 0))
+	var pr := Proj.new()
+	pr.label = S["cruise"]
+	pr.target = lock
+	pr.launch(w, "cruise", at, Vector3.ZERO, pilot())
+	pr.vel = velocity + Vector3.DOWN * 6.0
+	w.sound3d("missile", at, 4.0)
+
+
+## Three flares fall away behind (a bomber lays a fan of six); each missile after this one may go for one instead.
 func _flare() -> void:
 	if flares <= 0 or _fcd > 0.0:
 		return
 	flares -= 1
 	_fcd = 0.8
 	var made := []
-	for i in 3:
+	for i in (6 if bomber else 3):
 		var f := Proj.new()
-		f.launch(w, "flare", global_position + global_basis.z * 5.0, Vector3.ZERO, pilot())
-		f.vel = velocity * 0.55 + global_basis.x * randf_range(-30.0, 30.0) + Vector3.DOWN * randf_range(10.0, 25.0)
+		f.launch(w, "flare", global_position + global_basis.z * (12.0 if bomber else 5.0), Vector3.ZERO, pilot())
+		f.vel = velocity * 0.55 + global_basis.x * randf_range(-30.0, 30.0) * (2.0 if bomber else 1.0) + Vector3.DOWN * randf_range(10.0, 25.0)
 		made.append(f)
 	for m in Proj.aams:
 		if is_instance_valid(m) and m.target == self and randf() < float(m.p["decoy"]):
@@ -555,6 +685,9 @@ func _flare() -> void:
 ## fires when its nose is on, and sends a missile once locked. With none, it heads for the middle. It keeps off the
 ## ground and inside the map all the while.
 func _fly_bot(dt: float) -> void:
+	if bomber:
+		_fly_bomber_bot(dt)
+		return
 	var pos := global_position
 	var fwd := -global_basis.z
 	_think -= dt
@@ -563,19 +696,38 @@ func _fly_bot(dt: float) -> void:
 		_target = _pick_target()
 		_err = Vector3(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1)) * float(diff["aim"]) * 0.15
 		_goal = Vector3(randf_range(-700.0, 700.0), 0.0, randf_range(-700.0, 700.0))
+		# a striker with nobody to fight near it goes for the enemy's C-RAM guns (or what's left standing)
+		if striker and w.ground and (_target == null or pos.distance_to(_target.global_position) > 2500.0):
+			if _run == null or not is_instance_valid(_run) or _run.dead:
+				_run = _pick_site(true)
+		else:
+			_run = null
 	var want := fwd
 	var thr := 0.85
 	_agile = _skill
+	var low := false
 	var m = _incoming()
+	_egress -= dt
 	if m:
-		if pos.distance_to(m.global_position) < 1300.0 and randf() < (0.5 + 0.8 * _skill) * dt:
-			_flare()
-		var side: Vector3 = (pos - m.global_position).cross(Vector3.UP)
-		side = side.normalized() if side.length() > 0.1 else global_basis.x
-		if side.dot(fwd) < 0.0:
-			side = -side
-		want = (side + Vector3.DOWN * 0.2).normalized()
+		_break(m, dt)
+		want = look
 		thr = 1.0
+	elif _run and is_instance_valid(_run) and not _run.dead:
+		# a strafing run: in low toward it, the gun on it from a kilometre, and away before it's too close
+		var tp: Vector3 = _run.global_position + Vector3(0, 2.0, 0)
+		var rel := tp - pos
+		var dist := rel.length()
+		low = true
+		if _egress > 0.0:
+			want = Vector3(fwd.x, 0.0, fwd.z).normalized() + Vector3.UP * 0.5
+		elif dist > 1400.0:
+			want = (Vector3(tp.x, tp.y + 260.0, tp.z) - pos).normalized()
+		else:
+			want = (rel / dist + _err * 0.3).normalized()
+			_trig = dist < 1000.0 and fwd.angle_to(rel / dist) < 0.04 + float(diff["aim"]) * 0.2
+			if dist < 320.0 or pos.y - T.height(pos.x, pos.z) < 90.0:
+				_egress = 4.0
+		thr = 0.7
 	elif _target and is_instance_valid(_target) and not _target.dead:
 		var tp: Vector3 = _target.global_position
 		var rel := tp - pos
@@ -596,6 +748,96 @@ func _fly_bot(dt: float) -> void:
 		_shoot = lock == _target and _mcd <= 0.0 and dist > 350.0 and dist < 2200.0 and randf() < 1.2 * dt * (0.5 + _skill)
 	else:
 		want = (Vector3(_goal.x, maxf(800.0, T.height(_goal.x, _goal.z) + 400.0), _goal.z) - pos).normalized()
+	want = _safe(want, low)
+	throttle = move_toward(throttle, thr, dt * 0.6)
+	_ctl = _steer(want)
+	look = want
+
+
+## A missile coming: flares, and a hard turn across its path (and down a little): where it looks to go (look).
+func _break(m: Node, dt: float) -> void:
+	var pos := global_position
+	var fwd := -global_basis.z
+	if pos.distance_to(m.global_position) < 1300.0 and randf() < (0.5 + 0.8 * _skill) * dt:
+		_flare()
+	var side: Vector3 = (pos - m.global_position).cross(Vector3.UP)
+	side = side.normalized() if side.length() > 0.1 else global_basis.x
+	if side.dot(fwd) < 0.0:
+		side = -side
+	look = (side + Vector3.DOWN * 0.2).normalized()
+
+
+## A bot's target installation at the enemy's airbase: a striker's, the C-RAM guns first; a bomber's, the big ones
+## (hangars, the bunker, the fuel depot) first; the nearer the likelier, with some chance in it.
+func _pick_site(guns: bool):
+	var best = null
+	var bs := -INF
+	for st in w.ground.enemy_sites(team):
+		var big: bool = st.kind in ["hangar", "command", "fuel"]
+		var sc := (25.0 if guns and st.kind == "cram" else 0.0) + (30.0 if not guns and big else 0.0) \
+			- Vector2(st.global_position.x - global_position.x, st.global_position.z - global_position.z).length() / 40.0 + randf_range(0.0, 25.0)
+		if sc > bs:
+			bs = sc
+			best = st
+	return best
+
+
+## A bot bomber. A missile coming: flares and a hard turn. Else its target (an installation at the enemy's airbase):
+## from far off it heads for it at bombing height, sends its cruise missiles once the seeker has locked on to it, and
+## lets its stick of bombs go when they'd land on it (the bay doors open as it runs in); then it turns for home and
+## climbs till its bay has filled again, and goes for the next one.
+func _fly_bomber_bot(dt: float) -> void:
+	var pos := global_position
+	var fwd := -global_basis.z
+	_think -= dt
+	if _think <= 0.0:
+		_think = randf_range(0.8, 1.4)
+		if _run == null or not is_instance_valid(_run) or _run.dead:
+			_run = _pick_site(false) if w.ground else null
+			_stick_n = 0
+	var want := fwd
+	var thr := 0.85
+	_agile = _skill
+	_egress -= dt
+	var m = _incoming()
+	if m:
+		_break(m, dt)
+		want = look
+		thr = 1.0
+	elif _run == null or _egress > 0.0 or (ammo[0] < int(S["stick"]) and _stick_n == 0):
+		# home: back over its own airbase and up, till it can go again
+		var b: Array = D.BASES[team]
+		var home := Vector3(b[0], maxf(900.0, T.height(b[0], b[1]) + 650.0), b[1])
+		if Vector2(home.x - pos.x, home.z - pos.z).length() < 600.0:
+			home = Vector3(pos.x + fwd.z * 800.0, home.y, pos.z - fwd.x * 800.0)
+		want = (home - pos).normalized()
+	else:
+		var tp: Vector3 = _run.global_position
+		var flat := Vector2(tp.x - pos.x, tp.z - pos.z)
+		var dist := flat.length()
+		var alt := T.height(tp.x, tp.z) + 380.0
+		var dir := flat / maxf(dist, 1.0)
+		want = Vector3(dir.x, clampf((alt - pos.y) / maxf(dist * 0.35, 300.0), -0.35, 0.35), dir.y).normalized()
+		thr = 0.62 if speed > 200.0 else 0.85
+		_shoot = lock == _run and ammo[1] > 0 and dist > 900.0
+		if dist < 3500.0:
+			_door_t = 0.5
+		# the bombs: once the place they'd land comes up to it (a little short, so the stick straddles it)
+		var hit := impact()
+		var past := Vector2(hit.x - tp.x, hit.z - tp.z).dot(dir)
+		var aside := absf(Vector2(hit.x - tp.x, hit.z - tp.z).dot(Vector2(-dir.y, dir.x)))
+		if _stick_n > 0 or (dist < 2500.0 and past > -20.0 and past < 60.0 and aside < 25.0 + float(_run.radius)):
+			if _stick_n == 0:
+				_stick_n = mini(int(S["stick"]), ammo[0])
+			if _drop_cd <= 0.0 and ammo[0] > 0:
+				_trig = true
+				_stick_n -= 1
+				if _stick_n <= 0:
+					_egress = randf_range(7.0, 11.0)
+					_run = null
+		elif past > 60.0 and dist < 400.0:
+			# passed it without a solution: round again
+			_egress = 5.0
 	want = _safe(want)
 	throttle = move_toward(throttle, thr, dt * 0.6)
 	_ctl = _steer(want)
@@ -623,21 +865,24 @@ func _pick_target():
 			continue
 		var rel: Vector3 = v.global_position - global_position
 		var d := rel.length()
-		var s := d * (1.7 - fwd.dot(rel / maxf(d, 1.0)) * 0.7) * (0.75 if v == _target else 1.0) * randf_range(0.85, 1.15)
+		var s := d * (1.7 - fwd.dot(rel / maxf(d, 1.0)) * 0.7) * (0.75 if v == _target else 1.0) * (0.75 if v.bomber else 1.0) * randf_range(0.85, 1.15)
 		if s < bs:
 			bs = s
 			best = v
 	return best
 
 
-## Keeps a bot off the ground (looking a few seconds ahead) and inside the map.
-func _safe(want: Vector3) -> Vector3:
+## Keeps a bot off the ground (looking a few seconds ahead) and inside the map; on a strafing run (low) it lets it
+## down closer.
+func _safe(want: Vector3, low := false) -> Vector3:
 	var pos := global_position
 	var dz := 0.0
-	for t in [1.0, 2.5, 4.0]:
+	var gap := 45.0 if low else 130.0
+	for t in ([0.8, 1.6] if low else [1.0, 2.5, 4.0]):
 		var p: Vector3 = pos + velocity * t
-		dz = maxf(dz, (T.height(p.x, p.z) + 130.0 - p.y) / 130.0)
-	dz = maxf(dz, (160.0 - (pos.y - T.height(pos.x, pos.z))) / 160.0)
+		dz = maxf(dz, (T.height(p.x, p.z) + gap - p.y) / gap)
+	var floor_h := 60.0 if low else 160.0
+	dz = maxf(dz, (floor_h - (pos.y - T.height(pos.x, pos.z))) / floor_h)
 	if dz > 0.0:
 		var flat := Vector3(want.x, 0.0, want.z)
 		if flat.length() < 0.05:
@@ -680,7 +925,7 @@ func _destroy(by: Node, what: String) -> void:
 	_fall = true
 	killer = by
 	cause = what
-	_wreck_t = float(D.AIR["respawn"])
+	_wreck_t = float(S.get("respawn", D.AIR["respawn"]))
 	_spin = randf_range(-2.5, 2.5)
 	seek = null
 	lock = null
@@ -689,7 +934,7 @@ func _destroy(by: Node, what: String) -> void:
 		_tone.stop()
 	var cq = w.conquest
 	cq.on_kill(pilot(), by, what, false)
-	cq.tickets[team] = maxf(0.0, cq.tickets[team] - 1.0)
+	cq.tickets[team] = maxf(0.0, cq.tickets[team] - (0.5 if D.air_mode == "strike" else 1.0))
 	if by and by.get("score") != null:
 		by.score += 100
 	if by == w.player:
@@ -740,6 +985,23 @@ func pick_weapon(_i: int) -> void:
 ## The control surfaces follow the stick: the ailerons (and a little of the tailplanes) roll it, the tailplanes pitch
 ## it, the rudders yaw it, and the leading-edge flaps droop as it pulls.
 func _surfaces(dt: float) -> void:
+	if bomber:
+		# the swing wings: spread out for slow flight, swept back at speed; the bay doors open while it bombs; the
+		# all-moving tailplanes pitch it; the flaps droop when it's slow
+		var k := smoothstep(float(S["stall"]) * 1.4, float(S["top"]) * 0.9, speed)
+		for sw in _swing:
+			var n: Node3D = sw[0]
+			n.rotation.y += (-float(sw[1]) * float(sw[2]) * k - n.rotation.y) * minf(1.0, dt * 0.8)
+		_door = move_toward(_door, 1.0 if _door_t > 0.0 and ammo[0] + ammo[1] > 0 else 0.0, dt * 1.2)
+		for d in _doors:
+			(d[0] as Node3D).rotation.z = float(d[1]) * 1.35 * _door
+		for st in _stabs:
+			(st as Node3D).rotation.x = -_ctl.x * 0.35
+		var flap := clampf((float(S["corner"]) - speed) / (float(S["corner"]) - float(S["stall"])), 0.0, 1.0)
+		for c in _bcs:
+			var v: float = {"roll": _ctl.y, "pitch": _ctl.x, "yaw": _ctl.z}.get(c[1], flap)
+			(c[0] as Node3D).rotation.x = float(c[2]) * clampf(v, -1.0, 1.0)
+		return
 	for c in _cs:
 		var side := -1.0 if c[3] == "R" else 1.0
 		var want := 0.0

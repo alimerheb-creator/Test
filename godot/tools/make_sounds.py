@@ -83,3 +83,29 @@ def beep(i):
     t = (i % (R // 4)) / R
     return math.sin(2 * math.pi * 1100 * i / R) * (min(1, t / 0.005, (0.1 - t) / 0.005) if t < 0.1 else 0.0)
 write('warn', [beep(i) for i in range(R // 2)])
+# the C-RAM's gatling: 4,500 rounds a minute (75 a second, in a 1 s loop): each a crack over the 75 Hz buzz of the
+# barrels, with the drive motor's whine
+per = R // 75
+cram = []
+for k in range(75):
+    b = lp([random.uniform(-1, 1) for _ in range(per)], 0.5)
+    amp = random.uniform(0.85, 1.0)
+    for j in range(per):
+        t = j / R
+        i = k * per + j
+        cram.append(amp * (b[j] * math.exp(-t / 0.0025) * 1.3 + 0.5 * math.exp(-t / 0.004) * math.sin(2 * math.pi * 150 * t))
+                    + 0.35 * ((i * 75 / R) % 1.0 - 0.5) + 0.04 * math.sin(2 * math.pi * 1176 * i / R))
+write('cram', lp(cram, 0.55))
+# an enemy C-RAM tracking you: a slow beep (1 s loop); shooting at you: a fast one (6 a second); and your base's siren,
+# wailing up and down every 4 s
+def pip(i, period, on, f):
+    t = (i % period) / R
+    return math.sin(2 * math.pi * f * t) * (min(1, t / 0.004, (on - t) / 0.004) if t < on else 0.0)
+write('beep', [pip(i, R, 0.12, 1000) for i in range(R)])
+write('beepfast', [pip(i, R // 6, 0.07, 1250) for i in range(R // 2)])
+siren = []
+for i in range(R * 4):
+    t = i / R
+    ph = 2 * math.pi * (850 * t + 250 * (4 / (2 * math.pi)) * (1 - math.cos(2 * math.pi * t / 4)))
+    siren.append(math.sin(ph) + 0.3 * math.sin(2 * ph) + 0.15 * math.sin(3 * ph))
+write('siren', siren)

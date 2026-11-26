@@ -358,7 +358,7 @@ func _touch(p, s: Vector2) -> void:
 	var names := {"fire": "FIRE", "ads": "AIM", "jump": "JUMP", "crouch": "CROUCH", "reload": "RELOAD", "switch": "GUN" if not p.vehicle else ("SEAT" if p.vehicle.get("air") and p.vehicle.driver != p else ["ROCKETS", "MISSILE", "GUN"][p.vehicle.weapon] if p.vehicle.get("air") else ("MG" if p.vehicle.weapon == 0 else "CANNON")), "up": "UP", "down": "DOWN", "use": "EXIT" if p.vehicle else ("REVIVE" if p.near_downed else "ENTER"), "grenade": "GRENADE",
 		"gadget": "DETONATE" if p.cls == "recon" and p.gadget_ammo == 0 and not p.charges.is_empty() else gname.split(" ")[0], "knife": "KNIFE", "gfx": "GFX"}
 	if flying:
-		names.merge({"fire": "GUN", "aam": "MISSILE", "flare": "FLARES", "up": "THR +", "down": "THR -"}, true)
+		names.merge({"fire": "BOMBS" if p.vehicle.bomber else "GUN", "aam": "MISSILE", "flare": "FLARES", "up": "THR +", "down": "THR -"}, true)
 	for kk in bs:
 		var on: bool = (kk == "fire" and fire) or (kk == "ads" and ads_on) or (kk == "crouch" and p.crouch) or held(kk)
 		draw_circle(bs[kk][0], bs[kk][1], Color(1, 0.55, 0.3, 0.35) if on else Color(0, 0, 0, 0.28))
@@ -498,7 +498,9 @@ func _air_hud(p, v, s: Vector2, c: Vector2, cq) -> void:
 	var cx := c.x
 	_text(Vector2(cx - 260, 36), "%s  %d" % [D.TEAMS[p.team]["short"], ceili(cq.tickets[p.team])], 22, D.TEAMS[p.team]["color"], HORIZONTAL_ALIGNMENT_RIGHT, 150)
 	_text(Vector2(cx + 110, 36), "%d  %s" % [ceili(cq.tickets[1 - p.team]), D.TEAMS[1 - p.team]["short"]], 22, D.TEAMS[1 - p.team]["color"], HORIZONTAL_ALIGNMENT_LEFT, 150)
-	_text(Vector2(cx - 100, 36), "AIR SUPERIORITY", 13, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER, 200)
+	_text(Vector2(cx - 100, 36), "GROUND STRIKE" if D.air_mode == "strike" else "AIR SUPERIORITY", 13, Color(1, 1, 1, 0.6), HORIZONTAL_ALIGNMENT_CENTER, 200)
+	if w.ground:
+		_sites(v, cam, s)
 	for o in w.vehicles:
 		if o == v or o.dead:
 			continue
@@ -533,6 +535,22 @@ func _air_hud(p, v, s: Vector2, c: Vector2, cq) -> void:
 			draw_rect(Rect2(bp - Vector2(20, 20), Vector2(40, 40)), col, false, 2.0)
 			if locked:
 				_text(bp + Vector2(-40, -28), "LOCK", 14, col, HORIZONTAL_ALIGNMENT_CENTER, 80)
+	# a bomber's bomb sight: the circle on the ground where the next bomb would land (red on an enemy installation)
+	if v.bomber and v.ammo[0] > 0:
+		var ip: Vector3 = v.impact()
+		if not cam.is_position_behind(ip):
+			var on := false
+			for st in w.ground.enemy_sites(v.team):
+				if Vector2(st.global_position.x - ip.x, st.global_position.z - ip.z).length() < float(st.radius) + 12.0:
+					on = true
+			var q := cam.unproject_position(ip)
+			var col := Color(1, 0.3, 0.2) if on else Color(0.6, 1.0, 0.6, 0.9)
+			draw_arc(q, 16.0, 0, TAU, 32, col, 2.0, true)
+			for d in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
+				draw_line(q + d * 16.0, q + d * 26.0, col, 2.0)
+			draw_circle(q, 2.5, col)
+			if on:
+				_text(q + Vector2(-60, 30), "ON TARGET", 14, col, HORIZONTAL_ALIGNMENT_CENTER, 120)
 	# where you steer, and where the nose points
 	var ap: Vector3 = v.global_position + v.look * 1500.0
 	if not cam.is_position_behind(ap):
@@ -550,6 +568,10 @@ func _air_hud(p, v, s: Vector2, c: Vector2, cq) -> void:
 	var blink := fmod(Time.get_ticks_msec() / 1000.0, 0.5) < 0.3
 	if v.warn > 0.0 and blink:
 		_text(Vector2(0, 110), "MISSILE", 34, Color(1, 0.25, 0.2), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+	elif w.ground and w.ground.alarm != "" and (blink or w.ground.alarm == "track"):
+		var al: String = w.ground.alarm
+		_text(Vector2(0, 110), {"fire": "C-RAM FIRING", "track": "C-RAM LOCK", "base": "INCOMING · C-RAM ENGAGING"}[al], 26 if al != "base" else 20,
+			Color(1, 0.3, 0.2) if al == "fire" else Color(1, 0.75, 0.3), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 	if v.danger > 0.0 and blink:
 		_text(Vector2(0, c.y + 70), "PULL UP", 30, Color(1, 0.35, 0.25), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 	elif v.speed < float(v.S["stall"]) * 1.1 and blink:
@@ -572,18 +594,48 @@ func _air_hud(p, v, s: Vector2, c: Vector2, cq) -> void:
 	var ax := s.x - 30.0 - (470.0 if touch_ui else 0.0)
 	var ay := s.y - 30.0 if not touch_ui else s.y - 20.0
 	_text(Vector2(ax - 400, ay), "%d" % v.ammo[0] if v.ammo[0] > 0 else "EMPTY", 30, Color(1, 1, 1, 0.95), HORIZONTAL_ALIGNMENT_RIGHT, 400)
-	_text(Vector2(ax - 400, ay - 40), String(v.S["gun"]), 17, Color(1, 0.9, 0.7, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 400)
-	_text(Vector2(ax - 400, ay - 66), "%s  x%d     FLARES  x%d" % [v.S["aam"], v.ammo[1], v.flares], 15, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_RIGHT, 400)
+	_text(Vector2(ax - 400, ay - 40), String(v.S["bomb" if v.bomber else "gun"]), 17, Color(1, 0.9, 0.7, 0.9), HORIZONTAL_ALIGNMENT_RIGHT, 400)
+	_text(Vector2(ax - 400, ay - 66), "%s  x%d     FLARES  x%d" % [v.S["cruise" if v.bomber else "aam"], v.ammo[1], v.flares], 15, Color(1, 1, 1, 0.8), HORIZONTAL_ALIGNMENT_RIGHT, 400)
 	_radar(p, v)
 	_feed(s, cq)
 	if not touch_ui:
 		if not w.has_meta("shot"):
-			_text(Vector2(0, s.y - 16), "Mouse steer · W S throttle (full: afterburner) · A D roll · Left mouse gun · Right mouse missile (lock on first) · Space flares · F2 graphics · Esc mouse", 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
+			_text(Vector2(0, s.y - 16), "Mouse steer · W S throttle (full: afterburner) · A D roll · %s · Space flares · F2 graphics · Esc mouse" % ("Left mouse bombs (on the circle) · Right mouse cruise missile (lock on an installation first)" if v.bomber else "Left mouse gun · Right mouse missile (lock on first)"), 13, Color(1, 1, 1, 0.5), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and not w.has_meta("shot"):
 			draw_rect(Rect2(0, c.y - 70, s.x, 120), Color(0, 0, 0, 0.5))
 			_text(Vector2(0, c.y - 15), "CLICK TO FLY", 40, Color(1, 1, 1), HORIZONTAL_ALIGNMENT_CENTER, s.x)
 		return
 	_touch(p, s)
+
+
+## The airbases' installations: a diamond over each (an outline on the enemy's, filled on yours, grey once knocked
+## out), its name and how far off for the enemy's within 1.6 km (yours within 600 m, or whichever you look at), and
+## its health once hurt.
+func _sites(v, cam: Camera3D, s: Vector2) -> void:
+	var c := s / 2.0
+	for st in w.ground.sites:
+		var at: Vector3 = st.global_position + Vector3(0, float(st.top) + 6.0, 0)
+		var d: float = v.global_position.distance_to(at)
+		if (st.dead and d > 1500.0) or cam.is_position_behind(at):
+			continue
+		var sp := cam.unproject_position(at)
+		if not Rect2(Vector2.ZERO, s).has_point(sp):
+			continue
+		var enemy: bool = st.team != v.team
+		var col: Color = Color(0.63, 0.63, 0.63, 0.7) if st.dead else D.TEAMS[st.team]["color"]
+		var k := 6.0
+		var pts := PackedVector2Array([sp + Vector2(0, -k), sp + Vector2(k, 0), sp + Vector2(0, k), sp + Vector2(-k, 0), sp + Vector2(0, -k)])
+		if enemy and not st.dead:
+			draw_polyline(pts, col, 2.0, true)
+		else:
+			draw_colored_polygon(pts, col)
+		if st.dead:
+			continue
+		if (enemy and d < 1600.0) or d < 600.0 or sp.distance_to(c) < 70.0:
+			_text(sp + Vector2(-90, -24), "%s %s" % [st.label, "%.1fKM" % (d / 1000.0) if d >= 1000.0 else "%dM" % int(d)], 11, Color(col, 0.9), HORIZONTAL_ALIGNMENT_CENTER, 180)
+		if st.hp < float(st.K["hp"]):
+			draw_rect(Rect2(sp + Vector2(-14, 9), Vector2(28, 3)), Color(0, 0, 0, 0.5))
+			draw_rect(Rect2(sp + Vector2(-14, 9), Vector2(28.0 * maxf(0.0, st.hp / float(st.K["hp"])), 3)), col)
 
 
 ## The radar: the jets within 4 km round you, turned so that ahead is up (red: enemies, blue: friends), and the two
@@ -609,5 +661,10 @@ func _radar(p, v) -> void:
 		var d: Vector3 = o.global_position - pp
 		var q := Vector2(d.x, d.z).rotated(-rot) * k
 		if q.length() < mr - 3.0:
-			draw_circle(mc + q, 3.0, D.TEAMS[o.team]["color"])
+			draw_circle(mc + q, 3.0 if not o.bomber else 4.5, D.TEAMS[o.team]["color"])
+	if w.ground:
+		for st in w.ground.sites:
+			var q := Vector2(st.global_position.x - pp.x, st.global_position.z - pp.z).rotated(-rot) * k
+			if q.length() < mr - 3.0:
+				draw_rect(Rect2(mc + q - Vector2(2, 2), Vector2(4, 4)), Color(0.5, 0.5, 0.5) if st.dead else D.TEAMS[st.team]["color"])
 	draw_colored_polygon(PackedVector2Array([mc + Vector2(0, -7), mc + Vector2(5, 5), mc + Vector2(-5, 5)]), Color.WHITE)

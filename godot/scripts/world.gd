@@ -18,6 +18,7 @@ const MenuScript := preload("res://scripts/menu.gd")
 const MapScript := preload("res://scripts/map.gd")
 const TerrainScript := preload("res://scripts/terrain.gd")
 const ConquestScript := preload("res://scripts/conquest.gd")
+const GroundScript := preload("res://scripts/ground.gd")
 const QNAMES := ["LOW", "MEDIUM", "HIGH", "ULTRA"]
 
 var fplus := true
@@ -32,6 +33,7 @@ var player: CharacterBody3D
 var hud: Control
 var menu: Control
 var conquest: Node
+var ground: Node = null  # (Aviation: the airbases' installations and their C-RAM guns)
 var soldiers: Array = []
 var vehicles: Array = []
 var menu_open := true
@@ -58,19 +60,22 @@ func _ready() -> void:
 			var i: int = cf.get_value("game", "map", 0)
 			if cf.get_value("game", "battle", "infantry") == "air":
 				D.use_air_map(clampi(cf.get_value("game", "air_map", 0), 0, D.AIR_MAPS.size() - 1))
+				D.air_mode = "strike" if cf.get_value("game", "air_mode", "air") == "strike" else "air"
+				D.air_plane = clampi(cf.get_value("game", "air_plane", 0), 0, 1)
 			elif i != D.map and i >= 0 and i < D.MAPS.size():
 				D.use_map(i)
 	var air := D.battle == "air"
 	ProjScript.aams.clear()
+	ProjScript.ordnance.clear()
 	method = RenderingServer.get_current_rendering_method()
 	fplus = method == "forward_plus"
 	mobile = OS.has_feature("mobile")
 	per_team = keep.get("size", (4 if mobile else 6) if air else (8 if mobile else 12))
 	difficulty = keep.get("diff", difficulty)
 	for n in ["rifle", "smg", "lmg", "sniper", "pistol", "reload", "empty", "step", "hit", "boom", "knife", "engine", "rotor", "revive",
-			"jet", "cannon", "missile", "seek", "lock", "warn"]:
+			"jet", "cannon", "missile", "seek", "lock", "warn", "cram", "beep", "beepfast", "siren"]:
 		sounds[n] = load("res://sounds/%s.wav" % n)
-	for n in ["engine", "rotor", "jet", "cannon", "seek", "lock", "warn"]:
+	for n in ["engine", "rotor", "jet", "cannon", "seek", "lock", "warn", "cram", "beep", "beepfast", "siren"]:
 		var eng: AudioStreamWAV = sounds[n]
 		eng.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		eng.loop_end = int(eng.get_length() * eng.mix_rate)
@@ -625,13 +630,13 @@ func impact(pos: Vector3, normal: Vector3, flesh := false) -> void:
 		_decals.pop_front().queue_free()
 
 
-func sound3d(n: String, pos: Vector3, db := 0.0) -> void:
+func sound3d(n: String, pos: Vector3, db := 0.0, far := 250.0) -> void:
 	var s := AudioStreamPlayer3D.new()
 	s.stream = sounds[n]
 	s.volume_db = db
 	s.pitch_scale = randf_range(0.94, 1.06)
-	s.unit_size = 14.0
-	s.max_distance = 250.0
+	s.unit_size = 14.0 if far <= 250.0 else 40.0
+	s.max_distance = far
 	add_child(s)
 	s.global_position = pos
 	s.play()
@@ -692,10 +697,16 @@ func start_match(cls: String) -> void:
 	deploy_player(cls, 0)
 
 
-## Air Superiority: per_team jets a side over their airbases, yours among Vanguard's.
+## Aviation: per_team aircraft a side over their airbases, yours among Vanguard's, and the airbases' C-RAM guns. Air
+## Superiority: all jets. Ground Strike: one in three a bomber (yours one if you picked it), and the airbases'
+## installations to bomb and guard.
 func _start_air() -> void:
-	var tk := float(D.AIR["tickets"] * per_team)
+	var strike := D.air_mode == "strike"
+	var tk: float = D.STRIKE["tickets"] if strike else float(D.AIR["tickets"] * per_team)
 	conquest.tickets = [tk, tk]
+	ground = GroundScript.new()
+	ground.build(self, strike)
+	var bombers: int = maxi(1, roundi(per_team / float(D.STRIKE["bombers"]))) if strike else 0
 	var names: Array = D.BOT_NAMES.duplicate()
 	names.shuffle()
 	var k := 0
@@ -705,9 +716,13 @@ func _start_air() -> void:
 			var j: CharacterBody3D = JetScript.new()
 			add_child(j)
 			var mine: bool = t == player.team and i == 0
-			j.setup(self, t, D.JETS[t], player.tag if mine else names[k % names.size()])
+			# (with a bomber picked, yours is the first of your side's bombers; else they're a side's last)
+			var bomb: bool = i < bombers if t == player.team and D.air_plane == 1 else i >= per_team - bombers
+			j.setup(self, t, D.BOMBERS[t] if bomb else D.JETS[t], player.tag if mine else names[k % names.size()])
 			if not mine:
 				k += 1
+			# (a third of the bot fighters in a Ground Strike go for the enemy's C-RAM guns when there's nobody near to fight)
+			j.striker = strike and not bomb and not mine and i % 3 == 1
 			vehicles.append(j)
 			if mine:
 				j.take(player)

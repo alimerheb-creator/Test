@@ -219,6 +219,28 @@ static var JETS := [
 		"accel": 30.0, "pitch": 1.1, "roll": 3.3, "yaw": 0.4, "size": 6.2, "gun": "GSH-30-1", "gun_ammo": 250,
 		"gun_cd": 0.06, "gun_dmg": 8.0, "aam": "R-73 ARCHER", "aams": 4, "flares": 30, "lock": [2400.0, 0.22, 1.1]},
 ]
+## Aviation's modes: "air" (AIR SUPERIORITY: shoot down their air force) or "strike" (GROUND STRIKE: bomb their airbase,
+## guard yours); and what you fly in a Ground Strike: a fighter (0) or a bomber (1).
+static var air_mode := "air"
+static var air_plane := 0
+## Ground Strike: each side's tickets (its installations' shares add up to them; each aircraft lost costs half a ticket
+## more), and one aircraft in this many on a side is a bomber.
+static var STRIKE := {"tickets": 100.0, "bombers": 3}
+## The bombers (Ground Strike), from the web game's Bombers mod: Vanguard's B-1B Lancer, Onyx's Tu-160 Blackjack. Their
+## flight as the jets' (slower, and they turn and roll far less); bombs: how many in the bay (and how many in a bot's
+## stick), and their blast [radius, damage, what it does to a building]; guided: how far one of these satellite-guided
+## bombs (the B-1B's JDAMs, the Tu-160's KAB-500S) steers to an installation near where it would fall;
+## cruise missiles: how many, and their seeker's [range, cone, seconds to lock on] for an installation; respawn: seconds.
+static var BOMBERS := [
+	{"name": "B-1B LANCER", "kind": "b1b", "bomber": true, "health": 560.0, "stall": 53.0, "corner": 185.0, "top": 270.0,
+		"ab": 350.0, "accel": 17.0, "pitch": 0.5, "roll": 1.1, "yaw": 0.2, "size": 11.0, "bomb": "GBU-31 JDAM", "bombs": 8,
+		"stick": 4, "blast": [17.0, 340.0, 1560.0], "guided": 25.0, "cruise": "AGM-158 JASSM", "cruises": 2, "flares": 10,
+		"lock": [1900.0, 0.35, 2.0], "respawn": 10.0},
+	{"name": "TU-160 BLACKJACK", "kind": "tu160", "bomber": true, "health": 600.0, "stall": 54.0, "corner": 190.0, "top": 280.0,
+		"ab": 370.0, "accel": 17.0, "pitch": 0.45, "roll": 1.0, "yaw": 0.18, "size": 12.0, "bomb": "KAB-500S", "bombs": 10,
+		"stick": 5, "blast": [15.0, 300.0, 1300.0], "guided": 25.0, "cruise": "KH-101", "cruises": 2, "flares": 10,
+		"lock": [2100.0, 0.35, 2.0], "respawn": 10.0},
+]
 
 
 ## Puts air map i's data in place of the current map's (no flags, buildings, roads or cover: the airbases are built
@@ -290,6 +312,11 @@ static var PROJECTILES := {
 	"aam": {"speed": 0.0, "max": 520.0, "accel": 240.0, "turn": 1.0, "gravity": 0.0, "radius": 11.0, "dmg": 110.0,
 		"fuse": 9.0, "decoy": 0.4},
 	"flare": {"speed": 0.0, "gravity": 5.0, "fuse": 3.2},
+	# a bomber's bombs (they fall from its speed, losing it to the air as they go) and its cruise missiles (they fly
+	# to the installation they were locked on to and go off on it); their blast is the bomber's
+	"bomb": {"speed": 0.0, "gravity": 20.0, "drag": 0.15, "fuse": 40.0},
+	"cruise": {"speed": 0.0, "max": 300.0, "accel": 70.0, "turn": 0.9, "gravity": 0.0, "fuse": 25.0,
+		"blast": [15.0, 320.0, 1440.0]},
 	"c4": {"speed": 11.0, "gravity": 20.0, "radius": 7.5, "dmg": 220.0, "sticky": true},
 	"crate": {"speed": 9.0, "gravity": 20.0, "bounce": 0.2},
 }
